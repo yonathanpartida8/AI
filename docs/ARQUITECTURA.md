@@ -271,7 +271,9 @@ MiProyecto/
 ## FASE 10 — Estructura de archivos
 
 ```
-/index.html               editor (único punto de entrada)
+/index.html               editor AUTOCONTENIDO (generado; funciona con doble clic)
+/dev.html                 entrada de desarrollo (ES Modules; requiere servidor)
+/scripts/build.mjs        empaqueta /src + /css → index.html (esbuild)
 /css/editor.css           UI del editor
 /src
   /editor      main.js · canvasView.js · interactions.js ·
@@ -282,10 +284,22 @@ MiProyecto/
   /animations  engine.js            (presets → WAAPI y CSS)
   /assets      assetManager.js      (galería, File API, IndexedDB)
   /exporter    exporter.js          (JSON → sitio + ZIP)
-  /storage     projectStore.js (estado+historial) · db.js (IndexedDB)
+  /storage     projectStore.js (estado+historial) · db.js (IndexedDB) ·
+               templates.js (plantilla inicial + bloques prediseñados)
   /utils       helpers.js · zip.js
 /docs/ARQUITECTURA.md
 ```
+
+### Distribución en un solo archivo
+
+`npm run build` empaqueta todos los módulos en un `index.html` autocontenido
+(CSS + JS inline, ~170 KB). Motivo: los ES Modules no funcionan sobre
+`file://`, así que un usuario que hace doble clic sobre el HTML veía una
+página en blanco. El artefacto generado funciona con doble clic, sin
+servidor y sin conexión; `dev.html` conserva la versión modular para
+desarrollo. Los assets del usuario se incrustan en el `.json` del proyecto
+(autocontenido) y se materializan como archivos reales en `assets/…` dentro
+del ZIP exportado.
 
 ## Rendimiento (aplicado, no prometido)
 

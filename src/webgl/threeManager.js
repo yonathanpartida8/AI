@@ -10,17 +10,21 @@
  *   con reproducción de las animaciones embebidas del modelo.
  * - Sin conexión / sin CDN → placeholder degradado elegante.
  *
- * El importmap de index.html mapea 'three' y 'three/addons/'.
+ * Se importa por URL completa (+esm) → funciona igual servido,
+ * empaquetado en un solo archivo o abierto con doble clic.
  * ============================================================ */
 
 import { mountParticles } from './particles.js';
+
+const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/+esm';
+const GLTF_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm';
 
 let threePromise = null;
 
 function loadThree() {
   threePromise ||= Promise.all([
-    import('three'),
-    import('three/addons/loaders/GLTFLoader.js'),
+    import(/* @vite-ignore */ THREE_URL),
+    import(/* @vite-ignore */ GLTF_URL),
   ]).then(([THREE, { GLTFLoader }]) => ({ THREE, GLTFLoader }));
   return threePromise;
 }

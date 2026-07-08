@@ -4,24 +4,31 @@ Constructor visual de sitios web profesional: diseña páginas completas con
 drag-and-drop, personaliza cada elemento, anima, dibuja, integra 3D y **exporta
 un sitio HTML/CSS/JS real en un ZIP** — sin escribir código.
 
-Vanilla JS (ES Modules), sin build, sin dependencias en el editor.
-Three.js se carga bajo demanda desde CDN solo si usas componentes 3D.
+## Ejecutar — solo doble clic
 
-## Ejecutar
+**Abre `index.html` con doble clic. Ya está.** No necesitas servidor, ni
+instalar nada, ni conexión a internet (Three.js se descarga de CDN solo si
+usas modelos 3D).
+
+El editor arranca con una **plantilla completa**: una landing larga con héroe
+de partículas, características, cita, galería, llamada a la acción y pie de
+página — lista para que la edites, no un lienzo en blanco.
+
+### Para desarrolladores
+
+El código fuente vive en `/src` (ES Modules) y se prueba con `dev.html`
+servido en local; `index.html` es el archivo autocontenido generado:
 
 ```bash
-# cualquier servidor estático vale:
-npx serve .
-# o
-python3 -m http.server 8080
+npm install
+npm run build     # regenera index.html desde /src y /css
+npm run dev       # sirve dev.html en http://localhost:8080
 ```
-
-Abre `http://localhost:8080` — el editor carga con un proyecto en blanco.
-
-> Se necesita un servidor (no `file://`) porque el editor usa ES Modules.
 
 ## Qué puedes hacer
 
+- **Bloques prediseñados**: inserta secciones completas (héroe, tarjetas,
+  galería, CTA, pie…) con un clic — la página crece sola y queda bonita.
 - **Diseñar**: arrastra 18 tipos de componentes (texto, botones, imágenes, GIFs,
   vídeos, galerías, sliders, formularios, menús, reproductores, formas,
   modelos 3D, partículas WebGL2…). Mueve, redimensiona, rota, alinea con guías
@@ -39,8 +46,14 @@ Abre `http://localhost:8080` — el editor carga con un proyecto en blanco.
 - **Exportar**: botón *Exportar sitio (.zip)* genera `index.html`, `paginas/`,
   `css/`, `js/`, `assets/` — listo para Netlify, Vercel o GitHub Pages.
 
-Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). También
-puedes descargar/importar el proyecto como `.json`.
+Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). Además:
+
+- **Guardar .json** descarga el proyecto **con tus GIFs, imágenes y vídeos
+  incrustados dentro** — un solo archivo autocontenido que puedes mover de
+  equipo y re-importar sin perder nada.
+- Al **Exportar sitio (.zip)**, tus GIFs quedan guardados como archivos
+  reales dentro de la carpeta del proyecto: `assets/gifs/`, las imágenes en
+  `assets/images/`, los vídeos en `assets/videos/`, etc.
 
 ## Atajos
 

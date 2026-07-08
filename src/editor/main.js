@@ -85,8 +85,15 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     onchange: async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      try { store.importJSON(JSON.parse(await file.text())); }
-      catch (err) { alert(`No se pudo importar: ${err.message}`); }
+      try {
+        const data = JSON.parse(await file.text());
+        // Restaura los assets incrustados (GIFs, imágenes, vídeos…)
+        if (Array.isArray(data.assetsData)) {
+          await assets.importData(data.assetsData);
+          delete data.assetsData;
+        }
+        store.importJSON(data);
+      } catch (err) { alert(`No se pudo importar: ${err.message}`); }
       e.target.value = '';
     },
   });
@@ -112,9 +119,13 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     fileInput,
     el('button', { class: 'btn', text: '⭱ Importar', title: 'Importar proyecto .json', onclick: () => fileInput.click() }),
     el('button', {
-      class: 'btn', text: '⭳ Guardar .json', title: 'Descargar el proyecto como JSON',
-      onclick: () => download(`${store.project.meta.name}.json`,
-        new Blob([JSON.stringify(store.exportJSON(), null, 2)], { type: 'application/json' })),
+      class: 'btn', text: '⭳ Guardar .json', title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
+      onclick: () => {
+        // El .json incluye los assets → el archivo es 100% autocontenido
+        const data = { ...store.exportJSON(), assetsData: assets.exportData() };
+        download(`${store.project.meta.name}.json`,
+          new Blob([JSON.stringify(data)], { type: 'application/json' }));
+      },
     }),
     el('button', {
       class: 'btn primary', text: '⬇ Exportar sitio (.zip)',
@@ -126,8 +137,12 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
     el('button', {
-      class: 'btn danger', text: '🗑', title: 'Proyecto nuevo (borra el actual)',
-      onclick: () => { if (confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) store.reset(); },
+      class: 'btn danger', text: '🗑 Nuevo', title: 'Proyecto nuevo (borra el actual)',
+      onclick: () => {
+        if (!confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) return;
+        const template = confirm('¿Empezar con la plantilla de ejemplo?\n(Aceptar = plantilla · Cancelar = lienzo en blanco)');
+        store.reset(!template);
+      },
     }),
   );
 }

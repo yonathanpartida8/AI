@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>No-Code Website Builder (dev)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/editor.css">
+  <!--
+    VERSIÓN DE DESARROLLO (ES Modules): requiere servidor estático:
+      npx serve .   ó   python3 -m http.server 8080
+    Para uso normal abre index.html (autocontenido, funciona con doble clic).
+    Regenerar index.html tras cambiar el código:  npm run build
+  -->
+</head>
+<body>
+  <header id="topbar"></header>
+  <div id="draw-toolbar-slot"></div>
+
+  <div id="workspace">
+    <aside id="left-panel"></aside>
+
+    <main id="stage-area">
+      <div id="ruler-corner"></div>
+      <div id="ruler-h-wrap"><canvas id="ruler-h"></canvas></div>
+      <div id="ruler-v-wrap"><canvas id="ruler-v"></canvas></div>
+      <div id="viewport">
+        <div id="world">
+          <div id="artboard"></div>
+          <svg id="guides"></svg>
+          <canvas id="draw-layer"></canvas>
+          <div id="overlay"></div>
+        </div>
+      </div>
+    </main>
+
+    <aside id="right-panel"></aside>
+  </div>
+
+  <script type="module" src="src/editor/main.js"></script>
+</body>
+</html>

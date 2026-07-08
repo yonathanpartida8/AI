@@ -5,16 +5,390 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>No-Code Website Builder</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/editor.css">
-  <!-- Three.js con carga perezosa: solo se descarga si el proyecto usa componentes 3D -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
+  <!-- ═══════════════════════════════════════════════════════════
+       ARCHIVO GENERADO — no editar a mano.
+       Código fuente en /src y /css. Regenerar con: npm run build
+       Este archivo es autocontenido: ábrelo con doble clic.
+       ═══════════════════════════════════════════════════════════ -->
+  <style>
+/* ============================================================
+ * css/editor.css — Interfaz del editor (tema oscuro profesional)
+ * ============================================================ */
+
+:root {
+  --bg: #0a0e1a;
+  --panel: #0f1424;
+  --panel-2: #141a2e;
+  --border: #232b42;
+  --text: #dbe2f0;
+  --text-dim: #8b94ab;
+  --accent: #6366f1;
+  --accent-2: #818cf8;
+  --danger: #ef4444;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 system-ui, -apple-system, sans-serif;
+  overscroll-behavior: none;
+}
+
+body { display: flex; flex-direction: column; }
+
+button { font: inherit; color: inherit; }
+
+/* ── Topbar ─────────────────────────────────────────── */
+
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.brand { font-weight: 800; color: var(--accent-2); white-space: nowrap; }
+.sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; flex: none; }
+.spacer { flex: 1; }
+.zoom-label { min-width: 44px; text-align: center; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.saved-dot { color: #334155; transition: color .3s; font-size: 10px; }
+.saved-dot.flash { color: #34d399; }
+
+.btn {
+  padding: 6px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.btn:hover { background: #1b2340; border-color: #33406b; }
+.btn.active, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: #4f52e0; }
+.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.block { display: block; width: 100%; margin: 8px 0; }
+.btn-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+
+.seg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.seg-btn { padding: 6px 10px; background: none; border: none; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+/* ── Layout ─────────────────────────────────────────── */
+
+#workspace { display: flex; flex: 1; min-height: 0; }
+
+#left-panel, #right-panel {
+  width: 250px;
+  flex: none;
+  background: var(--panel);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+#left-panel { border-right: 1px solid var(--border); }
+#right-panel { border-left: 1px solid var(--border); padding: 12px; }
+
+@media (max-width: 900px) {
+  #left-panel, #right-panel { width: 200px; }
+}
+
+.panel-tabs { display: flex; border-bottom: 1px solid var(--border); flex: none; }
+.tab-btn {
+  flex: 1; padding: 10px 4px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: var(--text-dim); cursor: pointer; font-size: 12px;
+}
+.tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.panel-body { padding: 12px; overflow-y: auto; }
+.panel-heading { margin: 14px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); }
+.panel-hint { margin: 10px 0; color: var(--text-dim); font-size: 12px; }
+
+/* ── Paleta de componentes ──────────────────────────── */
+
+.palette-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.palette-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 6px; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: grab; user-select: none; font-size: 12px;
+  transition: transform .12s, border-color .12s;
+}
+.palette-item:hover { border-color: var(--accent); transform: translateY(-2px); }
+.palette-item:active { cursor: grabbing; }
+.palette-icon { font-size: 20px; color: var(--accent-2); }
+
+.block-list { display: flex; flex-direction: column; gap: 6px; }
+.block-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(139,92,246,.06));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; text-align: left; font-size: 12px;
+  transition: border-color .12s, transform .12s;
+}
+.block-item:hover { border-color: var(--accent); transform: translateX(3px); }
+
+/* ── Assets ─────────────────────────────────────────── */
+
+.input {
+  width: 100%; padding: 7px 9px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius); color: var(--text);
+  font: inherit;
+}
+.input.block { margin: 8px 0; }
+.input:focus { outline: none; border-color: var(--accent); }
+
+.chip-row { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.chip {
+  padding: 4px 10px; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 999px; cursor: pointer; font-size: 12px;
+}
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.asset-card {
+  position: relative; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; cursor: grab;
+}
+.asset-card:hover { border-color: var(--accent); }
+.asset-thumb { display: block; width: 100%; height: 72px; object-fit: cover; background: #000; }
+.asset-thumb.kind-icon { display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.asset-name {
+  display: block; padding: 4px 6px; font-size: 11px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.asset-del {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+  border: none; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff;
+  cursor: pointer; display: none;
+}
+.asset-card:hover .asset-del { display: block; }
+
+/* ── Páginas y capas ────────────────────────────────── */
+
+.page-list, .layer-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.page-item, .layer-item {
+  display: flex; align-items: center; gap: 6px; padding: 7px 9px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer;
+}
+.page-item.active, .layer-item.active { border-color: var(--accent); background: rgba(99,102,241,.12); }
+.page-name, .layer-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-icon { color: var(--accent-2); flex: none; }
+.page-actions, .layer-actions { display: flex; gap: 2px; flex: none; }
+.page-actions button, .layer-actions button {
+  width: 20px; height: 20px; padding: 0; background: none; border: none;
+  color: var(--text-dim); cursor: pointer; border-radius: 4px; font-size: 11px;
+}
+.page-actions button:hover, .layer-actions button:hover { background: var(--border); color: var(--text); }
+
+/* ── Panel de propiedades ───────────────────────────── */
+
+.props-title { margin-bottom: 6px; font-size: 14px; }
+.name-input { font-weight: 700; }
+.device-note { margin-bottom: 10px; font-size: 11px; color: var(--accent-2); }
+
+.props-section { margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); }
+.props-section summary {
+  padding: 8px 10px; cursor: pointer; font-weight: 600; font-size: 12px;
+  list-style: none; user-select: none;
+}
+.props-section summary::before { content: '▸ '; color: var(--text-dim); }
+.props-section[open] summary::before { content: '▾ '; }
+.props-section-body { padding: 4px 10px 10px; }
+
+.field { display: block; margin-bottom: 8px; }
+.field-label { display: block; margin-bottom: 3px; font-size: 11px; color: var(--text-dim); }
+.field.check { display: flex; align-items: center; gap: 8px; }
+.field.check .field-label { margin: 0; }
+
+.frame-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.color-field { display: flex; gap: 6px; }
+.color-field input[type="color"] { width: 34px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
+.color-field .input { flex: 1; }
+
+.event-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+.event-row > :nth-child(3) { grid-column: 1; }
+.mini-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.mini-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;
+  background: var(--border); border-radius: 999px; font-size: 11px;
+}
+.mini-chip button { border: none; background: none; color: var(--text-dim); cursor: pointer; }
+
+/* ── Lienzo ─────────────────────────────────────────── */
+
+#stage-area {
+  position: relative; flex: 1; min-width: 0;
+  display: grid;
+  grid-template: 24px 1fr / 24px 1fr;
+}
+#ruler-corner { background: var(--panel); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); z-index: 3; }
+#ruler-h-wrap { overflow: hidden; border-bottom: 1px solid var(--border); z-index: 2; }
+#ruler-v-wrap { overflow: hidden; border-right: 1px solid var(--border); z-index: 2; }
+#ruler-h, #ruler-v { display: block; }
+
+#viewport {
+  position: relative; overflow: hidden; touch-action: none;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(99,102,241,.06), transparent 45%),
+    var(--bg);
+  cursor: default;
+}
+#viewport.panning { cursor: grab; }
+
+#world { position: absolute; top: 0; left: 0; transform-origin: 0 0; --izoom: 1; }
+
+#artboard {
+  position: absolute; top: 0; left: 0;
+  background: #0b1020;
+  box-shadow: 0 0 0 1px var(--border), 0 30px 80px rgba(0,0,0,.55);
+  overflow: hidden;
+}
+#artboard.show-grid {
+  background-image:
+    linear-gradient(rgba(148,163,184,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,163,184,.06) 1px, transparent 1px);
+  background-size: var(--grid-size, 8px) var(--grid-size, 8px);
+}
+
+#guides { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; z-index: 40; }
+#guides line { stroke: #f472b6; stroke-width: calc(1px * var(--izoom, 1)); stroke-dasharray: 4 3; }
+
+#draw-layer { position: absolute; top: 0; left: 0; z-index: 50; pointer-events: none; touch-action: none; }
+#draw-layer.active { pointer-events: auto; cursor: crosshair; }
+
+#overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 60; }
+
+/* Nodos dentro del artboard */
+.wb-node { position: absolute; user-select: none; }
+.wb-node .wb-text { width: 100%; height: 100%; font: inherit; color: inherit; text-align: inherit; outline: none; }
+.wb-btn {
+  width: 100%; height: 100%; font: inherit; color: inherit; text-align: inherit;
+  background: inherit; border: none; border-radius: inherit; cursor: default; pointer-events: none;
+}
+.wb-icon { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: inherit; }
+.wb-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; height: 100%; border: 2px dashed #334155; border-radius: inherit;
+  color: #64748b; font-weight: 600; text-align: center; padding: 8px;
+}
+.wb-placeholder small { font-weight: 400; font-size: 11px; }
+.wb-tag-label {
+  position: absolute; top: 4px; left: 6px; font-size: 10px; color: rgba(148,163,184,.6);
+  pointer-events: none;
+}
+.wb-slider { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
+.wb-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.wb-slide.active { opacity: 1; }
+.wb-form { display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 20px; border-radius: inherit; background: inherit; color: inherit; overflow: hidden; }
+.wb-form input, .wb-form textarea {
+  padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,.35);
+  background: rgba(148,163,184,.1); color: inherit; font: inherit; pointer-events: none;
+}
+.wb-form button { padding: 12px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; pointer-events: none; }
+.wb-menu { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; padding: 0 28px; border-radius: inherit; background: inherit; }
+.wb-menu-links { display: flex; gap: 22px; }
+.wb-menu a { color: inherit; text-decoration: none; opacity: .85; pointer-events: none; }
+.wb-player { display: flex; gap: 14px; align-items: center; width: 100%; height: 100%; padding: 14px; border-radius: inherit; background: inherit; color: inherit; }
+.wb-player-disc {
+  display: flex; width: 56px; height: 56px; flex: none; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(255,255,255,.15); font-size: 24px;
+  animation: wb-disc-spin 6s linear infinite;
+}
+@keyframes wb-disc-spin { to { transform: rotate(360deg); } }
+.wb-player-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.wb-player-info span, .wb-player-info small { opacity: .7; font-size: 12px; }
+.wb-3d, .wb-particles { display: block; width: 100%; height: 100%; border-radius: inherit; }
+.wb-3d canvas { border-radius: inherit; }
+.wb-3d-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; height: 100%; color: #64748b; text-align: center; gap: 6px;
+  background: radial-gradient(circle, rgba(99,102,241,.12), transparent 70%);
+  border-radius: inherit; font-size: 22px;
+}
+.wb-3d-loading small { font-size: 11px; }
+.wb-gallery img { border-radius: 6px; }
+.wb-node.locked { outline: 1px dashed rgba(148,163,184,.4); }
+
+/* ── Selección y tiradores ──────────────────────────── */
+
+.sel-box {
+  position: absolute; pointer-events: none;
+  outline: calc(1.5px * var(--izoom, 1)) solid var(--accent-2);
+}
+.sel-box.locked { outline-style: dashed; }
+.handle {
+  position: absolute; width: 10px; height: 10px;
+  background: #fff; border: 1.5px solid var(--accent);
+  border-radius: 3px; pointer-events: auto;
+  transform: translate(-50%, -50%) scale(var(--izoom, 1));
+}
+.h-nw { top: 0; left: 0; cursor: nwse-resize; }
+.h-n  { top: 0; left: 50%; cursor: ns-resize; }
+.h-ne { top: 0; left: 100%; cursor: nesw-resize; }
+.h-e  { top: 50%; left: 100%; cursor: ew-resize; }
+.h-se { top: 100%; left: 100%; cursor: nwse-resize; }
+.h-s  { top: 100%; left: 50%; cursor: ns-resize; }
+.h-sw { top: 100%; left: 0; cursor: nesw-resize; }
+.h-w  { top: 50%; left: 0; cursor: ew-resize; }
+.h-rotate {
+  top: -22px; left: 50%; border-radius: 50%; cursor: grab;
+  background: var(--accent); border-color: #fff;
+}
+.sel-label {
+  position: absolute; bottom: 100%; left: 0; margin-bottom: 26px;
+  padding: 2px 7px; background: var(--accent); color: #fff;
+  border-radius: 5px; font-size: 11px; white-space: nowrap;
+  transform: scale(var(--izoom, 1)); transform-origin: bottom left;
+}
+
+#marquee {
+  position: absolute; border: 1px solid var(--accent-2);
+  background: rgba(99,102,241,.12); pointer-events: none; z-index: 70;
+}
+
+/* ── Barra de dibujo ────────────────────────────────── */
+
+.draw-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--panel-2); border-bottom: 1px solid var(--border);
+}
+.draw-toolbar label { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 12px; }
+.draw-toolbar input[type="color"] { width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; }
+
+/* ── Modo vista previa ──────────────────────────────── */
+
+body.preview #left-panel,
+body.preview #right-panel,
+body.preview #overlay,
+body.preview #ruler-h-wrap,
+body.preview #ruler-v-wrap,
+body.preview #ruler-corner { display: none; }
+body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
+body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
+body.preview .wb-form textarea, body.preview .wb-form button { pointer-events: auto; cursor: pointer; }
+body.preview .wb-node { user-select: text; }
+body.preview .wb-placeholder { opacity: .25; }
+
+/* ── Scrollbars ─────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+  </style>
 </head>
 <body>
   <header id="topbar"></header>
@@ -40,6 +414,3810 @@
     <aside id="right-panel"></aside>
   </div>
 
-  <script type="module" src="src/editor/main.js"></script>
+  <script>
+(() => {
+  // src/utils/helpers.js
+  var _uidCounter = 0;
+  function uid(prefix = "id") {
+    _uidCounter = (_uidCounter + 1) % 1e6;
+    return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}_${_uidCounter}`;
+  }
+  var clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  var deepClone = (obj) => typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+  function debounce(fn, ms = 300) {
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  }
+  function throttleRAF(fn) {
+    let scheduled = false, lastArgs = null;
+    return (...args) => {
+      lastArgs = args;
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        fn(...lastArgs);
+      });
+    };
+  }
+  function esc(str = "") {
+    return String(str).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+  }
+  var EventBus = class {
+    #listeners = /* @__PURE__ */ new Map();
+    on(event, cb) {
+      if (!this.#listeners.has(event)) this.#listeners.set(event, /* @__PURE__ */ new Set());
+      this.#listeners.get(event).add(cb);
+      return () => this.off(event, cb);
+    }
+    off(event, cb) {
+      this.#listeners.get(event)?.delete(cb);
+    }
+    emit(event, payload) {
+      this.#listeners.get(event)?.forEach((cb) => {
+        try {
+          cb(payload);
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    }
+  };
+  function el(tag, attrs = {}, children = []) {
+    const node2 = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null) continue;
+      if (k === "class") node2.className = v;
+      else if (k === "style" && typeof v === "object") Object.assign(node2.style, v);
+      else if (k === "dataset") Object.assign(node2.dataset, v);
+      else if (k.startsWith("on") && typeof v === "function") node2.addEventListener(k.slice(2), v);
+      else if (k === "html") node2.innerHTML = v;
+      else if (k === "text") node2.textContent = v;
+      else node2.setAttribute(k, v);
+    }
+    for (const child of [].concat(children)) {
+      if (child == null) continue;
+      node2.append(child instanceof Node ? child : document.createTextNode(child));
+    }
+    return node2;
+  }
+  function download(filename, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = el("a", { href: url, download: filename });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5e3);
+  }
+  function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+  function dataURLToBytes(dataURL) {
+    const base64 = dataURL.slice(dataURL.indexOf(",") + 1);
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function getPath(obj, path) {
+    return path.split(".").reduce((o, k) => o == null ? void 0 : o[k], obj);
+  }
+  function setPath(obj, path, value) {
+    const keys = path.split(".");
+    let cur = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {};
+      cur = cur[keys[i]];
+    }
+    cur[keys.at(-1)] = value;
+  }
+  function formatBytes(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  }
+  function slugify(str) {
+    return String(str).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "pagina";
+  }
+
+  // src/components/registry.js
+  var FONTS = ["system-ui", "Georgia", "Courier New", "Arial Black", "Trebuchet MS", "Verdana"];
+  var num = (key, label, min = 0, max = 400, step = 1) => ({ key, label, type: "number", min, max, step });
+  var color = (key, label) => ({ key, label, type: "color" });
+  var select = (key, label, options) => ({ key, label, type: "select", options });
+  var check = (key, label) => ({ key, label, type: "checkbox" });
+  var text = (key, label) => ({ key, label, type: "text" });
+  var asset = (key, label, kind) => ({ key, label, type: "asset", kind });
+  var STYLE_COMMON = [
+    color("styles.background", "Fondo"),
+    num("styles.radius", "Radio de borde", 0, 200),
+    num("styles.borderWidth", "Grosor de borde", 0, 20),
+    color("styles.borderColor", "Color de borde"),
+    select("styles.shadow", "Sombra", ["ninguna", "suave", "media", "fuerte", "ne\xF3n"]),
+    num("styles.blur", "Desenfoque fondo", 0, 40)
+  ];
+  var TEXT_STYLE = [
+    select("styles.fontFamily", "Fuente", FONTS),
+    num("styles.fontSize", "Tama\xF1o de letra", 8, 200),
+    select("styles.fontWeight", "Peso", ["300", "400", "600", "700", "900"]),
+    color("styles.color", "Color de texto"),
+    select("styles.textAlign", "Alineaci\xF3n", ["left", "center", "right"]),
+    num("styles.letterSpacing", "Espaciado letras", -5, 30, 0.5)
+  ];
+  var Components = {
+    /* ── Elementos básicos ─────────────────────────────── */
+    text: {
+      label: "Texto",
+      icon: "T",
+      cat: "B\xE1sicos",
+      size: [320, 60],
+      defaults: {
+        props: { text: "Doble clic para editar", tag: "p" },
+        styles: { fontSize: 28, color: "#e2e8f0", fontWeight: "600", textAlign: "left", fontFamily: "system-ui" }
+      },
+      schema: [
+        { key: "props.text", label: "Contenido", type: "textarea" },
+        select("props.tag", "Etiqueta HTML", ["h1", "h2", "h3", "p", "span"]),
+        ...TEXT_STYLE
+      ]
+    },
+    button: {
+      label: "Bot\xF3n",
+      icon: "\u25AD",
+      cat: "B\xE1sicos",
+      size: [180, 52],
+      defaults: {
+        props: { text: "Haz clic" },
+        styles: {
+          fontSize: 16,
+          color: "#ffffff",
+          fontWeight: "700",
+          textAlign: "center",
+          fontFamily: "system-ui",
+          background: "#6366f1",
+          radius: 10,
+          shadow: "suave"
+        }
+      },
+      schema: [text("props.text", "Texto del bot\xF3n"), ...TEXT_STYLE, ...STYLE_COMMON]
+    },
+    image: {
+      label: "Imagen",
+      icon: "\u{1F5BC}",
+      cat: "B\xE1sicos",
+      size: [320, 220],
+      accepts: ["image"],
+      defaults: {
+        props: { assetId: null, fit: "cover", alt: "Imagen", filter: "ninguno", filterAmount: 100 },
+        styles: { radius: 8 }
+      },
+      schema: [
+        asset("props.assetId", "Imagen", "image"),
+        select("props.fit", "Ajuste", ["cover", "contain", "fill"]),
+        select("props.filter", "Filtro", ["ninguno", "grises", "sepia", "brillo", "contraste", "saturado", "invertido"]),
+        num("props.filterAmount", "Intensidad filtro %", 0, 200),
+        text("props.alt", "Texto alternativo"),
+        ...STYLE_COMMON
+      ]
+    },
+    gif: {
+      label: "GIF",
+      icon: "\u{1F39E}",
+      cat: "B\xE1sicos",
+      size: [280, 210],
+      accepts: ["gif"],
+      defaults: {
+        props: { assetId: null, playing: true, speed: 1, fit: "cover" },
+        styles: { radius: 8 }
+      },
+      schema: [
+        asset("props.assetId", "GIF animado", "gif"),
+        check("props.playing", "Reproduciendo (loop infinito)"),
+        select("props.fit", "Ajuste", ["cover", "contain", "fill"]),
+        ...STYLE_COMMON
+      ]
+    },
+    video: {
+      label: "V\xEDdeo",
+      icon: "\u25B6",
+      cat: "B\xE1sicos",
+      size: [420, 240],
+      accepts: ["video"],
+      defaults: {
+        props: { assetId: null, autoplay: true, loop: true, muted: true, controls: false, playOnScroll: false },
+        styles: { radius: 10 }
+      },
+      schema: [
+        asset("props.assetId", "V\xEDdeo MP4/WebM", "video"),
+        check("props.autoplay", "Autoplay"),
+        check("props.loop", "Loop"),
+        check("props.muted", "Silenciado"),
+        check("props.controls", "Mostrar controles"),
+        check("props.playOnScroll", "Reproducir al entrar en pantalla"),
+        ...STYLE_COMMON
+      ]
+    },
+    audio: {
+      label: "Audio",
+      icon: "\u266B",
+      cat: "B\xE1sicos",
+      size: [320, 60],
+      accepts: ["audio"],
+      defaults: { props: { assetId: null, autoplay: false, loop: false }, styles: { radius: 30, background: "#1e293b" } },
+      schema: [asset("props.assetId", "Archivo de audio", "audio"), check("props.autoplay", "Autoplay"), check("props.loop", "Loop")]
+    },
+    icon: {
+      label: "Icono",
+      icon: "\u2605",
+      cat: "B\xE1sicos",
+      size: [64, 64],
+      defaults: { props: { glyph: "\u2605" }, styles: { fontSize: 48, color: "#fbbf24", textAlign: "center" } },
+      schema: [text("props.glyph", "Emoji / car\xE1cter"), num("styles.fontSize", "Tama\xF1o", 12, 300), color("styles.color", "Color")]
+    },
+    shape: {
+      label: "Forma",
+      icon: "\u25C6",
+      cat: "B\xE1sicos",
+      size: [180, 180],
+      defaults: { props: { shape: "rect\xE1ngulo" }, styles: { background: "#8b5cf6", radius: 12 } },
+      schema: [
+        select("props.shape", "Forma", ["rect\xE1ngulo", "c\xEDrculo", "tri\xE1ngulo", "rombo", "estrella", "hex\xE1gono"]),
+        ...STYLE_COMMON
+      ]
+    },
+    container: {
+      label: "Contenedor",
+      icon: "\u25A2",
+      cat: "B\xE1sicos",
+      size: [480, 300],
+      defaults: { props: {}, styles: { background: "rgba(148,163,184,.08)", radius: 16, borderWidth: 1, borderColor: "rgba(148,163,184,.25)" } },
+      schema: [...STYLE_COMMON]
+    },
+    section: {
+      label: "Secci\xF3n",
+      icon: "\u2630",
+      cat: "B\xE1sicos",
+      size: [1280, 420],
+      defaults: { props: {}, styles: { background: "linear-gradient(135deg,#0f172a,#1e1b4b)" } },
+      schema: [text("styles.background", "Fondo (color o gradiente CSS)"), ...STYLE_COMMON.slice(1)]
+    },
+    /* ── Elementos avanzados ───────────────────────────── */
+    gallery: {
+      label: "Galer\xEDa",
+      icon: "\u229E",
+      cat: "Avanzados",
+      size: [560, 380],
+      accepts: ["image", "gif"],
+      defaults: { props: { assetIds: [], columns: 3, gap: 10 }, styles: { radius: 8 } },
+      schema: [
+        { key: "props.assetIds", label: "Im\xE1genes", type: "assetList", kind: "image" },
+        num("props.columns", "Columnas", 1, 6),
+        num("props.gap", "Separaci\xF3n", 0, 60),
+        ...STYLE_COMMON
+      ]
+    },
+    slider: {
+      label: "Slider",
+      icon: "\u21C4",
+      cat: "Avanzados",
+      size: [560, 320],
+      accepts: ["image", "gif"],
+      defaults: { props: { assetIds: [], interval: 3e3, transition: "fade" }, styles: { radius: 12 } },
+      schema: [
+        { key: "props.assetIds", label: "Diapositivas", type: "assetList", kind: "image" },
+        num("props.interval", "Intervalo (ms)", 500, 2e4, 100),
+        select("props.transition", "Transici\xF3n", ["fade", "slide"]),
+        ...STYLE_COMMON
+      ]
+    },
+    form: {
+      label: "Formulario",
+      icon: "\u2709",
+      cat: "Avanzados",
+      size: [400, 380],
+      defaults: {
+        props: { title: "Contacto", buttonText: "Enviar", fields: "Nombre,Email,Mensaje" },
+        styles: { background: "#0f172a", radius: 16, color: "#e2e8f0", fontFamily: "system-ui" }
+      },
+      schema: [
+        text("props.title", "T\xEDtulo"),
+        text("props.fields", "Campos (separados por coma)"),
+        text("props.buttonText", "Texto del bot\xF3n"),
+        ...STYLE_COMMON
+      ]
+    },
+    menu: {
+      label: "Men\xFA",
+      icon: "\u2261",
+      cat: "Avanzados",
+      size: [1280, 64],
+      defaults: {
+        props: { brand: "Mi Sitio" },
+        styles: { background: "rgba(15,23,42,.85)", color: "#e2e8f0", fontFamily: "system-ui", fontSize: 15 }
+      },
+      schema: [text("props.brand", "Nombre / logo"), ...TEXT_STYLE, ...STYLE_COMMON]
+    },
+    musicPlayer: {
+      label: "Reproductor",
+      icon: "\u{1F3B5}",
+      cat: "Avanzados",
+      size: [360, 110],
+      accepts: ["audio"],
+      defaults: {
+        props: { assetId: null, title: "Mi canci\xF3n", artist: "Artista" },
+        styles: { background: "linear-gradient(135deg,#312e81,#6d28d9)", radius: 18, color: "#fff" }
+      },
+      schema: [asset("props.assetId", "Pista de audio", "audio"), text("props.title", "T\xEDtulo"), text("props.artist", "Artista"), ...STYLE_COMMON]
+    },
+    model3d: {
+      label: "Modelo 3D",
+      icon: "\u2B21",
+      cat: "Avanzados",
+      size: [420, 360],
+      accepts: ["model"],
+      defaults: {
+        props: {
+          assetId: null,
+          autoRotate: true,
+          rotateSpeed: 1,
+          cameraZ: 4,
+          lightColor: "#ffffff",
+          lightIntensity: 2,
+          background: "transparente",
+          playAnimations: true
+        },
+        styles: { radius: 12 }
+      },
+      schema: [
+        asset("props.assetId", "Modelo GLB/GLTF", "model"),
+        check("props.autoRotate", "Rotaci\xF3n autom\xE1tica"),
+        num("props.rotateSpeed", "Velocidad rotaci\xF3n", 0, 10, 0.1),
+        num("props.cameraZ", "Distancia de c\xE1mara", 1, 20, 0.1),
+        color("props.lightColor", "Color de luz"),
+        num("props.lightIntensity", "Intensidad de luz", 0, 10, 0.1),
+        check("props.playAnimations", "Reproducir animaciones del modelo"),
+        ...STYLE_COMMON
+      ]
+    },
+    particles: {
+      label: "Part\xEDculas",
+      icon: "\u2726",
+      cat: "Avanzados",
+      size: [640, 400],
+      defaults: {
+        props: { count: 400, color: "#818cf8", speed: 1, size: 2, mode: "nebulosa" },
+        styles: { background: "#020617", radius: 12 }
+      },
+      schema: [
+        num("props.count", "Cantidad", 10, 5e3, 10),
+        color("props.color", "Color"),
+        num("props.speed", "Velocidad", 0.1, 10, 0.1),
+        num("props.size", "Tama\xF1o", 0.5, 20, 0.5),
+        select("props.mode", "Modo", ["nebulosa", "lluvia", "\xF3rbita"]),
+        ...STYLE_COMMON
+      ]
+    },
+    drawing: {
+      label: "Dibujo",
+      icon: "\u270E",
+      cat: "Avanzados",
+      size: [320, 240],
+      accepts: ["image"],
+      defaults: { props: { assetId: null, fit: "contain" }, styles: {} },
+      schema: [asset("props.assetId", "Trazo exportado", "image"), ...STYLE_COMMON]
+    }
+  };
+  var CATEGORIES = ["B\xE1sicos", "Avanzados"];
+  function componentDef(type) {
+    return Components[type] || Components.shape;
+  }
+  function createNodeData(type, overrides = {}) {
+    const def = componentDef(type);
+    return {
+      type,
+      name: def.label,
+      base: { x: 60, y: 60, w: def.size[0], h: def.size[1], rotation: 0, scale: 1, opacity: 1 },
+      responsive: {},
+      // { tablet:{x,y,w,h…}, mobile:{…} }
+      styles: { ...def.defaults.styles || {} },
+      props: JSON.parse(JSON.stringify(def.defaults.props || {})),
+      animation: { preset: "ninguna", trigger: "load", duration: 800, delay: 0, loop: false, easing: "ease-out" },
+      events: [],
+      // [{ on:'click', action:'goToPage', target:'pg_…' }]
+      locked: false,
+      hidden: false,
+      ...overrides
+    };
+  }
+
+  // src/storage/templates.js
+  var W = 1280;
+  function node(type, frame, { styles = {}, props = {}, animation = {}, name } = {}) {
+    const data = createNodeData(type);
+    data.id = uid("nd");
+    Object.assign(data.base, frame);
+    Object.assign(data.styles, styles);
+    Object.assign(data.props, props);
+    Object.assign(data.animation, animation);
+    if (name) data.name = name;
+    return data;
+  }
+  var scroll = (preset, delay = 0, extra = {}) => ({ preset, trigger: "scroll", duration: 900, delay, ...extra });
+  var load = (preset, delay = 0, extra = {}) => ({ preset, trigger: "load", duration: 900, delay, ...extra });
+  function heroBlock(y) {
+    const nodes = [
+      node("section", { x: 0, y, w: W, h: 780 }, {
+        name: "Fondo h\xE9roe",
+        styles: { background: "linear-gradient(160deg,#0f0c29 0%,#1c1548 45%,#0b1020 100%)" }
+      }),
+      node("particles", { x: 0, y, w: W, h: 780 }, {
+        name: "Part\xEDculas h\xE9roe",
+        styles: { background: "transparent", radius: 0 },
+        props: { count: 500, color: "#8b5cf6", speed: 0.8, size: 2.5, mode: "nebulosa" }
+      }),
+      node("shape", { x: 92, y: y + 120, w: 120, h: 120, opacity: 0.55 }, {
+        name: "Esfera decorativa",
+        styles: { background: "radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)", radius: 0 },
+        props: { shape: "c\xEDrculo" },
+        animation: load("float", 0, { loop: true, duration: 4200, easing: "ease-in-out" })
+      }),
+      node("shape", { x: 1070, y: y + 480, w: 95, h: 95, opacity: 0.5 }, {
+        name: "Rombo decorativo",
+        styles: { background: "linear-gradient(135deg,#38bdf8,#6366f1)", radius: 0 },
+        props: { shape: "rombo" },
+        animation: load("float", 700, { loop: true, duration: 5e3, easing: "ease-in-out" })
+      }),
+      node("text", { x: 190, y: y + 230, w: 900, h: 160 }, {
+        name: "T\xEDtulo h\xE9roe",
+        props: { text: "Dise\xF1os que enamoran\na primera vista", tag: "h1" },
+        styles: { fontSize: 58, fontWeight: "900", textAlign: "center", color: "#f8fafc", letterSpacing: -1 },
+        animation: load("fadeInUp")
+      }),
+      node("text", { x: 320, y: y + 420, w: 640, h: 64 }, {
+        name: "Subt\xEDtulo h\xE9roe",
+        props: { text: "Crea sitios espectaculares arrastrando y soltando.\nSin escribir una sola l\xEDnea de c\xF3digo.", tag: "p" },
+        styles: { fontSize: 19, fontWeight: "400", textAlign: "center", color: "#c7d2fe" },
+        animation: load("fadeInUp", 250)
+      }),
+      node("button", { x: 530, y: y + 540, w: 220, h: 58 }, {
+        name: "Bot\xF3n h\xE9roe",
+        props: { text: "Empezar ahora" },
+        styles: { fontSize: 17, fontWeight: "800", textAlign: "center", color: "#ffffff", background: "linear-gradient(90deg,#8b5cf6,#ec4899)", radius: 29, shadow: "ne\xF3n" },
+        animation: load("zoomIn", 500)
+      })
+    ];
+    return { height: 780, nodes };
+  }
+  function featuresBlock(y) {
+    const cards = [
+      ["\u{1F3A8}", "Dise\xF1o visual", "Arrastra, suelta y personaliza cada detalle con libertad total."],
+      ["\u26A1", "Animaciones", "Efectos y transiciones fluidas a 60 fps con un solo clic."],
+      ["\u{1F4F1}", "Responsive", "Tu sitio se ve perfecto en m\xF3vil, tablet y escritorio."]
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
+        name: "T\xEDtulo caracter\xEDsticas",
+        props: { text: "Todo lo que necesitas", tag: "h2" },
+        styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    cards.forEach(([icon, title, text2], i) => {
+      const x = 70 + i * 400;
+      nodes.push(
+        node("container", { x, y: y + 190, w: 340, h: 330 }, {
+          name: `Tarjeta ${title}`,
+          styles: { background: "rgba(139,92,246,.08)", radius: 22, borderWidth: 1, borderColor: "rgba(139,92,246,.35)", shadow: "suave" },
+          animation: scroll("fadeInUp", i * 160)
+        }),
+        node("icon", { x: x + 130, y: y + 225, w: 80, h: 80 }, {
+          name: `Icono ${title}`,
+          props: { glyph: icon },
+          styles: { fontSize: 50 },
+          animation: scroll("zoomIn", i * 160 + 120)
+        }),
+        node("text", { x: x + 20, y: y + 320, w: 300, h: 40 }, {
+          name: `T\xEDtulo ${title}`,
+          props: { text: title, tag: "h3" },
+          styles: { fontSize: 22, fontWeight: "700", textAlign: "center", color: "#e2e8f0" },
+          animation: scroll("fadeInUp", i * 160 + 160)
+        }),
+        node("text", { x: x + 30, y: y + 370, w: 280, h: 110 }, {
+          name: `Texto ${title}`,
+          props: { text: text2, tag: "p" },
+          styles: { fontSize: 15, fontWeight: "400", textAlign: "center", color: "#94a3b8" },
+          animation: scroll("fadeInUp", i * 160 + 200)
+        })
+      );
+    });
+    return { height: 590, nodes };
+  }
+  function quoteBlock(y) {
+    return {
+      height: 360,
+      nodes: [
+        node("section", { x: 0, y, w: W, h: 360 }, {
+          name: "Fondo cita",
+          styles: { background: "linear-gradient(90deg,#0b1020,#1e1b4b,#0b1020)" }
+        }),
+        node("icon", { x: 600, y: y + 48, w: 80, h: 64 }, {
+          name: "Comillas",
+          props: { glyph: "\u275D" },
+          styles: { fontSize: 52, color: "#8b5cf6" },
+          animation: scroll("zoomIn")
+        }),
+        node("text", { x: 240, y: y + 140, w: 800, h: 110 }, {
+          name: "Cita",
+          props: { text: "\u201CUna herramienta que convierte ideas\nen sitios reales en cuesti\xF3n de minutos.\u201D", tag: "p" },
+          styles: { fontSize: 28, fontWeight: "400", textAlign: "center", color: "#e0e7ff", fontFamily: "Georgia" },
+          animation: scroll("blurIn", 150, { duration: 1200 })
+        })
+      ]
+    };
+  }
+  function galleryBlock(y) {
+    const gradients = [
+      "linear-gradient(135deg,#7c3aed,#db2777)",
+      "linear-gradient(135deg,#0ea5e9,#6366f1)",
+      "linear-gradient(135deg,#f59e0b,#ef4444)",
+      "linear-gradient(135deg,#10b981,#0ea5e9)",
+      "linear-gradient(135deg,#ec4899,#f97316)",
+      "linear-gradient(135deg,#6366f1,#a855f7)"
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
+        name: "T\xEDtulo galer\xEDa",
+        props: { text: "Galer\xEDa", tag: "h2" },
+        styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+        animation: scroll("fadeInUp")
+      }),
+      node("text", { x: 340, y: y + 135, w: 600, h: 34 }, {
+        name: "Subt\xEDtulo galer\xEDa",
+        props: { text: "Sustituye estas piezas por tus fotos o GIFs desde la pesta\xF1a Assets", tag: "p" },
+        styles: { fontSize: 14, fontWeight: "400", textAlign: "center", color: "#64748b" },
+        animation: scroll("fadeIn", 150)
+      })
+    ];
+    for (let i = 0; i < 6; i++) {
+      const col = i % 3, row = Math.floor(i / 3);
+      nodes.push(node("shape", { x: 85 + col * 380, y: y + 210 + row * 205, w: 350, h: 185 }, {
+        name: `Pieza galer\xEDa ${i + 1}`,
+        styles: { background: gradients[i], radius: 16, shadow: "media" },
+        animation: scroll("zoomIn", i * 90)
+      }));
+    }
+    return { height: 680, nodes };
+  }
+  function ctaBlock(y) {
+    return {
+      height: 430,
+      nodes: [
+        node("container", { x: 100, y: y + 65, w: 1080, h: 300 }, {
+          name: "Panel CTA",
+          styles: { background: "linear-gradient(120deg,#4f46e5,#9333ea,#db2777)", radius: 30, shadow: "fuerte" },
+          animation: scroll("zoomIn")
+        }),
+        node("text", { x: 240, y: y + 135, w: 800, h: 66 }, {
+          name: "T\xEDtulo CTA",
+          props: { text: "\xBFListo para crear algo incre\xEDble?", tag: "h2" },
+          styles: { fontSize: 34, fontWeight: "800", textAlign: "center", color: "#ffffff" },
+          animation: scroll("fadeInUp", 150)
+        }),
+        node("button", { x: 530, y: y + 235, w: 220, h: 54 }, {
+          name: "Bot\xF3n CTA",
+          props: { text: "Comienza gratis" },
+          styles: { fontSize: 16, fontWeight: "800", textAlign: "center", color: "#4f46e5", background: "#ffffff", radius: 27, shadow: "media" },
+          animation: load("pulse", 0, { loop: true, duration: 1800, easing: "ease-in-out" })
+        })
+      ]
+    };
+  }
+  function footerBlock(y) {
+    return {
+      height: 300,
+      nodes: [
+        node("section", { x: 0, y, w: W, h: 300 }, { name: "Fondo pie", styles: { background: "#080b14" } }),
+        node("text", { x: 90, y: y + 66, w: 320, h: 44 }, {
+          name: "Marca pie",
+          props: { text: "\u25C6 Mi Sitio", tag: "h3" },
+          styles: { fontSize: 24, fontWeight: "800", textAlign: "left", color: "#e2e8f0" }
+        }),
+        node("text", { x: 90, y: y + 118, w: 420, h: 30 }, {
+          name: "Lema pie",
+          props: { text: "Hecho con \u25C6 No-Code Builder", tag: "p" },
+          styles: { fontSize: 14, fontWeight: "400", textAlign: "left", color: "#64748b" }
+        }),
+        node("text", { x: 830, y: y + 78, w: 360, h: 30 }, {
+          name: "Enlaces pie",
+          props: { text: "Inicio \xB7 Servicios \xB7 Galer\xEDa \xB7 Contacto", tag: "p" },
+          styles: { fontSize: 15, fontWeight: "400", textAlign: "right", color: "#94a3b8" }
+        }),
+        node("shape", { x: 90, y: y + 182, w: 1100, h: 2 }, {
+          name: "Separador pie",
+          styles: { background: "rgba(148,163,184,.15)", radius: 0 }
+        }),
+        node("text", { x: 340, y: y + 218, w: 600, h: 30 }, {
+          name: "Copyright",
+          props: { text: "\xA9 2026 \u2014 Todos los derechos reservados", tag: "p" },
+          styles: { fontSize: 13, fontWeight: "400", textAlign: "center", color: "#475569" }
+        })
+      ]
+    };
+  }
+  var BLOCKS = {
+    hero: { label: "H\xE9roe con part\xEDculas", icon: "\u2728", build: heroBlock },
+    features: { label: "Caracter\xEDsticas (3 tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
+    quote: { label: "Cita destacada", icon: "\u275D", build: quoteBlock },
+    gallery: { label: "Galer\xEDa", icon: "\u229E", build: galleryBlock },
+    cta: { label: "Llamada a la acci\xF3n", icon: "\u{1F4E3}", build: ctaBlock },
+    footer: { label: "Pie de p\xE1gina", icon: "\u2693", build: footerBlock }
+  };
+  function buildBlock(key, y) {
+    return BLOCKS[key] ? BLOCKS[key].build(y) : null;
+  }
+  function starterProject() {
+    const pageId = uid("pg");
+    const allNodes = [];
+    let y = 0;
+    for (const key of ["hero", "features", "quote", "gallery", "cta", "footer"]) {
+      const block = buildBlock(key, y);
+      allNodes.push(...block.nodes);
+      y += block.height;
+    }
+    allNodes.push(node("menu", { x: 0, y: 0, w: W, h: 64 }, {
+      name: "Men\xFA principal",
+      props: { brand: "\u25C6 Mi Sitio" },
+      styles: { background: "rgba(10,14,26,.55)", color: "#e2e8f0", fontSize: 15, blur: 10 }
+    }));
+    const nodesMap = {};
+    for (const n of allNodes) nodesMap[n.id] = n;
+    return {
+      version: 1,
+      meta: { name: "Mi Proyecto", created: Date.now(), modified: Date.now() },
+      settings: {
+        breakpoints: { desktop: 1280, tablet: 768, mobile: 390 },
+        grid: { size: 8, visible: false, snap: true }
+      },
+      pages: [{
+        id: pageId,
+        name: "Inicio",
+        slug: "index",
+        height: y,
+        background: "#0b1020",
+        transition: "fade",
+        nodes: allNodes.map((n) => n.id)
+      }],
+      nodes: nodesMap,
+      assets: []
+    };
+  }
+
+  // src/storage/db.js
+  var DB_NAME = "nocode-builder";
+  var DB_VERSION = 1;
+  var STORE_ASSETS = "assets";
+  var STORE_PROJECTS = "projects";
+  var dbPromise = null;
+  function open() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_ASSETS)) db.createObjectStore(STORE_ASSETS, { keyPath: "id" });
+        if (!db.objectStoreNames.contains(STORE_PROJECTS)) db.createObjectStore(STORE_PROJECTS, { keyPath: "id" });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  function tx(storeName, mode, fn) {
+    return open().then((db) => new Promise((resolve, reject) => {
+      const t = db.transaction(storeName, mode);
+      const store = t.objectStore(storeName);
+      const result = fn(store);
+      t.oncomplete = () => resolve(result?.result ?? result);
+      t.onerror = () => reject(t.error);
+    }));
+  }
+  var DB = {
+    /** Guarda registro de asset { id, name, kind, mime, size, folder, tags, data(dataURL) } */
+    putAsset: (asset2) => tx(STORE_ASSETS, "readwrite", (s) => s.put(asset2)),
+    deleteAsset: (id) => tx(STORE_ASSETS, "readwrite", (s) => s.delete(id)),
+    getAllAssets: () => tx(STORE_ASSETS, "readonly", (s) => s.getAll()),
+    putProject: (project) => tx(STORE_PROJECTS, "readwrite", (s) => s.put(project)),
+    getProject: (id) => tx(STORE_PROJECTS, "readonly", (s) => s.get(id))
+  };
+
+  // src/storage/projectStore.js
+  var LS_KEY = "nocode-builder:project";
+  var HISTORY_LIMIT = 50;
+  var DEVICES = {
+    desktop: { label: "Escritorio", width: 1280, icon: "\u{1F5A5}" },
+    tablet: { label: "Tablet", width: 768, icon: "\u{1F4F1}" },
+    mobile: { label: "M\xF3vil", width: 390, icon: "\u{1F4F2}" }
+  };
+  var ProjectStore = class _ProjectStore extends EventBus {
+    project = null;
+    pageId = null;
+    device = "desktop";
+    // breakpoint activo del editor
+    selection = [];
+    // ids seleccionados
+    zoom = 1;
+    pan = { x: 60, y: 40 };
+    tool = "select";
+    // 'select' | 'pan' | 'draw'
+    clipboard = [];
+    #history = [];
+    #future = [];
+    #autosave = debounce(() => this.persist(), 800);
+    /* ── Ciclo de vida ─────────────────────────────────── */
+    async init() {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        try {
+          this.project = JSON.parse(saved);
+        } catch {
+          this.project = null;
+        }
+      }
+      if (!this.project || !Object.keys(this.project.nodes || {}).length) {
+        this.project = starterProject();
+      }
+      this.pageId = this.project.pages[0].id;
+    }
+    static blankProject() {
+      const pageId = uid("pg");
+      return {
+        version: 1,
+        meta: { name: "Mi Proyecto", created: Date.now(), modified: Date.now() },
+        settings: {
+          breakpoints: { desktop: 1280, tablet: 768, mobile: 390 },
+          grid: { size: 8, visible: true, snap: true }
+        },
+        pages: [{ id: pageId, name: "Inicio", slug: "index", height: 800, background: "#0b1020", transition: "fade", nodes: [] }],
+        nodes: {},
+        assets: []
+      };
+    }
+    persist() {
+      this.project.meta.modified = Date.now();
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify(this.project));
+      } catch (e) {
+        console.warn("localStorage lleno; usando solo IndexedDB", e);
+      }
+      DB.putProject({ id: "current", data: this.project }).catch(console.warn);
+      this.emit("saved");
+    }
+    /* ── Historial ─────────────────────────────────────── */
+    snapshot() {
+      this.#history.push(deepClone(this.project));
+      if (this.#history.length > HISTORY_LIMIT) this.#history.shift();
+      this.#future = [];
+    }
+    commit() {
+      this.emit("change");
+      this.#autosave();
+    }
+    undo() {
+      if (!this.#history.length) return;
+      this.#future.push(deepClone(this.project));
+      this.project = this.#history.pop();
+      this.#afterTimeTravel();
+    }
+    redo() {
+      if (!this.#future.length) return;
+      this.#history.push(deepClone(this.project));
+      this.project = this.#future.pop();
+      this.#afterTimeTravel();
+    }
+    #afterTimeTravel() {
+      if (!this.project.pages.some((p) => p.id === this.pageId)) this.pageId = this.project.pages[0].id;
+      this.selection = this.selection.filter((id) => this.project.nodes[id]);
+      this.emit("change");
+      this.emit("selection");
+      this.#autosave();
+    }
+    /* ── Acceso ────────────────────────────────────────── */
+    get page() {
+      return this.project.pages.find((p) => p.id === this.pageId);
+    }
+    node(id) {
+      return this.project.nodes[id];
+    }
+    pageNodes(pageId = this.pageId) {
+      const page = this.project.pages.find((p) => p.id === pageId);
+      return page ? page.nodes.map((id) => this.project.nodes[id]).filter(Boolean) : [];
+    }
+    get selectedNodes() {
+      return this.selection.map((id) => this.node(id)).filter(Boolean);
+    }
+    /**
+     * Marco EFECTIVO del nodo para el dispositivo activo:
+     * base + overrides responsive (cascada desktop → tablet → mobile).
+     */
+    frame(node2, device = this.device) {
+      if (device === "desktop") return { ...node2.base };
+      const tablet = node2.responsive?.tablet || {};
+      if (device === "tablet") return { ...node2.base, ...tablet };
+      return { ...node2.base, ...tablet, ...node2.responsive?.mobile || {} };
+    }
+    /**
+     * Escritura responsive-aware: en escritorio escribe en `base`;
+     * en tablet/móvil escribe SOLO el override del breakpoint activo.
+     */
+    setFrame(node2, patch) {
+      if (this.device === "desktop") Object.assign(node2.base, patch);
+      else {
+        node2.responsive ||= {};
+        node2.responsive[this.device] = { ...node2.responsive[this.device] || {}, ...patch };
+      }
+    }
+    clearResponsiveOverride(node2) {
+      if (this.device === "desktop" || !node2.responsive) return;
+      delete node2.responsive[this.device];
+    }
+    /* ── Selección / vista ─────────────────────────────── */
+    select(ids, additive = false) {
+      const list = [].concat(ids).filter((id) => this.node(id));
+      this.selection = additive ? [.../* @__PURE__ */ new Set([...this.selection, ...list])] : list;
+      this.emit("selection");
+    }
+    clearSelection() {
+      this.selection = [];
+      this.emit("selection");
+    }
+    setDevice(device) {
+      this.device = device;
+      this.emit("device");
+      this.emit("change");
+    }
+    setTool(tool) {
+      this.tool = tool;
+      this.emit("tool");
+    }
+    setView(zoom, pan) {
+      if (zoom != null) this.zoom = clamp(zoom, 0.1, 4);
+      if (pan) this.pan = pan;
+      this.emit("view");
+    }
+    /* ── Nodos ─────────────────────────────────────────── */
+    addNode(type, at = {}, extra = {}) {
+      this.snapshot();
+      const def = componentDef(type);
+      const id = uid("nd");
+      const data = createNodeData(type, extra);
+      data.id = id;
+      data.base.x = Math.round(at.x ?? 80);
+      data.base.y = Math.round(at.y ?? 80);
+      if (at.w) data.base.w = at.w;
+      if (at.h) data.base.h = at.h;
+      const siblings = this.pageNodes().filter((n) => n.type === type).length;
+      if (siblings) data.name = `${def.label} ${siblings + 1}`;
+      this.project.nodes[id] = data;
+      this.page.nodes.push(id);
+      this.commit();
+      this.select(id);
+      return data;
+    }
+    updateNode(id, section, patch) {
+      const node2 = this.node(id);
+      if (!node2) return;
+      if (section === "frame") this.setFrame(node2, patch);
+      else if (section === "root") Object.assign(node2, patch);
+      else {
+        node2[section] ||= {};
+        Object.assign(node2[section], patch);
+      }
+      this.commit();
+    }
+    removeNodes(ids = this.selection) {
+      if (!ids.length) return;
+      this.snapshot();
+      for (const id of ids) {
+        delete this.project.nodes[id];
+        for (const page of this.project.pages) {
+          const i = page.nodes.indexOf(id);
+          if (i >= 0) page.nodes.splice(i, 1);
+        }
+      }
+      this.selection = this.selection.filter((id) => !ids.includes(id));
+      this.commit();
+      this.emit("selection");
+    }
+    duplicateNodes(ids = this.selection) {
+      if (!ids.length) return;
+      this.snapshot();
+      const newIds = [];
+      for (const id of ids) {
+        const src = this.node(id);
+        if (!src) continue;
+        const copy = deepClone(src);
+        copy.id = uid("nd");
+        copy.name = `${src.name} copia`;
+        copy.base.x += 24;
+        copy.base.y += 24;
+        this.project.nodes[copy.id] = copy;
+        this.page.nodes.push(copy.id);
+        newIds.push(copy.id);
+      }
+      this.commit();
+      this.select(newIds);
+    }
+    copy() {
+      this.clipboard = this.selectedNodes.map(deepClone);
+    }
+    paste() {
+      if (!this.clipboard.length) return;
+      this.snapshot();
+      const newIds = [];
+      for (const src of this.clipboard) {
+        const copy = deepClone(src);
+        copy.id = uid("nd");
+        copy.base.x += 32;
+        copy.base.y += 32;
+        this.project.nodes[copy.id] = copy;
+        this.page.nodes.push(copy.id);
+        newIds.push(copy.id);
+      }
+      this.commit();
+      this.select(newIds);
+    }
+    nudge(dx, dy) {
+      if (!this.selection.length) return;
+      this.snapshot();
+      for (const node2 of this.selectedNodes) {
+        if (node2.locked) continue;
+        const f = this.frame(node2);
+        this.setFrame(node2, { x: f.x + dx, y: f.y + dy });
+      }
+      this.commit();
+    }
+    /** Inserta un bloque prediseñado al final de la página y la agranda. */
+    addBlock(key) {
+      const bottom = this.pageNodes().reduce((max, n) => Math.max(max, n.base.y + n.base.h), 0);
+      const y = bottom ? bottom + 60 : 0;
+      const block = buildBlock(key, y);
+      if (!block) return;
+      this.snapshot();
+      const ids = [];
+      for (const node2 of block.nodes) {
+        this.project.nodes[node2.id] = node2;
+        this.page.nodes.push(node2.id);
+        ids.push(node2.id);
+      }
+      this.page.height = Math.max(this.page.height, y + block.height + 40);
+      this.commit();
+      this.select(ids);
+      return ids;
+    }
+    /** Reordena capa dentro de la página: dir = +1 (subir) / -1 (bajar) */
+    moveLayer(id, dir) {
+      const nodes = this.page.nodes;
+      const i = nodes.indexOf(id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= nodes.length) return;
+      this.snapshot();
+      [nodes[i], nodes[j]] = [nodes[j], nodes[i]];
+      this.commit();
+    }
+    toggleFlag(id, flag) {
+      const node2 = this.node(id);
+      if (!node2) return;
+      this.snapshot();
+      node2[flag] = !node2[flag];
+      this.commit();
+    }
+    alignSelection(mode) {
+      const nodes = this.selectedNodes.filter((n) => !n.locked);
+      if (!nodes.length) return;
+      this.snapshot();
+      const W2 = this.project.settings.breakpoints[this.device];
+      for (const node2 of nodes) {
+        const f = this.frame(node2);
+        const patch = {
+          left: { x: 0 },
+          centerX: { x: Math.round((W2 - f.w) / 2) },
+          right: { x: W2 - f.w },
+          top: { y: 0 },
+          centerY: { y: Math.round((this.page.height - f.h) / 2) }
+        }[mode];
+        if (patch) this.setFrame(node2, patch);
+      }
+      this.commit();
+    }
+    /* ── Páginas ───────────────────────────────────────── */
+    addPage(name = `P\xE1gina ${this.project.pages.length + 1}`) {
+      this.snapshot();
+      const page = { id: uid("pg"), name, slug: "", height: 800, background: "#0b1020", transition: "fade", nodes: [] };
+      this.project.pages.push(page);
+      this.commit();
+      this.setPage(page.id);
+      return page;
+    }
+    setPage(id) {
+      if (!this.project.pages.some((p) => p.id === id)) return;
+      this.pageId = id;
+      this.clearSelection();
+      this.emit("page");
+      this.emit("change");
+    }
+    renamePage(id, name) {
+      const page = this.project.pages.find((p) => p.id === id);
+      if (!page || !name) return;
+      this.snapshot();
+      page.name = name;
+      this.commit();
+    }
+    updatePage(id, patch) {
+      const page = this.project.pages.find((p) => p.id === id);
+      if (!page) return;
+      this.snapshot();
+      Object.assign(page, patch);
+      this.commit();
+    }
+    duplicatePage(id) {
+      const src = this.project.pages.find((p) => p.id === id);
+      if (!src) return;
+      this.snapshot();
+      const copy = deepClone(src);
+      copy.id = uid("pg");
+      copy.name = `${src.name} copia`;
+      copy.slug = "";
+      copy.nodes = src.nodes.map((nid) => {
+        const node2 = deepClone(this.project.nodes[nid]);
+        node2.id = uid("nd");
+        this.project.nodes[node2.id] = node2;
+        return node2.id;
+      });
+      this.project.pages.push(copy);
+      this.commit();
+    }
+    deletePage(id) {
+      if (this.project.pages.length <= 1) return;
+      this.snapshot();
+      const i = this.project.pages.findIndex((p) => p.id === id);
+      for (const nid of this.project.pages[i].nodes) delete this.project.nodes[nid];
+      this.project.pages.splice(i, 1);
+      if (this.pageId === id) this.pageId = this.project.pages[0].id;
+      this.commit();
+      this.emit("page");
+    }
+    movePage(id, dir) {
+      const pages = this.project.pages;
+      const i = pages.findIndex((p) => p.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= pages.length) return;
+      this.snapshot();
+      [pages[i], pages[j]] = [pages[j], pages[i]];
+      this.commit();
+      this.emit("page");
+    }
+    /* ── Import / export del proyecto ──────────────────── */
+    exportJSON() {
+      return deepClone(this.project);
+    }
+    importJSON(data) {
+      if (!data?.pages || !data?.nodes) throw new Error("Proyecto inv\xE1lido");
+      this.snapshot();
+      this.project = data;
+      this.pageId = data.pages[0].id;
+      this.clearSelection();
+      this.commit();
+      this.emit("page");
+    }
+    /** Proyecto nuevo: plantilla completa o lienzo en blanco. */
+    reset(blank = false) {
+      this.snapshot();
+      this.project = blank ? _ProjectStore.blankProject() : starterProject();
+      this.pageId = this.project.pages[0].id;
+      this.clearSelection();
+      this.commit();
+      this.emit("page");
+    }
+  };
+
+  // src/assets/assetManager.js
+  var ASSET_KINDS = {
+    image: { label: "Im\xE1genes", folder: "images", icon: "\u{1F5BC}" },
+    gif: { label: "GIFs", folder: "gifs", icon: "\u{1F39E}" },
+    video: { label: "V\xEDdeos", folder: "videos", icon: "\u{1F3AC}" },
+    audio: { label: "Audio", folder: "audio", icon: "\u{1F3A7}" },
+    model: { label: "Modelos 3D", folder: "models", icon: "\u2B21" },
+    font: { label: "Fuentes", folder: "fonts", icon: "\u{1F524}" },
+    svg: { label: "SVG", folder: "images", icon: "\u2712" }
+  };
+  function kindOfFile(file) {
+    const name = file.name.toLowerCase();
+    if (file.type === "image/gif") return "gif";
+    if (file.type === "image/svg+xml" || name.endsWith(".svg")) return "svg";
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    if (/\.(glb|gltf)$/.test(name)) return "model";
+    if (/\.(woff2?|ttf|otf)$/.test(name)) return "font";
+    return "image";
+  }
+  var ACCEPT_ATTR = [
+    "image/*",
+    "video/*",
+    "audio/*",
+    ".gif",
+    ".svg",
+    ".glb",
+    ".gltf",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".otf"
+  ].join(",");
+  var AssetManager = class extends EventBus {
+    #byId = /* @__PURE__ */ new Map();
+    constructor(store) {
+      super();
+      this.store = store;
+    }
+    async init() {
+      const rows = await DB.getAllAssets().catch(() => []);
+      for (const asset2 of rows || []) this.#byId.set(asset2.id, asset2);
+      this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
+    }
+    list({ kind = null, query = "", folder = null } = {}) {
+      let all = [...this.#byId.values()];
+      if (kind) all = all.filter((a) => a.kind === kind || kind === "image" && a.kind === "svg");
+      if (folder) all = all.filter((a) => a.folder === folder);
+      if (query) {
+        const q = query.toLowerCase();
+        all = all.filter((a) => a.name.toLowerCase().includes(q) || (a.tags || []).some((t) => t.includes(q)));
+      }
+      return all.sort((a, b) => b.created - a.created);
+    }
+    get(id) {
+      return this.#byId.get(id) || null;
+    }
+    /** URL utilizable en src/href dentro del editor. */
+    url(id) {
+      return this.#byId.get(id)?.data || "";
+    }
+    folders() {
+      return [...new Set([...this.#byId.values()].map((a) => a.folder))].sort();
+    }
+    /** Importa una lista de File (input file / drop de la galería). */
+    async importFiles(files, { folder } = {}) {
+      const imported = [];
+      for (const file of files) {
+        const kind = kindOfFile(file);
+        const asset2 = {
+          id: uid("as"),
+          name: file.name,
+          kind,
+          mime: file.type || "application/octet-stream",
+          size: file.size,
+          folder: folder || ASSET_KINDS[kind].folder,
+          tags: [],
+          created: Date.now(),
+          data: await fileToDataURL(file)
+        };
+        this.#byId.set(asset2.id, asset2);
+        await DB.putAsset(asset2).catch(console.warn);
+        imported.push(asset2);
+      }
+      this.#syncProject();
+      this.emit("change");
+      return imported;
+    }
+    /** Crea un asset desde un dataURL ya generado (p.ej. Canvas Draw). */
+    async addDataURL(name, dataURL, kind = "image") {
+      const asset2 = {
+        id: uid("as"),
+        name,
+        kind,
+        mime: dataURL.slice(5, dataURL.indexOf(";")),
+        size: Math.round(dataURL.length * 0.75),
+        folder: ASSET_KINDS[kind].folder,
+        tags: ["dibujo"],
+        created: Date.now(),
+        data: dataURL
+      };
+      this.#byId.set(asset2.id, asset2);
+      await DB.putAsset(asset2).catch(console.warn);
+      this.#syncProject();
+      this.emit("change");
+      return asset2;
+    }
+    async remove(id) {
+      this.#byId.delete(id);
+      await DB.deleteAsset(id).catch(console.warn);
+      this.#syncProject();
+      this.emit("change");
+    }
+    async setTags(id, tags) {
+      const asset2 = this.#byId.get(id);
+      if (!asset2) return;
+      asset2.tags = tags;
+      await DB.putAsset(asset2).catch(console.warn);
+      this.#syncProject();
+      this.emit("change");
+    }
+    /** Todos los assets con sus datos, para incrustarlos en el .json del proyecto. */
+    exportData() {
+      return [...this.#byId.values()];
+    }
+    /** Restaura assets incrustados en un .json importado (GIFs, imágenes, etc.). */
+    async importData(list = []) {
+      for (const asset2 of list) {
+        if (!asset2?.id || !asset2?.data) continue;
+        this.#byId.set(asset2.id, asset2);
+        await DB.putAsset(asset2).catch(console.warn);
+      }
+      this.#syncProject();
+      this.emit("change");
+    }
+    #syncProject() {
+      this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
+    }
+    /** Tipo de componente sugerido al soltar un asset en el lienzo. */
+    componentForAsset(asset2) {
+      return { image: "image", svg: "image", gif: "gif", video: "video", audio: "musicPlayer", model: "model3d", font: null }[asset2.kind];
+    }
+  };
+
+  // src/renderer/renderer.js
+  var SHADOWS = {
+    ninguna: "none",
+    suave: "0 4px 16px rgba(0,0,0,.25)",
+    media: "0 10px 30px rgba(0,0,0,.4)",
+    fuerte: "0 20px 60px rgba(0,0,0,.6)",
+    ne\u00F3n: "0 0 24px rgba(129,140,248,.8), 0 0 60px rgba(129,140,248,.4)"
+  };
+  var CLIP_PATHS = {
+    "c\xEDrculo": "circle(50% at 50% 50%)",
+    "tri\xE1ngulo": "polygon(50% 0%, 0% 100%, 100% 100%)",
+    "rombo": "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+    "estrella": "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+    "hex\xE1gono": "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)"
+  };
+  var IMG_FILTERS = {
+    ninguno: () => "none",
+    grises: (a) => `grayscale(${a}%)`,
+    sepia: (a) => `sepia(${a}%)`,
+    brillo: (a) => `brightness(${a}%)`,
+    contraste: (a) => `contrast(${a}%)`,
+    saturado: (a) => `saturate(${a}%)`,
+    invertido: (a) => `invert(${Math.min(a, 100)}%)`
+  };
+  function frameCSS(frame) {
+    return {
+      left: `${frame.x}px`,
+      top: `${frame.y}px`,
+      width: `${frame.w}px`,
+      height: `${frame.h}px`,
+      transform: `rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1})`,
+      opacity: String(frame.opacity ?? 1)
+    };
+  }
+  function styleCSS(node2) {
+    const s = node2.styles || {};
+    const css = {};
+    if (s.background) css.background = s.background;
+    if (s.color) css.color = s.color;
+    if (s.fontFamily) css["font-family"] = s.fontFamily;
+    if (s.fontSize) css["font-size"] = `${s.fontSize}px`;
+    if (s.fontWeight) css["font-weight"] = s.fontWeight;
+    if (s.textAlign) css["text-align"] = s.textAlign;
+    if (s.letterSpacing) css["letter-spacing"] = `${s.letterSpacing}px`;
+    if (s.radius) css["border-radius"] = `${s.radius}px`;
+    if (s.borderWidth) css.border = `${s.borderWidth}px solid ${s.borderColor || "#94a3b8"}`;
+    if (s.shadow && s.shadow !== "ninguna") css["box-shadow"] = SHADOWS[s.shadow] || "none";
+    if (s.blur) css["backdrop-filter"] = `blur(${s.blur}px)`;
+    if (node2.type === "shape" && node2.props.shape !== "rect\xE1ngulo") {
+      css["clip-path"] = CLIP_PATHS[node2.props.shape] || "none";
+      css["border-radius"] = "0";
+    }
+    if (node2.hidden) css.visibility = "hidden";
+    return css;
+  }
+  function media(node2, ctx) {
+    const src = node2.props.assetId ? ctx.resolve(node2.props.assetId) : "";
+    const fit = node2.props.fit || "cover";
+    if (!src) return `<div class="wb-placeholder">${esc(node2.name)}<small>Arrastra un asset aqu\xED</small></div>`;
+    const filter = IMG_FILTERS[node2.props.filter || "ninguno"](node2.props.filterAmount ?? 100);
+    return `<img src="${src}" alt="${esc(node2.props.alt || node2.name)}" draggable="false"
+    style="width:100%;height:100%;object-fit:${fit};filter:${filter};border-radius:inherit;pointer-events:none">`;
+  }
+  function contentHTML(node2, ctx) {
+    const p = node2.props || {};
+    switch (node2.type) {
+      case "text": {
+        const tag = ["h1", "h2", "h3", "p", "span"].includes(p.tag) ? p.tag : "p";
+        return `<${tag} class="wb-text">${esc(p.text).replaceAll("\n", "<br>")}</${tag}>`;
+      }
+      case "button":
+        return `<button class="wb-btn" type="button">${esc(p.text)}</button>`;
+      case "image":
+      case "drawing":
+        return media(node2, ctx);
+      case "gif": {
+        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        if (!src) return `<div class="wb-placeholder">GIF<small>Arrastra un GIF aqu\xED</small></div>`;
+        return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false"
+        style="width:100%;height:100%;object-fit:${p.fit || "cover"};border-radius:inherit;pointer-events:none">`;
+      }
+      case "video": {
+        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        if (!src) return `<div class="wb-placeholder">V\xEDdeo<small>Arrastra un v\xEDdeo aqu\xED</small></div>`;
+        const attrs = [
+          p.autoplay && !p.playOnScroll ? "autoplay" : "",
+          p.loop ? "loop" : "",
+          p.muted ? "muted" : "",
+          p.controls ? "controls" : "",
+          "playsinline",
+          p.playOnScroll ? 'data-scrollplay="1"' : ""
+        ].filter(Boolean).join(" ");
+        return `<video src="${src}" ${attrs} style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></video>`;
+      }
+      case "audio": {
+        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        if (!src) return `<div class="wb-placeholder">Audio<small>Arrastra un audio aqu\xED</small></div>`;
+        return `<audio src="${src}" controls ${p.autoplay ? "autoplay" : ""} ${p.loop ? "loop" : ""} style="width:100%"></audio>`;
+      }
+      case "icon":
+        return `<span class="wb-icon">${esc(p.glyph || "\u2605")}</span>`;
+      case "shape":
+      case "container":
+      case "section":
+        return ctx.editor && node2.type !== "shape" ? `<span class="wb-tag-label">${esc(node2.name)}</span>` : "";
+      case "gallery": {
+        const ids = p.assetIds || [];
+        if (!ids.length) return `<div class="wb-placeholder">Galer\xEDa<small>A\xF1ade im\xE1genes desde Assets</small></div>`;
+        const cells = ids.map((id) => `<img src="${ctx.resolve(id)}" alt="" loading="lazy" draggable="false"
+        style="width:100%;height:100%;object-fit:cover;border-radius:inherit;pointer-events:none">`).join("");
+        return `<div class="wb-gallery" style="display:grid;grid-template-columns:repeat(${p.columns || 3},1fr);gap:${p.gap ?? 10}px;width:100%;height:100%">${cells}</div>`;
+      }
+      case "slider": {
+        const ids = p.assetIds || [];
+        if (!ids.length) return `<div class="wb-placeholder">Slider<small>A\xF1ade im\xE1genes desde Assets</small></div>`;
+        const slides = ids.map((id, i) => `<img class="wb-slide${i === 0 ? " active" : ""}" src="${ctx.resolve(id)}" alt="" draggable="false">`).join("");
+        return `<div class="wb-slider" data-interval="${p.interval || 3e3}" data-transition="${p.transition || "fade"}">${slides}</div>`;
+      }
+      case "form": {
+        const fields = String(p.fields || "Nombre,Email").split(",").map((f) => f.trim()).filter(Boolean);
+        const inputs = fields.map((f) => /mensaje|comentario/i.test(f) ? `<textarea placeholder="${esc(f)}" rows="3"></textarea>` : `<input type="${/mail/i.test(f) ? "email" : "text"}" placeholder="${esc(f)}">`).join("");
+        return `<form class="wb-form" onsubmit="return false">
+        <h3>${esc(p.title || "")}</h3>${inputs}
+        <button type="submit">${esc(p.buttonText || "Enviar")}</button></form>`;
+      }
+      case "menu": {
+        const links = (ctx.pages || []).map((page) => `<a href="${ctx.editor ? "#" : ctx.pageHref(page)}" data-page="${page.id}">${esc(page.name)}</a>`).join("");
+        return `<nav class="wb-menu"><strong>${esc(p.brand || "")}</strong><div class="wb-menu-links">${links}</div></nav>`;
+      }
+      case "musicPlayer": {
+        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        return `<div class="wb-player">
+        <div class="wb-player-disc">\u266B</div>
+        <div class="wb-player-info"><strong>${esc(p.title || "")}</strong><span>${esc(p.artist || "")}</span>
+        ${src ? `<audio src="${src}" controls style="width:100%;height:28px"></audio>` : "<small>Sin pista de audio</small>"}</div></div>`;
+      }
+      case "model3d":
+        return `<div class="wb-3d" data-model="${p.assetId || ""}"
+        data-autorotate="${p.autoRotate !== false}" data-speed="${p.rotateSpeed ?? 1}"
+        data-cameraz="${p.cameraZ ?? 4}" data-lightcolor="${p.lightColor || "#ffffff"}"
+        data-lightintensity="${p.lightIntensity ?? 2}" data-playanim="${p.playAnimations !== false}"></div>`;
+      case "particles":
+        return `<canvas class="wb-particles" data-count="${p.count ?? 400}" data-color="${p.color || "#818cf8"}"
+        data-speed="${p.speed ?? 1}" data-size="${p.size ?? 2}" data-mode="${p.mode || "nebulosa"}"></canvas>`;
+      default:
+        return `<div class="wb-placeholder">${esc(node2.type)}</div>`;
+    }
+  }
+  function syncNodeEl(elem, node2, store) {
+    const frame = store.frame(node2);
+    Object.assign(elem.style, frameCSS(frame));
+    for (const prop of [
+      "background",
+      "color",
+      "fontFamily",
+      "fontSize",
+      "fontWeight",
+      "textAlign",
+      "letterSpacing",
+      "borderRadius",
+      "border",
+      "boxShadow",
+      "backdropFilter",
+      "clipPath",
+      "visibility"
+    ]) {
+      elem.style[prop] = "";
+    }
+    for (const [k, v] of Object.entries(styleCSS(node2))) elem.style.setProperty(k, v);
+    elem.classList.toggle("locked", !!node2.locked);
+    elem.classList.toggle("hidden-node", !!node2.hidden);
+    if (node2.hidden) {
+      elem.style.visibility = "";
+      elem.style.opacity = "0.25";
+    }
+  }
+  function buildNodeEl(node2, store, ctx) {
+    const elem = document.createElement("div");
+    elem.className = "wb-node";
+    elem.dataset.id = node2.id;
+    elem.dataset.type = node2.type;
+    elem.innerHTML = contentHTML(node2, ctx);
+    syncNodeEl(elem, node2, store);
+    return elem;
+  }
+  function renderPage(artboard, store, assets, { mountEmbeds } = {}) {
+    const page = store.page;
+    const ctx = {
+      editor: true,
+      resolve: (id) => assets.url(id),
+      pages: store.project.pages,
+      pageHref: () => "#"
+    };
+    artboard.innerHTML = "";
+    artboard.style.background = page.background || "#0b1020";
+    artboard.style.width = `${store.project.settings.breakpoints[store.device]}px`;
+    artboard.style.height = `${page.height}px`;
+    for (const node2 of store.pageNodes()) artboard.append(buildNodeEl(node2, store, ctx));
+    mountEmbeds?.(artboard);
+  }
+
+  // src/animations/engine.js
+  var EASINGS = ["linear", "ease", "ease-in", "ease-out", "ease-in-out", "cubic-bezier(.68,-0.55,.27,1.55)"];
+  var TRIGGERS = { load: "Al cargar", scroll: "Al hacer scroll", click: "Al hacer clic", hover: "Al pasar el rat\xF3n" };
+  var PRESETS = {
+    ninguna: null,
+    fadeIn: [{ opacity: 0 }, { opacity: 1 }],
+    fadeInUp: [{ opacity: 0, transform: "translateY(40px)" }, { opacity: 1, transform: "translateY(0)" }],
+    fadeInDown: [{ opacity: 0, transform: "translateY(-40px)" }, { opacity: 1, transform: "translateY(0)" }],
+    slideInLeft: [{ opacity: 0, transform: "translateX(-80px)" }, { opacity: 1, transform: "translateX(0)" }],
+    slideInRight: [{ opacity: 0, transform: "translateX(80px)" }, { opacity: 1, transform: "translateX(0)" }],
+    zoomIn: [{ opacity: 0, transform: "scale(.5)" }, { opacity: 1, transform: "scale(1)" }],
+    zoomOut: [{ opacity: 0, transform: "scale(1.6)" }, { opacity: 1, transform: "scale(1)" }],
+    rotateIn: [{ opacity: 0, transform: "rotate(-180deg) scale(.4)" }, { opacity: 1, transform: "rotate(0) scale(1)" }],
+    blurIn: [{ opacity: 0, filter: "blur(16px)" }, { opacity: 1, filter: "blur(0)" }],
+    bounce: [
+      { transform: "translateY(0)" },
+      { transform: "translateY(-24px)", offset: 0.4 },
+      { transform: "translateY(0)", offset: 0.6 },
+      { transform: "translateY(-10px)", offset: 0.8 },
+      { transform: "translateY(0)" }
+    ],
+    pulse: [{ transform: "scale(1)" }, { transform: "scale(1.08)", offset: 0.5 }, { transform: "scale(1)" }],
+    float: [{ transform: "translateY(0)" }, { transform: "translateY(-14px)", offset: 0.5 }, { transform: "translateY(0)" }],
+    wiggle: [
+      { transform: "rotate(0)" },
+      { transform: "rotate(-4deg)", offset: 0.25 },
+      { transform: "rotate(4deg)", offset: 0.75 },
+      { transform: "rotate(0)" }
+    ],
+    spin: [{ transform: "rotate(0)" }, { transform: "rotate(360deg)" }]
+  };
+  var PRESET_NAMES = Object.keys(PRESETS);
+  function playAnimation(elem, anim) {
+    if (!anim || !PRESETS[anim.preset]) return null;
+    return elem.animate(PRESETS[anim.preset], {
+      duration: anim.duration || 800,
+      delay: anim.delay || 0,
+      iterations: anim.loop ? Infinity : 1,
+      easing: anim.easing || "ease-out",
+      fill: "both",
+      composite: "add"
+      // suma sobre el transform base (rotación/escala del nodo)
+    });
+  }
+  function kfToCSS(frame) {
+    const rules = [];
+    if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
+    if (frame.transform) rules.push(`transform:${frame.transform}`);
+    if (frame.filter) rules.push(`filter:${frame.filter}`);
+    return rules.join(";");
+  }
+  function presetToKeyframesCSS(name) {
+    const frames = PRESETS[name];
+    if (!frames) return "";
+    const n = frames.length;
+    const steps = frames.map((frame, i) => {
+      const pct = frame.offset != null ? frame.offset * 100 : i / (n - 1) * 100;
+      return `  ${Math.round(pct)}% { ${kfToCSS(frame)} }`;
+    });
+    return `@keyframes wb-${name} {
+${steps.join("\n")}
+}`;
+  }
+
+  // src/editor/canvasView.js
+  var CanvasView = class {
+    constructor(store) {
+      this.store = store;
+      this.viewport = document.getElementById("viewport");
+      this.world = document.getElementById("world");
+      this.artboard = document.getElementById("artboard");
+      this.guides = document.getElementById("guides");
+      this.drawLayer = document.getElementById("draw-layer");
+      this.overlay = document.getElementById("overlay");
+      this.rulerH = document.getElementById("ruler-h");
+      this.rulerV = document.getElementById("ruler-v");
+      store.on("view", () => this.apply());
+      store.on("change", () => this.syncSize());
+      store.on("device", () => this.fit());
+      window.addEventListener("resize", () => this.drawRulers());
+      this.apply();
+    }
+    apply() {
+      const { zoom, pan } = this.store;
+      this.world.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+      this.world.style.setProperty("--izoom", 1 / zoom);
+      this.drawRulers();
+    }
+    syncSize() {
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const height = this.store.page.height;
+      for (const layer of [this.guides, this.drawLayer, this.overlay]) {
+        layer.style.width = `${width}px`;
+        layer.style.height = `${height}px`;
+      }
+      this.guides.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      const grid = this.store.project.settings.grid;
+      this.artboard.classList.toggle("show-grid", !!grid.visible);
+      this.artboard.style.setProperty("--grid-size", `${grid.size}px`);
+    }
+    /** Coordenadas de pantalla → coordenadas del artboard. */
+    toArtboard(clientX, clientY) {
+      const rect = this.artboard.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) / this.store.zoom,
+        y: (clientY - rect.top) / this.store.zoom
+      };
+    }
+    zoomAt(clientX, clientY, factor) {
+      const { zoom, pan } = this.store;
+      const next = clamp(zoom * factor, 0.1, 4);
+      const rect = this.viewport.getBoundingClientRect();
+      const px = clientX - rect.left, py = clientY - rect.top;
+      this.store.setView(next, {
+        x: px - (px - pan.x) / zoom * next,
+        y: py - (py - pan.y) / zoom * next
+      });
+    }
+    fit() {
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const height = this.store.page.height;
+      const vw = this.viewport.clientWidth, vh = this.viewport.clientHeight;
+      const zoom = clamp(Math.min(vw / (width + 120), vh / (height + 120)), 0.1, 1.5);
+      this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: Math.max(30, (vh - height * zoom) / 2) });
+      this.syncSize();
+    }
+    /* ── Guías inteligentes ────────────────────────────── */
+    showGuides(lines) {
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const height = this.store.page.height;
+      this.guides.innerHTML = lines.map((line) => line.axis === "v" ? `<line x1="${line.pos}" y1="0" x2="${line.pos}" y2="${height}" />` : `<line x1="0" y1="${line.pos}" x2="${width}" y2="${line.pos}" />`).join("");
+    }
+    clearGuides() {
+      this.guides.innerHTML = "";
+    }
+    /* ── Reglas ────────────────────────────────────────── */
+    drawRulers() {
+      const { zoom, pan } = this.store;
+      for (const [canvas, horizontal] of [[this.rulerH, true], [this.rulerV, false]]) {
+        if (!canvas) continue;
+        const length = horizontal ? canvas.parentElement.clientWidth : canvas.parentElement.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = (horizontal ? length : 24) * dpr;
+        canvas.height = (horizontal ? 24 : length) * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = "#0d1220";
+        ctx.fillRect(0, 0, horizontal ? length : 24, horizontal ? 24 : length);
+        ctx.fillStyle = "#5b6478";
+        ctx.strokeStyle = "#2a3244";
+        ctx.font = "9px system-ui";
+        const step = zoom > 1.5 ? 50 : zoom > 0.6 ? 100 : 250;
+        const offset = horizontal ? pan.x : pan.y;
+        const start = Math.floor(-offset / zoom / step) * step;
+        const end = start + length / zoom + step;
+        ctx.beginPath();
+        for (let value = start; value < end; value += step) {
+          const px = value * zoom + offset;
+          if (horizontal) {
+            ctx.moveTo(px, 14);
+            ctx.lineTo(px, 24);
+            ctx.fillText(String(value), px + 3, 11);
+          } else {
+            ctx.moveTo(14, px);
+            ctx.lineTo(24, px);
+            ctx.save();
+            ctx.translate(11, px + 3);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(String(value), 0, 0);
+            ctx.restore();
+          }
+        }
+        ctx.stroke();
+      }
+    }
+  };
+
+  // src/editor/interactions.js
+  var SNAP_THRESHOLD = 6;
+  var Interactions = class {
+    constructor(store, view) {
+      this.store = store;
+      this.view = view;
+      this.gesture = null;
+      this.pointers = /* @__PURE__ */ new Map();
+      this.updateOverlay = throttleRAF(() => this.#renderOverlay());
+      const vp = view.viewport;
+      vp.addEventListener("pointerdown", (e) => this.#onDown(e));
+      vp.addEventListener("pointermove", (e) => this.#onMove(e));
+      vp.addEventListener("pointerup", (e) => this.#onUp(e));
+      vp.addEventListener("pointercancel", (e) => this.#onUp(e));
+      vp.addEventListener("wheel", (e) => this.#onWheel(e), { passive: false });
+      vp.addEventListener("dblclick", (e) => this.#onDblClick(e));
+      store.on("selection", () => this.updateOverlay());
+      store.on("change", () => this.updateOverlay());
+      store.on("view", () => this.updateOverlay());
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "Space" && !e.repeat && !this.#isTyping(e)) {
+          this.spaceDown = true;
+          vp.classList.add("panning");
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Space") {
+          this.spaceDown = false;
+          vp.classList.remove("panning");
+        }
+      });
+    }
+    #isTyping(e) {
+      return /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable;
+    }
+    /* ── Inicio de gesto ───────────────────────────────── */
+    #onDown(e) {
+      if (this.store.tool === "draw") return;
+      this.view.viewport.setPointerCapture(e.pointerId);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        this.gesture = { kind: "pinch", startDist: Math.hypot(a.x - b.x, a.y - b.y), startZoom: this.store.zoom };
+        return;
+      }
+      if (this.spaceDown || e.button === 1 || this.store.tool === "pan") {
+        this.gesture = { kind: "pan", startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
+        return;
+      }
+      if (e.button !== 0) return;
+      const handle = e.target.closest("[data-handle]");
+      if (handle) {
+        this.#startHandle(e, handle.dataset.handle);
+        return;
+      }
+      const nodeEl = e.target.closest(".wb-node");
+      if (nodeEl) {
+        const id = nodeEl.dataset.id;
+        const node2 = this.store.node(id);
+        if (!this.store.selection.includes(id)) this.store.select(id, e.shiftKey);
+        else if (e.shiftKey) {
+          this.store.select(this.store.selection.filter((s) => s !== id));
+          return;
+        }
+        if (node2.locked) return;
+        this.#startMove(e);
+        return;
+      }
+      if (e.target.closest("#artboard") || e.target === this.view.viewport || e.target.closest("#world")) {
+        if (!e.shiftKey) this.store.clearSelection();
+        const point = this.view.toArtboard(e.clientX, e.clientY);
+        this.gesture = { kind: "marquee", x0: point.x, y0: point.y, additive: e.shiftKey };
+      }
+    }
+    #startMove(e) {
+      this.store.snapshot();
+      const nodes = this.store.selectedNodes.filter((n) => !n.locked);
+      this.gesture = {
+        kind: "move",
+        start: this.view.toArtboard(e.clientX, e.clientY),
+        frames: new Map(nodes.map((n) => [n.id, this.store.frame(n)])),
+        moved: false
+      };
+    }
+    #startHandle(e, handle) {
+      const node2 = this.store.selectedNodes[0];
+      if (!node2 || node2.locked) return;
+      this.store.snapshot();
+      const frame = this.store.frame(node2);
+      if (handle === "rotate") {
+        const elem = this.#nodeEl(node2.id);
+        const rect = elem.getBoundingClientRect();
+        this.gesture = {
+          kind: "rotate",
+          node: node2,
+          cx: rect.left + rect.width / 2,
+          cy: rect.top + rect.height / 2,
+          startRotation: frame.rotation || 0,
+          startAngle: Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2))
+        };
+      } else {
+        this.gesture = { kind: "resize", node: node2, handle, start: this.view.toArtboard(e.clientX, e.clientY), frame };
+      }
+    }
+    /* ── Movimiento ────────────────────────────────────── */
+    #onMove(e) {
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const g = this.gesture;
+      if (!g) return;
+      if (g.kind === "pinch" && this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        this.view.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, g.startZoom * (dist / g.startDist) / this.store.zoom);
+        return;
+      }
+      if (g.kind === "pan") {
+        this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
+        return;
+      }
+      if (g.kind === "marquee") {
+        const point = this.view.toArtboard(e.clientX, e.clientY);
+        g.x1 = point.x;
+        g.y1 = point.y;
+        this.#renderMarquee(g);
+        return;
+      }
+      if (g.kind === "move") {
+        const point = this.view.toArtboard(e.clientX, e.clientY);
+        let dx = point.x - g.start.x, dy = point.y - g.start.y;
+        if (Math.abs(dx) + Math.abs(dy) > 1) g.moved = true;
+        const first = this.store.node([...g.frames.keys()][0]);
+        if (first && !e.altKey) {
+          const f0 = g.frames.get(first.id);
+          const snapped = this.#snap(f0.x + dx, f0.y + dy, f0.w, f0.h, [...g.frames.keys()]);
+          dx += snapped.dx;
+          dy += snapped.dy;
+          this.view.showGuides(snapped.lines);
+        }
+        for (const [id, f0] of g.frames) {
+          const node2 = this.store.node(id);
+          this.store.setFrame(node2, { x: Math.round(f0.x + dx), y: Math.round(f0.y + dy) });
+          const elem = this.#nodeEl(id);
+          if (elem) syncNodeEl(elem, node2, this.store);
+        }
+        this.updateOverlay();
+        return;
+      }
+      if (g.kind === "resize") {
+        const point = this.view.toArtboard(e.clientX, e.clientY);
+        const dx = point.x - g.start.x, dy = point.y - g.start.y;
+        const f = { ...g.frame };
+        const h = g.handle;
+        if (h.includes("e")) f.w = Math.max(16, g.frame.w + dx);
+        if (h.includes("s")) f.h = Math.max(16, g.frame.h + dy);
+        if (h.includes("w")) {
+          f.w = Math.max(16, g.frame.w - dx);
+          f.x = g.frame.x + g.frame.w - f.w;
+        }
+        if (h.includes("n")) {
+          f.h = Math.max(16, g.frame.h - dy);
+          f.y = g.frame.y + g.frame.h - f.h;
+        }
+        if (e.shiftKey && g.frame.w && g.frame.h) {
+          const ratio = g.frame.w / g.frame.h;
+          if (h.includes("e") || h.includes("w")) f.h = f.w / ratio;
+          else f.w = f.h * ratio;
+        }
+        this.store.setFrame(g.node, { x: Math.round(f.x), y: Math.round(f.y), w: Math.round(f.w), h: Math.round(f.h) });
+        const elem = this.#nodeEl(g.node.id);
+        if (elem) syncNodeEl(elem, g.node, this.store);
+        this.updateOverlay();
+        return;
+      }
+      if (g.kind === "rotate") {
+        const angle = Math.atan2(e.clientY - g.cy, e.clientX - g.cx);
+        let deg = g.startRotation + (angle - g.startAngle) * 180 / Math.PI;
+        if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+        this.store.setFrame(g.node, { rotation: Math.round(deg) });
+        const elem = this.#nodeEl(g.node.id);
+        if (elem) syncNodeEl(elem, g.node, this.store);
+        this.updateOverlay();
+      }
+    }
+    /* ── Fin de gesto ──────────────────────────────────── */
+    #onUp(e) {
+      this.pointers.delete(e.pointerId);
+      const g = this.gesture;
+      if (!g) return;
+      if (g.kind === "pinch" && this.pointers.size > 0) return;
+      this.gesture = null;
+      this.view.clearGuides();
+      document.getElementById("marquee")?.remove();
+      if (g.kind === "marquee" && g.x1 != null) {
+        const [x0, x1] = [Math.min(g.x0, g.x1), Math.max(g.x0, g.x1)];
+        const [y0, y1] = [Math.min(g.y0, g.y1), Math.max(g.y0, g.y1)];
+        const hits = this.store.pageNodes().filter((n) => {
+          const f = this.store.frame(n);
+          return f.x < x1 && f.x + f.w > x0 && f.y < y1 && f.y + f.h > y0;
+        }).map((n) => n.id);
+        if (hits.length) this.store.select(hits, g.additive);
+      }
+      if (g.kind === "move" && g.moved || g.kind === "resize" || g.kind === "rotate") {
+        const bottom = this.store.selectedNodes.reduce((max, n) => {
+          const f = this.store.frame(n);
+          return Math.max(max, f.y + f.h);
+        }, 0);
+        if (bottom > this.store.page.height) this.store.page.height = Math.ceil(bottom + 160);
+        this.store.commit();
+      }
+    }
+    #onWheel(e) {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) this.view.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.1 : 0.9);
+      else this.store.setView(null, { x: this.store.pan.x - e.deltaX, y: this.store.pan.y - e.deltaY });
+    }
+    /* ── Edición inline de texto ───────────────────────── */
+    #onDblClick(e) {
+      const nodeEl = e.target.closest(".wb-node");
+      if (!nodeEl) return;
+      const node2 = this.store.node(nodeEl.dataset.id);
+      if (!node2 || node2.locked || !["text", "button"].includes(node2.type)) return;
+      const target = nodeEl.querySelector(".wb-text, .wb-btn") || nodeEl;
+      target.contentEditable = "plaintext-only";
+      target.focus();
+      document.getSelection()?.selectAllChildren(target);
+      const finish = () => {
+        target.contentEditable = "false";
+        this.store.snapshot();
+        this.store.updateNode(node2.id, "props", { text: target.innerText.trim() });
+      };
+      target.addEventListener("blur", finish, { once: true });
+      target.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") target.blur();
+        ev.stopPropagation();
+      });
+    }
+    /* ── Snap a guías y rejilla ────────────────────────── */
+    #snap(x, y, w, h, excludeIds) {
+      const lines = [];
+      let dx = 0, dy = 0;
+      const threshold = SNAP_THRESHOLD / this.store.zoom;
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const height = this.store.page.height;
+      const candidatesV = [0, width / 2, width];
+      const candidatesH = [0, height / 2, height];
+      for (const other of this.store.pageNodes()) {
+        if (excludeIds.includes(other.id) || other.hidden) continue;
+        const f = this.store.frame(other);
+        candidatesV.push(f.x, f.x + f.w / 2, f.x + f.w);
+        candidatesH.push(f.y, f.y + f.h / 2, f.y + f.h);
+      }
+      const edgesV = [x, x + w / 2, x + w];
+      const edgesH = [y, y + h / 2, y + h];
+      outer_v:
+        for (const candidate of candidatesV) {
+          for (const edge of edgesV) {
+            if (Math.abs(edge - candidate) < threshold) {
+              dx = candidate - edge;
+              lines.push({ axis: "v", pos: candidate });
+              break outer_v;
+            }
+          }
+        }
+      outer_h:
+        for (const candidate of candidatesH) {
+          for (const edge of edgesH) {
+            if (Math.abs(edge - candidate) < threshold) {
+              dy = candidate - edge;
+              lines.push({ axis: "h", pos: candidate });
+              break outer_h;
+            }
+          }
+        }
+      const grid = this.store.project.settings.grid;
+      if (grid.snap) {
+        if (!dx) dx = Math.round((x + dx) / grid.size) * grid.size - x;
+        if (!dy) dy = Math.round((y + dy) / grid.size) * grid.size - y;
+      }
+      return { dx, dy, lines };
+    }
+    /* ── Overlay de selección ──────────────────────────── */
+    #nodeEl(id) {
+      return this.view.artboard.querySelector(`[data-id="${id}"]`);
+    }
+    #renderMarquee(g) {
+      let box = document.getElementById("marquee");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "marquee";
+        this.view.overlay.append(box);
+      }
+      box.style.left = `${Math.min(g.x0, g.x1)}px`;
+      box.style.top = `${Math.min(g.y0, g.y1)}px`;
+      box.style.width = `${Math.abs(g.x1 - g.x0)}px`;
+      box.style.height = `${Math.abs(g.y1 - g.y0)}px`;
+    }
+    #renderOverlay() {
+      const overlay = this.view.overlay;
+      const marquee = document.getElementById("marquee");
+      overlay.innerHTML = "";
+      if (marquee) overlay.append(marquee);
+      const selected = this.store.selectedNodes;
+      const single = selected.length === 1;
+      for (const node2 of selected) {
+        const f = this.store.frame(node2);
+        const box = document.createElement("div");
+        box.className = `sel-box${node2.locked ? " locked" : ""}`;
+        Object.assign(box.style, {
+          left: `${f.x}px`,
+          top: `${f.y}px`,
+          width: `${f.w}px`,
+          height: `${f.h}px`,
+          transform: `rotate(${f.rotation || 0}deg)`
+        });
+        if (single && !node2.locked) {
+          for (const h of ["nw", "n", "ne", "e", "se", "s", "sw", "w"]) {
+            const handle = document.createElement("div");
+            handle.className = `handle h-${h}`;
+            handle.dataset.handle = h;
+            box.append(handle);
+          }
+          const rot = document.createElement("div");
+          rot.className = "handle h-rotate";
+          rot.dataset.handle = "rotate";
+          box.append(rot);
+          const label = document.createElement("div");
+          label.className = "sel-label";
+          label.textContent = `${node2.name} \xB7 ${Math.round(f.w)}\xD7${Math.round(f.h)}`;
+          box.append(label);
+        }
+        overlay.append(box);
+      }
+    }
+  };
+
+  // src/editor/panels.js
+  var Panels = class {
+    constructor(store, assets, view) {
+      this.store = store;
+      this.assets = assets;
+      this.view = view;
+      this.root = document.getElementById("left-panel");
+      this.tab = "componentes";
+      this.assetFilter = { kind: null, query: "" };
+      store.on("change", () => {
+        if (this.tab === "capas" || this.tab === "paginas") this.render();
+      });
+      store.on("page", () => this.render());
+      store.on("selection", () => {
+        if (this.tab === "capas") this.render();
+      });
+      assets.on("change", () => {
+        if (this.tab === "assets") this.render();
+      });
+      this.#setupCanvasDrop();
+      this.render();
+    }
+    render() {
+      this.root.innerHTML = "";
+      const tabs = el("div", { class: "panel-tabs" }, ["componentes", "assets", "paginas", "capas"].map((name) => el("button", {
+        class: `tab-btn${this.tab === name ? " active" : ""}`,
+        text: { componentes: "Piezas", assets: "Assets", paginas: "P\xE1ginas", capas: "Capas" }[name],
+        onclick: () => {
+          this.tab = name;
+          this.render();
+        }
+      })));
+      this.root.append(tabs);
+      const body = el("div", { class: "panel-body" });
+      this.root.append(body);
+      ({
+        componentes: () => this.#renderComponents(body),
+        assets: () => this.#renderAssets(body),
+        paginas: () => this.#renderPages(body),
+        capas: () => this.#renderLayers(body)
+      })[this.tab]();
+    }
+    /* ── Paleta de componentes ─────────────────────────── */
+    #renderComponents(body) {
+      body.append(el("h4", { class: "panel-heading", text: "Bloques predise\xF1ados" }));
+      const blockList = el("div", { class: "block-list" });
+      for (const [key, block] of Object.entries(BLOCKS)) {
+        blockList.append(el("button", {
+          class: "block-item",
+          title: "A\xF1ade esta secci\xF3n al final de la p\xE1gina",
+          onclick: () => this.store.addBlock(key)
+        }, [el("span", { class: "palette-icon", text: block.icon }), el("span", { text: block.label })]));
+      }
+      body.append(blockList);
+      for (const cat of CATEGORIES) {
+        body.append(el("h4", { class: "panel-heading", text: cat }));
+        const grid = el("div", { class: "palette-grid" });
+        for (const [type, def] of Object.entries(Components)) {
+          if (def.cat !== cat) continue;
+          const item = el("div", {
+            class: "palette-item",
+            draggable: "true",
+            title: `Arrastra al lienzo o haz clic`,
+            ondragstart: (e) => e.dataTransfer.setData("application/x-wb-component", type),
+            onclick: () => this.#addAtCenter(type)
+          }, [el("span", { class: "palette-icon", text: def.icon }), el("span", { text: def.label })]);
+          grid.append(item);
+        }
+        body.append(grid);
+      }
+      body.append(el("p", { class: "panel-hint", text: "Tambi\xE9n puedes arrastrar archivos de tu galer\xEDa directamente sobre el lienzo." }));
+    }
+    #addAtCenter(type) {
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const def = Components[type];
+      const cascade = this.store.pageNodes().length % 8 * 28;
+      this.store.addNode(type, {
+        x: Math.max(20, Math.round((width - def.size[0]) / 2) + cascade),
+        y: Math.max(20, Math.round(this.store.page.height / 3) + cascade)
+      });
+    }
+    /* ── Biblioteca de assets ──────────────────────────── */
+    #renderAssets(body) {
+      const input = el("input", {
+        type: "file",
+        multiple: "true",
+        accept: ACCEPT_ATTR,
+        style: { display: "none" },
+        onchange: async (e) => {
+          await this.assets.importFiles([...e.target.files]);
+          e.target.value = "";
+        }
+      });
+      body.append(
+        input,
+        el("button", { class: "btn primary block", text: "\u2B06 Subir desde galer\xEDa / disco", onclick: () => input.click() }),
+        el("input", {
+          class: "input block",
+          type: "search",
+          placeholder: "Buscar por nombre o etiqueta\u2026",
+          value: this.assetFilter.query,
+          oninput: (e) => {
+            this.assetFilter.query = e.target.value;
+            this.#renderAssetGrid();
+          }
+        }),
+        el("div", { class: "chip-row" }, [
+          el("button", { class: `chip${!this.assetFilter.kind ? " active" : ""}`, text: "Todo", onclick: () => {
+            this.assetFilter.kind = null;
+            this.render();
+          } }),
+          ...Object.entries(ASSET_KINDS).filter(([k]) => k !== "svg").map(([kind, meta]) => el("button", {
+            class: `chip${this.assetFilter.kind === kind ? " active" : ""}`,
+            text: meta.icon,
+            title: meta.label,
+            onclick: () => {
+              this.assetFilter.kind = kind;
+              this.render();
+            }
+          }))
+        ])
+      );
+      this.assetGrid = el("div", { class: "asset-grid" });
+      body.append(this.assetGrid);
+      this.#renderAssetGrid();
+    }
+    #renderAssetGrid() {
+      const grid = this.assetGrid;
+      grid.innerHTML = "";
+      const list = this.assets.list(this.assetFilter);
+      if (!list.length) {
+        grid.append(el("p", { class: "panel-hint", text: "Sin assets todav\xEDa. Sube im\xE1genes, GIFs, v\xEDdeos, audio o modelos GLB." }));
+        return;
+      }
+      for (const asset2 of list) {
+        const preview = asset2.kind === "video" ? el("video", { src: asset2.data, muted: "true", class: "asset-thumb" }) : ["image", "gif", "svg"].includes(asset2.kind) ? el("img", { src: asset2.data, class: "asset-thumb", draggable: "false" }) : el("div", { class: "asset-thumb kind-icon", text: ASSET_KINDS[asset2.kind].icon });
+        const card = el("div", {
+          class: "asset-card",
+          draggable: "true",
+          title: `${asset2.name} \xB7 ${formatBytes(asset2.size)} \xB7 carpeta: ${asset2.folder}`,
+          ondragstart: (e) => e.dataTransfer.setData("application/x-wb-asset", asset2.id),
+          onclick: () => this.#useAsset(asset2)
+        }, [
+          preview,
+          el("span", { class: "asset-name", text: asset2.name }),
+          el("button", {
+            class: "asset-del",
+            text: "\xD7",
+            title: "Eliminar asset",
+            onclick: (e) => {
+              e.stopPropagation();
+              if (confirm(`\xBFEliminar "${asset2.name}"?`)) this.assets.remove(asset2.id);
+            }
+          })
+        ]);
+        grid.append(card);
+      }
+    }
+    #useAsset(asset2, at = null) {
+      const sel = this.store.selectedNodes[0];
+      const def = sel && Components[sel.type];
+      if (!at && sel && def?.accepts?.includes(asset2.kind === "svg" ? "image" : asset2.kind)) {
+        if (def.schema.some((f) => f.key === "props.assetIds")) {
+          this.store.updateNode(sel.id, "props", { assetIds: [...sel.props.assetIds || [], asset2.id] });
+        } else {
+          this.store.updateNode(sel.id, "props", { assetId: asset2.id });
+        }
+        return;
+      }
+      const type = this.assets.componentForAsset(asset2);
+      if (!type) return;
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      this.store.addNode(type, at || { x: Math.round(width / 2 - 160), y: 120 }, { props: { ...Components[type].defaults.props, assetId: asset2.id } });
+    }
+    /* ── Drop sobre el lienzo (componentes, assets, archivos del SO) ── */
+    #setupCanvasDrop() {
+      const vp = this.view.viewport;
+      vp.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      });
+      vp.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        const at = this.view.toArtboard(e.clientX, e.clientY);
+        const type = e.dataTransfer.getData("application/x-wb-component");
+        if (type) {
+          const def = Components[type];
+          this.store.addNode(type, { x: Math.round(at.x - def.size[0] / 2), y: Math.round(at.y - def.size[1] / 2) });
+          return;
+        }
+        const assetId = e.dataTransfer.getData("application/x-wb-asset");
+        if (assetId) {
+          const asset2 = this.assets.get(assetId);
+          if (asset2) this.#useAsset(asset2, { x: Math.round(at.x - 140), y: Math.round(at.y - 100) });
+          return;
+        }
+        if (e.dataTransfer.files?.length) {
+          const imported = await this.assets.importFiles([...e.dataTransfer.files]);
+          let offset = 0;
+          for (const asset2 of imported) {
+            this.#useAsset(asset2, { x: Math.round(at.x - 140 + offset), y: Math.round(at.y - 100 + offset) });
+            offset += 28;
+          }
+        }
+      });
+    }
+    /* ── Páginas ───────────────────────────────────────── */
+    #renderPages(body) {
+      body.append(el("button", { class: "btn primary block", text: "+ Nueva p\xE1gina", onclick: () => this.store.addPage() }));
+      const list = el("div", { class: "page-list" });
+      for (const page2 of this.store.project.pages) {
+        const active = page2.id === this.store.pageId;
+        list.append(el("div", { class: `page-item${active ? " active" : ""}`, onclick: () => this.store.setPage(page2.id) }, [
+          el("span", {
+            class: "page-name",
+            text: page2.name,
+            title: "Doble clic para renombrar",
+            ondblclick: (e) => {
+              e.stopPropagation();
+              const name = prompt("Nombre de la p\xE1gina:", page2.name);
+              if (name) this.store.renamePage(page2.id, name);
+            }
+          }),
+          el("span", { class: "page-actions" }, [
+            el("button", { text: "\u2191", title: "Subir", onclick: (e) => {
+              e.stopPropagation();
+              this.store.movePage(page2.id, -1);
+            } }),
+            el("button", { text: "\u2193", title: "Bajar", onclick: (e) => {
+              e.stopPropagation();
+              this.store.movePage(page2.id, 1);
+            } }),
+            el("button", { text: "\u29C9", title: "Duplicar", onclick: (e) => {
+              e.stopPropagation();
+              this.store.duplicatePage(page2.id);
+            } }),
+            el("button", { text: "\xD7", title: "Eliminar", onclick: (e) => {
+              e.stopPropagation();
+              if (confirm(`\xBFEliminar "${page2.name}"?`)) this.store.deletePage(page2.id);
+            } })
+          ])
+        ]));
+      }
+      body.append(list);
+      const page = this.store.page;
+      body.append(
+        el("h4", { class: "panel-heading", text: "P\xE1gina activa" }),
+        this.#field("Altura (px)", el("input", {
+          class: "input",
+          type: "number",
+          value: page.height,
+          min: 200,
+          onchange: (e) => this.store.updatePage(page.id, { height: Math.max(200, +e.target.value || 800) })
+        })),
+        this.#field("Fondo", el("input", {
+          class: "input",
+          type: "text",
+          value: page.background,
+          placeholder: "#0b1020 o gradiente CSS",
+          onchange: (e) => this.store.updatePage(page.id, { background: e.target.value })
+        })),
+        this.#field("Transici\xF3n de entrada", el("select", {
+          class: "input",
+          onchange: (e) => this.store.updatePage(page.id, { transition: e.target.value })
+        }, ["fade", "slide", "zoom", "blur", "ninguna"].map((t) => el("option", { value: t, text: t, selected: page.transition === t ? "true" : null }))))
+      );
+    }
+    /* ── Capas ─────────────────────────────────────────── */
+    #renderLayers(body) {
+      const nodes = this.store.pageNodes();
+      if (!nodes.length) {
+        body.append(el("p", { class: "panel-hint", text: "La p\xE1gina est\xE1 vac\xEDa. A\xF1ade componentes desde la pesta\xF1a Piezas." }));
+        return;
+      }
+      const list = el("div", { class: "layer-list" });
+      for (const node2 of [...nodes].reverse()) {
+        const selected = this.store.selection.includes(node2.id);
+        list.append(el("div", {
+          class: `layer-item${selected ? " active" : ""}`,
+          onclick: (e) => this.store.select(node2.id, e.shiftKey)
+        }, [
+          el("span", { class: "layer-icon", text: Components[node2.type]?.icon || "\u25A2" }),
+          el("span", { class: "layer-name", text: node2.name, title: node2.name }),
+          el("span", { class: "layer-actions" }, [
+            el("button", { text: "\u2191", title: "Subir capa", onclick: (e) => {
+              e.stopPropagation();
+              this.store.moveLayer(node2.id, 1);
+            } }),
+            el("button", { text: "\u2193", title: "Bajar capa", onclick: (e) => {
+              e.stopPropagation();
+              this.store.moveLayer(node2.id, -1);
+            } }),
+            el("button", { text: node2.locked ? "\u{1F512}" : "\u{1F513}", title: "Bloquear", onclick: (e) => {
+              e.stopPropagation();
+              this.store.toggleFlag(node2.id, "locked");
+            } }),
+            el("button", { text: node2.hidden ? "\u{1F648}" : "\u{1F441}", title: "Ocultar", onclick: (e) => {
+              e.stopPropagation();
+              this.store.toggleFlag(node2.id, "hidden");
+            } }),
+            el("button", { text: "\xD7", title: "Eliminar", onclick: (e) => {
+              e.stopPropagation();
+              this.store.removeNodes([node2.id]);
+            } })
+          ])
+        ]));
+      }
+      body.append(list);
+    }
+    #field(label, control) {
+      return el("label", { class: "field" }, [el("span", { class: "field-label", text: label }), control]);
+    }
+  };
+
+  // src/editor/properties.js
+  var EVENT_ACTIONS = {
+    goToPage: "Ir a p\xE1gina",
+    openUrl: "Abrir URL",
+    toggleNode: "Mostrar/ocultar elemento",
+    playAnimation: "Ejecutar animaci\xF3n",
+    playSound: "Reproducir sonido"
+  };
+  var PropertiesPanel = class {
+    constructor(store, assets, view) {
+      this.store = store;
+      this.assets = assets;
+      this.view = view;
+      this.root = document.getElementById("right-panel");
+      store.on("selection", () => this.render());
+      store.on("change", () => this.render());
+      store.on("device", () => this.render());
+      this.render();
+    }
+    render() {
+      this.root.innerHTML = "";
+      const nodes = this.store.selectedNodes;
+      if (!nodes.length) {
+        this.#renderEmpty();
+        return;
+      }
+      if (nodes.length > 1) {
+        this.#renderMulti(nodes);
+        return;
+      }
+      this.#renderNode(nodes[0]);
+    }
+    #renderEmpty() {
+      this.root.append(
+        el("h3", { class: "props-title", text: "Proyecto" }),
+        this.#field("Nombre del proyecto", el("input", {
+          class: "input",
+          value: this.store.project.meta.name,
+          onchange: (e) => {
+            this.store.snapshot();
+            this.store.project.meta.name = e.target.value;
+            this.store.commit();
+          }
+        })),
+        el("h4", { class: "panel-heading", text: "Rejilla y ajuste" }),
+        this.#check("Mostrar cuadr\xEDcula", this.store.project.settings.grid.visible, (v) => {
+          this.store.project.settings.grid.visible = v;
+          this.store.commit();
+        }),
+        this.#check("Snap a cuadr\xEDcula", this.store.project.settings.grid.snap, (v) => {
+          this.store.project.settings.grid.snap = v;
+          this.store.commit();
+        }),
+        el("p", { class: "panel-hint", html: "Selecciona un elemento del lienzo para editar sus propiedades.<br><br><b>Atajos:</b><br>Ctrl+Z / Ctrl+Y \u2014 deshacer/rehacer<br>Ctrl+C/V/D \u2014 copiar/pegar/duplicar<br>Supr \u2014 eliminar \xB7 Flechas \u2014 mover<br>Espacio+arrastrar \u2014 pan \xB7 Ctrl+rueda \u2014 zoom<br>Doble clic en texto \u2014 editar" })
+      );
+    }
+    #renderMulti(nodes) {
+      this.root.append(
+        el("h3", { class: "props-title", text: `${nodes.length} elementos` }),
+        el("div", { class: "btn-row" }, [
+          ["left", "\u21E4"],
+          ["centerX", "\u21F9"],
+          ["right", "\u21E5"],
+          ["top", "\u2912"],
+          ["centerY", "\u21D5"]
+        ].map(([mode, label]) => el("button", { class: "btn", text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
+        el("div", { class: "btn-row" }, [
+          el("button", { class: "btn", text: "\u29C9 Duplicar", onclick: () => this.store.duplicateNodes() }),
+          el("button", { class: "btn danger", text: "\xD7 Eliminar", onclick: () => this.store.removeNodes() })
+        ])
+      );
+    }
+    #renderNode(node2) {
+      const frame = this.store.frame(node2);
+      const def = componentDef(node2.type);
+      this.root.append(
+        el("h3", { class: "props-title" }, [
+          el("input", {
+            class: "input name-input",
+            value: node2.name,
+            onchange: (e) => this.store.updateNode(node2.id, "root", { name: e.target.value })
+          })
+        ]),
+        el("p", { class: "device-note", text: this.store.device === "desktop" ? "Editando estilos base (Escritorio)" : `Override para ${this.store.device === "tablet" ? "Tablet" : "M\xF3vil"}` })
+      );
+      const grid = el("div", { class: "frame-grid" });
+      for (const [key, label] of [["x", "X"], ["y", "Y"], ["w", "Ancho"], ["h", "Alto"], ["rotation", "Giro \xB0"], ["scale", "Escala"], ["opacity", "Opacidad"]]) {
+        grid.append(this.#field(label, el("input", {
+          class: "input",
+          type: "number",
+          value: Math.round((frame[key] ?? 0) * 100) / 100,
+          step: key === "scale" || key === "opacity" ? 0.05 : 1,
+          onchange: (e) => {
+            this.store.snapshot();
+            this.store.updateNode(node2.id, "frame", { [key]: +e.target.value });
+          }
+        })));
+      }
+      this.root.append(this.#section("Posici\xF3n y tama\xF1o", [
+        grid,
+        this.store.device !== "desktop" ? el("button", {
+          class: "btn block",
+          text: "\u21BA Quitar override de este dispositivo",
+          onclick: () => {
+            this.store.snapshot();
+            this.store.clearResponsiveOverride(node2);
+            this.store.commit();
+          }
+        }) : null
+      ]));
+      const fields = def.schema.map((field) => this.#renderSchemaField(node2, field)).filter(Boolean);
+      this.root.append(this.#section(def.label, fields));
+      const anim = node2.animation;
+      this.root.append(this.#section("Animaci\xF3n", [
+        this.#field("Preset", this.#select(PRESET_NAMES, anim.preset, (v) => this.#updateAnim(node2, { preset: v }))),
+        this.#field("Disparador", this.#select(Object.keys(TRIGGERS), anim.trigger, (v) => this.#updateAnim(node2, { trigger: v }), (k) => TRIGGERS[k])),
+        this.#field("Duraci\xF3n (ms)", el("input", { class: "input", type: "number", value: anim.duration, min: 50, step: 50, onchange: (e) => this.#updateAnim(node2, { duration: +e.target.value }) })),
+        this.#field("Delay (ms)", el("input", { class: "input", type: "number", value: anim.delay, min: 0, step: 50, onchange: (e) => this.#updateAnim(node2, { delay: +e.target.value }) })),
+        this.#field("Curva", this.#select(EASINGS, anim.easing, (v) => this.#updateAnim(node2, { easing: v }))),
+        this.#check("Repetir en bucle", anim.loop, (v) => this.#updateAnim(node2, { loop: v })),
+        el("button", {
+          class: "btn block",
+          text: "\u25B6 Previsualizar animaci\xF3n",
+          onclick: () => {
+            const elem = this.view.artboard.querySelector(`[data-id="${node2.id}"]`);
+            if (elem) playAnimation(elem, { ...node2.animation, loop: false });
+          }
+        })
+      ]));
+      const eventRows = (node2.events || []).map((event, i) => this.#renderEventRow(node2, event, i));
+      this.root.append(this.#section("Eventos", [
+        ...eventRows,
+        el("button", {
+          class: "btn block",
+          text: "+ A\xF1adir evento",
+          onclick: () => {
+            this.store.snapshot();
+            node2.events ||= [];
+            node2.events.push({ on: "click", action: "goToPage", target: this.store.project.pages[0].id });
+            this.store.commit();
+          }
+        })
+      ]));
+      this.root.append(el("div", { class: "btn-row" }, [
+        el("button", { class: "btn", text: "\u29C9 Duplicar", onclick: () => this.store.duplicateNodes([node2.id]) }),
+        el("button", { class: "btn", text: node2.locked ? "\u{1F512}" : "\u{1F513}", onclick: () => this.store.toggleFlag(node2.id, "locked") }),
+        el("button", { class: "btn danger", text: "\xD7 Eliminar", onclick: () => this.store.removeNodes([node2.id]) })
+      ]));
+    }
+    #updateAnim(node2, patch) {
+      this.store.updateNode(node2.id, "animation", patch);
+    }
+    /* ── Campos generados desde el schema ──────────────── */
+    #renderSchemaField(node2, field) {
+      const value = getPath(node2, field.key);
+      const commit = (v) => {
+        this.store.snapshot();
+        const [section, ...rest] = field.key.split(".");
+        const patch = {};
+        if (rest.length === 1) patch[rest[0]] = v;
+        else setPath(patch, rest.join("."), v);
+        this.store.updateNode(node2.id, section, patch);
+      };
+      switch (field.type) {
+        case "text":
+          return this.#field(field.label, el("input", { class: "input", value: value ?? "", onchange: (e) => commit(e.target.value) }));
+        case "textarea":
+          return this.#field(field.label, el("textarea", { class: "input", rows: 3, text: value ?? "", onchange: (e) => commit(e.target.value) }));
+        case "number":
+          return this.#field(field.label, el("input", {
+            class: "input",
+            type: "number",
+            value: value ?? 0,
+            min: field.min,
+            max: field.max,
+            step: field.step ?? 1,
+            onchange: (e) => commit(+e.target.value)
+          }));
+        case "color": {
+          const isHex = /^#[0-9a-f]{3,8}$/i.test(value || "");
+          return this.#field(field.label, el("div", { class: "color-field" }, [
+            el("input", { type: "color", value: isHex ? value : "#6366f1", oninput: (e) => commit(e.target.value) }),
+            el("input", { class: "input", value: value ?? "", placeholder: "color / gradiente CSS", onchange: (e) => commit(e.target.value) })
+          ]));
+        }
+        case "select":
+          return this.#field(field.label, this.#select(field.options, value, commit));
+        case "checkbox":
+          return this.#check(field.label, !!value, commit);
+        case "asset": {
+          const list = this.assets.list({ kind: field.kind });
+          const options = [{ id: "", name: "\u2014 ninguno \u2014" }, ...list];
+          return this.#field(field.label, el("select", {
+            class: "input",
+            onchange: (e) => commit(e.target.value || null)
+          }, options.map((a) => el("option", { value: a.id, text: a.name, selected: (value || "") === a.id ? "true" : null }))));
+        }
+        case "assetList": {
+          const ids = value || [];
+          const list = this.assets.list({ kind: field.kind });
+          return this.#field(field.label, el("div", {}, [
+            el("div", { class: "mini-list" }, ids.map((id, i) => el("span", { class: "mini-chip" }, [
+              this.assets.get(id)?.name || "?",
+              el("button", { text: "\xD7", onclick: () => commit(ids.filter((_, j) => j !== i)) })
+            ]))),
+            el("select", {
+              class: "input",
+              onchange: (e) => {
+                if (e.target.value) commit([...ids, e.target.value]);
+                e.target.value = "";
+              }
+            }, [el("option", { value: "", text: "+ a\xF1adir imagen\u2026" }), ...list.map((a) => el("option", { value: a.id, text: a.name }))])
+          ]));
+        }
+        default:
+          return null;
+      }
+    }
+    #renderEventRow(node2, event, index) {
+      const update = (patch) => {
+        this.store.snapshot();
+        Object.assign(node2.events[index], patch);
+        this.store.commit();
+      };
+      const targetControl = () => {
+        if (event.action === "goToPage") {
+          return this.#select(
+            this.store.project.pages.map((p) => p.id),
+            event.target,
+            (v) => update({ target: v }),
+            (id) => this.store.project.pages.find((p) => p.id === id)?.name || id
+          );
+        }
+        if (event.action === "openUrl") {
+          return el("input", { class: "input", value: event.target || "", placeholder: "https://\u2026", onchange: (e) => update({ target: e.target.value }) });
+        }
+        if (event.action === "toggleNode" || event.action === "playAnimation") {
+          const nodes = this.store.pageNodes();
+          return this.#select(nodes.map((n) => n.id), event.target, (v) => update({ target: v }), (id) => this.store.node(id)?.name || id);
+        }
+        if (event.action === "playSound") {
+          const sounds = this.assets.list({ kind: "audio" });
+          return this.#select(sounds.map((a) => a.id), event.target, (v) => update({ target: v }), (id) => this.assets.get(id)?.name || id);
+        }
+        return el("span");
+      };
+      return el("div", { class: "event-row" }, [
+        this.#select(["click", "hover"], event.on, (v) => update({ on: v })),
+        this.#select(Object.keys(EVENT_ACTIONS), event.action, (v) => update({ action: v, target: "" }), (k) => EVENT_ACTIONS[k]),
+        targetControl(),
+        el("button", {
+          class: "btn danger",
+          text: "\xD7",
+          onclick: () => {
+            this.store.snapshot();
+            node2.events.splice(index, 1);
+            this.store.commit();
+          }
+        })
+      ]);
+    }
+    /* ── Helpers de UI ─────────────────────────────────── */
+    #section(title, children) {
+      return el("details", { class: "props-section", open: "true" }, [
+        el("summary", { text: title }),
+        el("div", { class: "props-section-body" }, children)
+      ]);
+    }
+    #field(label, control) {
+      return el("label", { class: "field" }, [el("span", { class: "field-label", text: label }), control]);
+    }
+    #check(label, checked, onchange) {
+      return el("label", { class: "field check" }, [
+        el("input", { type: "checkbox", ...checked ? { checked: "true" } : {}, onchange: (e) => onchange(e.target.checked) }),
+        el("span", { class: "field-label", text: label })
+      ]);
+    }
+    #select(options, value, onchange, labelFor = (v) => v) {
+      return el(
+        "select",
+        { class: "input", onchange: (e) => onchange(e.target.value) },
+        options.map((opt) => el("option", { value: opt, text: labelFor(opt), selected: value === opt ? "true" : null }))
+      );
+    }
+  };
+
+  // src/editor/drawTool.js
+  var DrawTool = class {
+    constructor(store, assets, view) {
+      this.store = store;
+      this.assets = assets;
+      this.view = view;
+      this.canvas = view.drawLayer;
+      this.ctx = this.canvas.getContext("2d");
+      this.brush = { size: 8, color: "#f472b6", opacity: 1, eraser: false };
+      this.strokes = [];
+      this.drawing = false;
+      this.toolbar = this.#buildToolbar();
+      document.getElementById("draw-toolbar-slot").append(this.toolbar);
+      store.on("tool", () => this.#onToolChange());
+      store.on("change", () => this.#resize());
+      this.canvas.addEventListener("pointerdown", (e) => this.#start(e));
+      this.canvas.addEventListener("pointermove", (e) => this.#move(e));
+      this.canvas.addEventListener("pointerup", () => this.#end());
+      this.canvas.addEventListener("pointerleave", () => this.#end());
+    }
+    #onToolChange() {
+      const active = this.store.tool === "draw";
+      this.canvas.classList.toggle("active", active);
+      this.toolbar.style.display = active ? "flex" : "none";
+      if (active) this.#resize();
+    }
+    #resize() {
+      const width = this.store.project.settings.breakpoints[this.store.device];
+      const height = this.store.page.height;
+      if (this.canvas.width === width && this.canvas.height === height) return;
+      const prev = this.canvas.width ? this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height) : null;
+      this.canvas.width = width;
+      this.canvas.height = height;
+      if (prev) this.ctx.putImageData(prev, 0, 0);
+    }
+    #point(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) / rect.width * this.canvas.width,
+        y: (e.clientY - rect.top) / rect.height * this.canvas.height,
+        pressure: e.pressure || 0.5
+      };
+    }
+    #start(e) {
+      if (this.store.tool !== "draw") return;
+      this.canvas.setPointerCapture(e.pointerId);
+      this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+      if (this.strokes.length > 20) this.strokes.shift();
+      this.drawing = true;
+      this.last = this.#point(e);
+      this.#segment(this.last, this.last);
+    }
+    #move(e) {
+      if (!this.drawing) return;
+      const events = e.getCoalescedEvents?.() || [e];
+      for (const ev of events) {
+        const point = this.#point(ev);
+        this.#segment(this.last, point);
+        this.last = point;
+      }
+    }
+    #segment(a, b) {
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.globalAlpha = this.brush.opacity;
+      ctx.globalCompositeOperation = this.brush.eraser ? "destination-out" : "source-over";
+      ctx.strokeStyle = this.brush.color;
+      ctx.lineWidth = this.brush.size * (0.5 + (a.pressure + b.pressure) / 2);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    #end() {
+      this.drawing = false;
+    }
+    undoStroke() {
+      const prev = this.strokes.pop();
+      if (prev) this.ctx.putImageData(prev, 0, 0);
+    }
+    clear() {
+      this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    /** Recorta el dibujo, lo guarda como asset PNG y crea un nodo. */
+    async toComponent() {
+      const { width, height } = this.canvas;
+      const data = this.ctx.getImageData(0, 0, width, height).data;
+      let minX = width, minY = height, maxX = 0, maxY = 0, found = false;
+      for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
+          if (data[(y * width + x) * 4 + 3] > 8) {
+            found = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (!found) {
+        alert("El lienzo de dibujo est\xE1 vac\xEDo.");
+        return;
+      }
+      const pad = 6;
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(width, maxX + pad);
+      maxY = Math.min(height, maxY + pad);
+      const w = maxX - minX, h = maxY - minY;
+      const crop = document.createElement("canvas");
+      crop.width = w;
+      crop.height = h;
+      crop.getContext("2d").drawImage(this.canvas, minX, minY, w, h, 0, 0, w, h);
+      const asset2 = await this.assets.addDataURL(`dibujo-${Date.now().toString(36)}.png`, crop.toDataURL("image/png"));
+      this.ctx.clearRect(0, 0, width, height);
+      this.store.addNode("drawing", { x: minX, y: minY, w, h }, { props: { assetId: asset2.id, fit: "contain" } });
+      this.store.setTool("select");
+    }
+    #buildToolbar() {
+      const bar = el("div", { class: "draw-toolbar", style: { display: "none" } }, [
+        el("span", { text: "\u270E Dibujo:" }),
+        el("input", { type: "color", value: this.brush.color, title: "Color", oninput: (e) => {
+          this.brush.color = e.target.value;
+          this.brush.eraser = false;
+        } }),
+        el("label", {}, ["Tama\xF1o ", el("input", { type: "range", min: 1, max: 80, value: this.brush.size, oninput: (e) => {
+          this.brush.size = +e.target.value;
+        } })]),
+        el("label", {}, ["Opacidad ", el("input", { type: "range", min: 5, max: 100, value: 100, oninput: (e) => {
+          this.brush.opacity = +e.target.value / 100;
+        } })]),
+        el("button", { class: "btn", text: "\u25EB Borrador", onclick: (e) => {
+          this.brush.eraser = !this.brush.eraser;
+          e.target.classList.toggle("active", this.brush.eraser);
+        } }),
+        el("button", { class: "btn", text: "\u21B6 Trazo", title: "Deshacer \xFAltimo trazo", onclick: () => this.undoStroke() }),
+        el("button", { class: "btn", text: "\u{1F5D1} Limpiar", onclick: () => this.clear() }),
+        el("button", { class: "btn primary", text: "\u2713 Convertir en componente", onclick: () => this.toComponent() }),
+        el("button", { class: "btn", text: "\xD7 Salir", onclick: () => this.store.setTool("select") })
+      ]);
+      return bar;
+    }
+  };
+
+  // src/webgl/particles.js
+  var VS = `#version 300 es
+in vec2 aPos;
+in float aLife;
+uniform float uSize;
+uniform vec2 uRes;
+out float vLife;
+void main() {
+  vec2 clip = (aPos / uRes) * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  gl_PointSize = uSize * (0.5 + vLife * 0.5 + aLife * 0.5);
+  vLife = aLife;
+}`;
+  var FS = `#version 300 es
+precision mediump float;
+uniform vec3 uColor;
+in float vLife;
+out vec4 outColor;
+void main() {
+  float d = length(gl_PointCoord - vec2(0.5));
+  float alpha = smoothstep(0.5, 0.0, d) * (0.35 + vLife * 0.65);
+  outColor = vec4(uColor * (0.6 + vLife * 0.6), alpha);
+}`;
+  function compile(gl, type, src) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+    return shader;
+  }
+  function hexToRGB(hex) {
+    const v = parseInt(hex.replace("#", ""), 16);
+    return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255];
+  }
+  function mountParticles(canvas, opts = {}) {
+    const count = Math.min(+opts.count || 400, 8e3);
+    const speed = +opts.speed || 1;
+    const size = (+opts.size || 2) * (window.devicePixelRatio || 1);
+    const mode = opts.mode || "nebulosa";
+    const gl = canvas.getContext("webgl2", { alpha: true, antialias: false });
+    if (!gl) {
+      canvas.replaceWith(Object.assign(document.createElement("div"), { textContent: "WebGL2 no disponible" }));
+      return () => {
+      };
+    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => {
+      const w = canvas.clientWidth || 300, h = canvas.clientHeight || 200;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    };
+    resize();
+    const program = gl.createProgram();
+    gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VS));
+    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(program);
+    gl.useProgram(program);
+    const W2 = () => canvas.width, H = () => canvas.height;
+    const pos = new Float32Array(count * 2);
+    const vel = new Float32Array(count * 2);
+    const life = new Float32Array(count);
+    const orbit = new Float32Array(count * 2);
+    for (let i = 0; i < count; i++) {
+      pos[i * 2] = Math.random() * W2();
+      pos[i * 2 + 1] = Math.random() * H();
+      vel[i * 2] = (Math.random() - 0.5) * 0.6;
+      vel[i * 2 + 1] = (Math.random() - 0.5) * 0.6;
+      life[i] = Math.random();
+      orbit[i * 2] = 40 + Math.random() * (Math.min(W2(), H()) / 2);
+      orbit[i * 2 + 1] = Math.random() * Math.PI * 2;
+    }
+    const posBuf = gl.createBuffer();
+    const lifeBuf = gl.createBuffer();
+    const aPos = gl.getAttribLocation(program, "aPos");
+    const aLife = gl.getAttribLocation(program, "aLife");
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aLife);
+    gl.uniform3fv(gl.getUniformLocation(program, "uColor"), hexToRGB(opts.color || "#818cf8"));
+    gl.uniform1f(gl.getUniformLocation(program, "uSize"), size * 2);
+    const uRes = gl.getUniformLocation(program, "uRes");
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    let raf = 0, visible = true, disposed = false, t = 0;
+    function step() {
+      if (disposed) return;
+      raf = requestAnimationFrame(step);
+      if (!visible) return;
+      t += 0.016 * speed;
+      const cx = W2() / 2, cy = H() / 2;
+      for (let i = 0; i < count; i++) {
+        if (mode === "\xF3rbita") {
+          orbit[i * 2 + 1] += 4e-3 * speed * (1 + i % 5 * 0.15);
+          pos[i * 2] = cx + Math.cos(orbit[i * 2 + 1]) * orbit[i * 2];
+          pos[i * 2 + 1] = cy + Math.sin(orbit[i * 2 + 1]) * orbit[i * 2] * 0.6;
+        } else if (mode === "lluvia") {
+          pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * speed * dpr;
+          if (pos[i * 2 + 1] > H()) {
+            pos[i * 2 + 1] = -4;
+            pos[i * 2] = Math.random() * W2();
+          }
+        } else {
+          pos[i * 2] += vel[i * 2] * speed * dpr + Math.sin(t + i) * 0.1;
+          pos[i * 2 + 1] += vel[i * 2 + 1] * speed * dpr + Math.cos(t * 0.7 + i) * 0.1;
+          if (pos[i * 2] < 0) pos[i * 2] = W2();
+          else if (pos[i * 2] > W2()) pos[i * 2] = 0;
+          if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H();
+          else if (pos[i * 2 + 1] > H()) pos[i * 2 + 1] = 0;
+        }
+        life[i] += 0.01;
+        if (life[i] > 1) life[i] = 0;
+      }
+      gl.uniform2f(uRes, W2(), H());
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, lifeBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, life, gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(aLife, 1, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.POINTS, 0, count);
+    }
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+    });
+    io.observe(canvas);
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+    step();
+    return function dispose() {
+      disposed = true;
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    };
+  }
+
+  // src/webgl/threeManager.js
+  var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/+esm";
+  var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm";
+  var threePromise = null;
+  function loadThree() {
+    threePromise ||= Promise.all([
+      import(
+        /* @vite-ignore */
+        THREE_URL
+      ),
+      import(
+        /* @vite-ignore */
+        GLTF_URL
+      )
+    ]).then(([THREE, { GLTFLoader }]) => ({ THREE, GLTFLoader }));
+    return threePromise;
+  }
+  var ThreeManager = class _ThreeManager {
+    #instances = /* @__PURE__ */ new Map();
+    // elemento → dispose()
+    constructor(assets) {
+      this.assets = assets;
+    }
+    /** Escanea un contenedor y monta todos los embeds 3D/partículas. */
+    mountAll(root) {
+      this.disposeAll();
+      root.querySelectorAll(".wb-particles").forEach((canvas) => {
+        this.#instances.set(canvas, mountParticles(canvas, canvas.dataset));
+      });
+      root.querySelectorAll(".wb-3d").forEach((elem) => this.#mountModel(elem));
+    }
+    disposeAll() {
+      for (const dispose of this.#instances.values()) {
+        try {
+          dispose();
+        } catch {
+        }
+      }
+      this.#instances.clear();
+    }
+    async #mountModel(elem) {
+      elem.innerHTML = '<div class="wb-3d-loading">Cargando motor 3D\u2026</div>';
+      let mod;
+      try {
+        mod = await loadThree();
+      } catch {
+        elem.innerHTML = '<div class="wb-3d-loading">\u2B21<br><small>Three.js no disponible sin conexi\xF3n.<br>El modelo se mostrar\xE1 en el sitio exportado.</small></div>';
+        return;
+      }
+      if (!elem.isConnected) return;
+      const { THREE, GLTFLoader } = mod;
+      elem.innerHTML = "";
+      const w = elem.clientWidth || 300, h = elem.clientHeight || 240;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h);
+      elem.append(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+      camera.position.set(0, 0.6, parseFloat(elem.dataset.cameraz) || 4);
+      scene.add(new THREE.AmbientLight(16777215, 0.6));
+      const light = new THREE.DirectionalLight(
+        new THREE.Color(elem.dataset.lightcolor || "#ffffff"),
+        parseFloat(elem.dataset.lightintensity) || 2
+      );
+      light.position.set(3, 5, 4);
+      scene.add(light);
+      const pivot = new THREE.Group();
+      scene.add(pivot);
+      let mixer = null;
+      const assetId = elem.dataset.model;
+      const assetData = assetId ? this.assets.url(assetId) : "";
+      if (assetData) {
+        try {
+          const gltf = await new GLTFLoader().loadAsync(assetData);
+          const model = gltf.scene;
+          const box = new THREE.Box3().setFromObject(model);
+          const sizeV = box.getSize(new THREE.Vector3());
+          const scale = 2 / Math.max(sizeV.x, sizeV.y, sizeV.z, 1e-3);
+          model.scale.setScalar(scale);
+          box.getCenter(sizeV);
+          model.position.sub(sizeV.multiplyScalar(scale));
+          pivot.add(model);
+          if (elem.dataset.playanim !== "false" && gltf.animations?.length) {
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
+          }
+        } catch (e) {
+          console.warn("GLB inv\xE1lido", e);
+          pivot.add(_ThreeManager.#demoMesh(THREE));
+        }
+      } else {
+        pivot.add(_ThreeManager.#demoMesh(THREE));
+      }
+      const clock = new THREE.Clock();
+      const autoRotate = elem.dataset.autorotate !== "false";
+      const rotSpeed = parseFloat(elem.dataset.speed) || 1;
+      let visible = true, disposed = false, raf = 0;
+      const io = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+      });
+      io.observe(elem);
+      let dragging = false, lastX = 0, lastY = 0;
+      renderer.domElement.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
+      window.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        pivot.rotation.y += (e.clientX - lastX) * 0.01;
+        pivot.rotation.x += (e.clientY - lastY) * 0.01;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
+      window.addEventListener("pointerup", () => {
+        dragging = false;
+      });
+      const tick = () => {
+        if (disposed) return;
+        raf = requestAnimationFrame(tick);
+        if (!visible) return;
+        const dt = clock.getDelta();
+        if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+        mixer?.update(dt);
+        renderer.render(scene, camera);
+      };
+      tick();
+      const ro = new ResizeObserver(() => {
+        const nw = elem.clientWidth, nh = elem.clientHeight;
+        if (!nw || !nh) return;
+        camera.aspect = nw / nh;
+        camera.updateProjectionMatrix();
+        renderer.setSize(nw, nh);
+      });
+      ro.observe(elem);
+      this.#instances.set(elem, () => {
+        disposed = true;
+        cancelAnimationFrame(raf);
+        io.disconnect();
+        ro.disconnect();
+        renderer.dispose();
+        renderer.domElement.remove();
+      });
+    }
+    static #demoMesh(THREE) {
+      return new THREE.Mesh(
+        new THREE.TorusKnotGeometry(0.8, 0.28, 128, 24),
+        new THREE.MeshStandardMaterial({ color: 8490232, metalness: 0.6, roughness: 0.25 })
+      );
+    }
+  };
+
+  // src/utils/zip.js
+  var CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+  function crc32(bytes) {
+    let crc = 4294967295;
+    for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ crc >>> 8;
+    return (crc ^ 4294967295) >>> 0;
+  }
+  function dosDateTime(date = /* @__PURE__ */ new Date()) {
+    const time = (date.getHours() << 11 | date.getMinutes() << 5 | date.getSeconds() >> 1) & 65535;
+    const day = (date.getFullYear() - 1980 << 9 | date.getMonth() + 1 << 5 | date.getDate()) & 65535;
+    return { time, day };
+  }
+  var ByteWriter = class {
+    constructor() {
+      this.chunks = [];
+      this.length = 0;
+    }
+    bytes(arr) {
+      this.chunks.push(arr);
+      this.length += arr.length;
+    }
+    u16(v) {
+      this.bytes(new Uint8Array([v & 255, v >> 8 & 255]));
+    }
+    u32(v) {
+      this.bytes(new Uint8Array([v & 255, v >> 8 & 255, v >> 16 & 255, v >> 24 & 255]));
+    }
+  };
+  var ZipWriter = class {
+    #entries = [];
+    /** Añade un archivo. data: string | Uint8Array | ArrayBuffer */
+    file(path, data) {
+      let bytes;
+      if (typeof data === "string") bytes = new TextEncoder().encode(data);
+      else if (data instanceof ArrayBuffer) bytes = new Uint8Array(data);
+      else bytes = data;
+      this.#entries.push({ path: path.replace(/^\/+/, ""), bytes, crc: crc32(bytes) });
+      return this;
+    }
+    toBlob() {
+      const w = new ByteWriter();
+      const { time, day } = dosDateTime();
+      const central = [];
+      for (const entry of this.#entries) {
+        const nameBytes = new TextEncoder().encode(entry.path);
+        const offset = w.length;
+        w.u32(67324752);
+        w.u16(20);
+        w.u16(
+          2048
+          /* UTF-8 */
+        );
+        w.u16(
+          0
+          /* STORE */
+        );
+        w.u16(time);
+        w.u16(day);
+        w.u32(entry.crc);
+        w.u32(entry.bytes.length);
+        w.u32(entry.bytes.length);
+        w.u16(nameBytes.length);
+        w.u16(0);
+        w.bytes(nameBytes);
+        w.bytes(entry.bytes);
+        central.push({ ...entry, nameBytes, offset });
+      }
+      const centralStart = w.length;
+      for (const entry of central) {
+        w.u32(33639248);
+        w.u16(20);
+        w.u16(20);
+        w.u16(2048);
+        w.u16(0);
+        w.u16(time);
+        w.u16(day);
+        w.u32(entry.crc);
+        w.u32(entry.bytes.length);
+        w.u32(entry.bytes.length);
+        w.u16(entry.nameBytes.length);
+        w.u16(0);
+        w.u16(0);
+        w.u16(0);
+        w.u16(0);
+        w.u32(0);
+        w.u32(entry.offset);
+        w.bytes(entry.nameBytes);
+      }
+      const centralSize = w.length - centralStart;
+      w.u32(101010256);
+      w.u16(0);
+      w.u16(0);
+      w.u16(central.length);
+      w.u16(central.length);
+      w.u32(centralSize);
+      w.u32(centralStart);
+      w.u16(0);
+      return new Blob(w.chunks, { type: "application/zip" });
+    }
+  };
+
+  // src/exporter/exporter.js
+  var BP = { tablet: 860, mobile: 520 };
+  var Exporter = class {
+    constructor(store, assets) {
+      this.store = store;
+      this.assets = assets;
+    }
+    async export() {
+      const project = this.store.project;
+      const zip = new ZipWriter();
+      const usedIds = /* @__PURE__ */ new Set();
+      for (const node2 of Object.values(project.nodes)) {
+        if (node2.props?.assetId) usedIds.add(node2.props.assetId);
+        for (const id of node2.props?.assetIds || []) usedIds.add(id);
+        for (const event of node2.events || []) if (event.action === "playSound" && event.target) usedIds.add(event.target);
+      }
+      const assetPath = /* @__PURE__ */ new Map();
+      for (const id of usedIds) {
+        const asset2 = this.assets.get(id);
+        if (!asset2) continue;
+        const dot = asset2.name.lastIndexOf(".");
+        const ext = dot > 0 ? asset2.name.slice(dot + 1).toLowerCase() : "bin";
+        const base = slugify(dot > 0 ? asset2.name.slice(0, dot) : asset2.name);
+        const path = `assets/${ASSET_KINDS[asset2.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
+        assetPath.set(id, path);
+        zip.file(path, dataURLToBytes(asset2.data));
+      }
+      const slugs = /* @__PURE__ */ new Map();
+      project.pages.forEach((page, i) => {
+        let slug = i === 0 ? "index" : slugify(page.slug || page.name);
+        while ([...slugs.values()].includes(slug)) slug += "-2";
+        slugs.set(page.id, slug);
+      });
+      const has3D = Object.values(project.nodes).some((n) => ["model3d", "particles"].includes(n.type));
+      zip.file("css/style.css", this.#buildCSS(project));
+      zip.file("js/app.js", buildAppJS());
+      zip.file("js/animations.js", buildAnimationsJS());
+      if (has3D) zip.file("js/webgl.js", buildWebglJS());
+      for (const page of project.pages) {
+        const slug = slugs.get(page.id);
+        const isIndex = slug === "index";
+        const html = this.#buildPageHTML(page, { project, slugs, assetPath, depth: isIndex ? 0 : 1, has3D });
+        zip.file(isIndex ? "index.html" : `paginas/${slug}.html`, html);
+      }
+      zip.file("project.json", JSON.stringify(project, null, 2));
+      zip.file(
+        "LEEME.txt",
+        `Sitio generado con No-Code Website Builder
+Proyecto: ${project.meta.name}
+
+Abre index.html en un navegador o sube la carpeta completa a cualquier hosting est\xE1tico
+(Netlify, Vercel, GitHub Pages\u2026). project.json puede re-importarse en el editor.
+`
+      );
+      download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
+    }
+    /* ── HTML de página ────────────────────────────────── */
+    #buildPageHTML(page, ctx) {
+      const { project, slugs, assetPath, depth, has3D } = ctx;
+      const prefix = depth ? "../" : "";
+      const pageHref = (target) => {
+        const slug = slugs.get(target.id);
+        if (slug === "index") return `${prefix}index.html`;
+        return depth ? `${slug}.html` : `paginas/${slug}.html`;
+      };
+      const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ""), pages: project.pages, pageHref };
+      const nodesHTML = page.nodes.map((id) => project.nodes[id]).filter((node2) => node2 && !node2.hidden).map((node2) => {
+        const anim = node2.animation;
+        const hasAnim = anim && anim.preset !== "ninguna" && PRESETS[anim.preset];
+        const attrs = [
+          `class="wb-node el-${node2.id}${hasAnim && anim.trigger === "load" ? " wb-play" : ""}"`,
+          hasAnim ? `data-trigger="${anim.trigger}"` : "",
+          node2.events?.length ? `data-events='${JSON.stringify(node2.events).replaceAll("'", "&#39;")}'` : ""
+        ].filter(Boolean).join(" ");
+        return `      <div ${attrs}>${contentHTML(node2, renderCtx)}</div>`;
+      }).join("\n");
+      const soundPaths = {};
+      for (const node2 of page.nodes.map((id) => project.nodes[id])) {
+        for (const event of node2?.events || []) {
+          if (event.action === "playSound" && event.target) soundPaths[event.target] = prefix + (assetPath.get(event.target) || "");
+        }
+      }
+      return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${esc(page.name)} \u2014 ${esc(project.meta.name)}</title>
+  <link rel="stylesheet" href="${prefix}css/style.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div class="wb-scale-wrap">
+    <main class="wb-stage wb-enter-${page.transition || "fade"}" id="stage" data-page="${slugs.get(page.id)}"
+      style="background:${page.background || "#0b1020"}">
+${nodesHTML}
+    </main>
+  </div>
+  <script>window.WB_SOUNDS=${JSON.stringify(soundPaths)};<\/script>
+  <script src="${prefix}js/app.js"><\/script>
+  <script src="${prefix}js/animations.js"><\/script>
+${has3D ? `  <script src="${prefix}js/webgl.js"><\/script>` : ""}
+</body>
+</html>`;
+    }
+    /* ── CSS del sitio ─────────────────────────────────── */
+    #buildCSS(project) {
+      const bps = project.settings.breakpoints;
+      const usedPresets = /* @__PURE__ */ new Set();
+      const rules = [];
+      const tabletRules = [];
+      const mobileRules = [];
+      const frameRule = (frame) => `left:${frame.x}px;top:${frame.y}px;width:${frame.w}px;height:${frame.h}px;transform:rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1});opacity:${frame.opacity ?? 1};`;
+      for (const node2 of Object.values(project.nodes)) {
+        if (node2.hidden) continue;
+        const visual = Object.entries(styleCSS(node2)).map(([k, v]) => `${k}:${v}`).join(";");
+        rules.push(`.el-${node2.id}{${frameRule(node2.base)}${visual}}`);
+        const tablet = node2.responsive?.tablet;
+        if (tablet && Object.keys(tablet).length) tabletRules.push(`.el-${node2.id}{${frameRule({ ...node2.base, ...tablet })}}`);
+        const mobile = node2.responsive?.mobile;
+        if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node2.id}{${frameRule({ ...node2.base, ...tablet, ...mobile })}}`);
+        const anim = node2.animation;
+        if (anim && anim.preset !== "ninguna" && PRESETS[anim.preset]) {
+          usedPresets.add(anim.preset);
+          const iter = anim.loop ? "infinite" : "1";
+          const selector = anim.trigger === "hover" ? `.el-${node2.id}:hover` : `.el-${node2.id}.wb-play`;
+          rules.push(`${selector}{animation:wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || "ease-out"} ${anim.delay || 0}ms ${iter} both}`);
+          const first = PRESETS[anim.preset][0];
+          if (["scroll", "click"].includes(anim.trigger) && first.opacity === 0) {
+            rules.push(`.el-${node2.id}:not(.wb-play){opacity:0}`);
+          }
+        }
+      }
+      const pageHeights = [`.wb-stage{width:${bps.desktop}px}`];
+      const perPage = project.pages.map((page, i) => {
+        const slug = i === 0 ? "index" : slugify(page.slug || page.name);
+        return `.wb-stage[data-page="${slug}"]{height:${page.height}px}`;
+      });
+      const keyframes = [...usedPresets].map(presetToKeyframesCSS).join("\n");
+      const transitions = `
+@keyframes wb-page-fade{from{opacity:0}to{opacity:1}}
+@keyframes wb-page-slide{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes wb-page-zoom{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes wb-page-blur{from{opacity:0;filter:blur(14px)}to{opacity:1;filter:blur(0)}}
+.wb-enter-fade{animation:wb-page-fade .5s ease-out both}
+.wb-enter-slide{animation:wb-page-slide .5s ease-out both}
+.wb-enter-zoom{animation:wb-page-zoom .5s ease-out both}
+.wb-enter-blur{animation:wb-page-blur .6s ease-out both}`;
+      return `/* Generado por No-Code Website Builder */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+.wb-scale-wrap{width:100%;overflow:hidden}
+.wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif}
+.wb-node{position:absolute;display:block}
+.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit}
+.wb-btn{width:100%;height:100%;font:inherit;color:inherit;background:none;border:none;cursor:pointer;border-radius:inherit;background:inherit;text-align:inherit}
+.wb-icon{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:inherit}
+.wb-hidden{visibility:hidden!important}
+.wb-slider{position:relative;width:100%;height:100%;overflow:hidden;border-radius:inherit}
+.wb-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s,transform .6s}
+.wb-slide.active{opacity:1}
+.wb-slider[data-transition="slide"] .wb-slide{transform:translateX(100%)}
+.wb-slider[data-transition="slide"] .wb-slide.active{transform:translateX(0)}
+.wb-form{display:flex;flex-direction:column;gap:10px;width:100%;height:100%;padding:20px;border-radius:inherit;background:inherit;color:inherit;font-family:inherit}
+.wb-form input,.wb-form textarea{padding:10px;border-radius:8px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font:inherit}
+.wb-form button{padding:12px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer}
+.wb-menu{display:flex;width:100%;height:100%;align-items:center;justify-content:space-between;padding:0 28px;border-radius:inherit;background:inherit}
+.wb-menu-links{display:flex;gap:22px}
+.wb-menu a{color:inherit;text-decoration:none;opacity:.85}
+.wb-menu a:hover{opacity:1;text-decoration:underline}
+.wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
+.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
+@keyframes wb-spin{to{transform:rotate(360deg)}}
+.wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.wb-player-info span{opacity:.75;font-size:13px}
+.wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
+.wb-gallery img{border-radius:6px}
+
+${pageHeights.join("\n")}
+${perPage.join("\n")}
+
+/* \u2500\u2500 Nodos \u2500\u2500 */
+${rules.join("\n")}
+
+/* \u2500\u2500 Breakpoint tablet (${bps.tablet}px de dise\xF1o) \u2500\u2500 */
+@media (max-width:${BP.tablet}px){
+.wb-stage{width:${bps.tablet}px}
+${tabletRules.join("\n")}
+}
+
+/* \u2500\u2500 Breakpoint m\xF3vil (${bps.mobile}px de dise\xF1o) \u2500\u2500 */
+@media (max-width:${BP.mobile}px){
+.wb-stage{width:${bps.mobile}px}
+${mobileRules.join("\n")}
+}
+
+/* \u2500\u2500 Animaciones \u2500\u2500 */
+${keyframes}
+${transitions}
+
+@media (prefers-reduced-motion:reduce){
+  .wb-node,.wb-stage{animation:none!important}
+}`;
+    }
+  };
+  function buildAppJS() {
+    return `/* Runtime base \u2014 generado por No-Code Website Builder */
+(function () {
+  'use strict';
+  var stage = document.getElementById('stage');
+  var wrap = document.querySelector('.wb-scale-wrap');
+
+  /* Escala proporcional: el dise\xF1o mantiene sus coordenadas y se
+     ajusta a CUALQUIER viewport sin reflow (transform GPU).
+     Las media queries cambian el ancho de dise\xF1o (desktop/tablet/
+     m\xF3vil) y esta funci\xF3n cubre los tama\xF1os intermedios. */
+  function fit() {
+    stage.style.transform = 'none';
+    var designW = stage.offsetWidth; // ancho de dise\xF1o seg\xFAn media query activa
+    var scale = Math.min(1, window.innerWidth / designW);
+    if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (stage.offsetHeight * scale) + 'px';
+  }
+  var rafFit;
+  window.addEventListener('resize', function () { cancelAnimationFrame(rafFit); rafFit = requestAnimationFrame(fit); });
+  fit(); setTimeout(fit, 50);
+
+  /* Eventos declarativos data-events */
+  function runAction(ev) {
+    if (ev.action === 'goToPage') {
+      var link = document.querySelector('.wb-menu a[data-page="' + ev.target + '"]');
+      if (link) location.href = link.getAttribute('href');
+    } else if (ev.action === 'openUrl' && ev.target) {
+      window.open(ev.target, '_blank', 'noopener');
+    } else if (ev.action === 'toggleNode' && ev.target) {
+      var node = document.querySelector('.el-' + ev.target);
+      if (node) node.classList.toggle('wb-hidden');
+    } else if (ev.action === 'playAnimation' && ev.target) {
+      var target = document.querySelector('.el-' + ev.target);
+      if (target) { target.classList.remove('wb-play'); void target.offsetWidth; target.classList.add('wb-play'); }
+    } else if (ev.action === 'playSound' && ev.target && window.WB_SOUNDS[ev.target]) {
+      new Audio(window.WB_SOUNDS[ev.target]).play().catch(function(){});
+    }
+  }
+  document.querySelectorAll('[data-events]').forEach(function (elem) {
+    var events;
+    try { events = JSON.parse(elem.getAttribute('data-events')); } catch (e) { return; }
+    events.forEach(function (ev) {
+      elem.addEventListener(ev.on === 'hover' ? 'mouseenter' : 'click', function () { runAction(ev); });
+    });
+    elem.style.cursor = 'pointer';
+  });
+
+  /* V\xEDdeos que se reproducen al entrar en pantalla */
+  var vids = document.querySelectorAll('video[data-scrollplay]');
+  if (vids.length && 'IntersectionObserver' in window) {
+    var vio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) entry.target.play().catch(function(){});
+        else entry.target.pause();
+      });
+    }, { threshold: 0.35 });
+    vids.forEach(function (v) { vio.observe(v); });
+  }
+
+  /* GIFs pausados: se congelan pintando el primer frame en un canvas */
+  document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
+    function freeze() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
+      img.replaceWith(canvas);
+    }
+    if (img.complete) freeze(); else img.addEventListener('load', freeze);
+  });
+})();
+`;
+  }
+  function buildAnimationsJS() {
+    return `/* Triggers de animaci\xF3n + sliders \u2014 generado por No-Code Website Builder */
+(function () {
+  'use strict';
+
+  /* Scroll: IntersectionObserver dispara la animaci\xF3n CSS una vez */
+  var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
+  if (scrollNodes.length && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('wb-play'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.25 });
+    scrollNodes.forEach(function (node) { io.observe(node); });
+  }
+
+  /* Click: reinicia y ejecuta la animaci\xF3n en cada clic */
+  document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
+    node.addEventListener('click', function () {
+      node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
+    });
+  });
+
+  /* Sliders autom\xE1ticos */
+  document.querySelectorAll('.wb-slider').forEach(function (slider) {
+    var slides = slider.querySelectorAll('.wb-slide');
+    if (slides.length < 2) return;
+    var index = 0;
+    setInterval(function () {
+      slides[index].classList.remove('active');
+      index = (index + 1) % slides.length;
+      slides[index].classList.add('active');
+    }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
+  });
+})();
+`;
+  }
+  function buildWebglJS() {
+    return `/* Motor WebGL \u2014 generado por No-Code Website Builder
+ * Part\xEDculas: WebGL2 nativo. Modelos: Three.js (CDN, carga perezosa). */
+
+/* \u2500\u2500 Part\xEDculas WebGL2 \u2500\u2500 */
+function mountParticles(canvas) {
+  var opts = canvas.dataset;
+  var count = Math.min(+opts.count || 400, 8000);
+  var speed = +opts.speed || 1, mode = opts.mode || 'nebulosa';
+  var gl = canvas.getContext('webgl2', { alpha: true });
+  if (!gl) return;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  var pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER,
+    '#version 300 es\\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;' +
+    'void main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);gl_PointSize=uSize*(0.5+aLife);vLife=aLife;}'));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER,
+    '#version 300 es\\nprecision mediump float;uniform vec3 uColor;in float vLife;out vec4 o;' +
+    'void main(){float d=length(gl_PointCoord-vec2(.5));float a=smoothstep(.5,0.,d)*(.35+vLife*.65);o=vec4(uColor*(.6+vLife*.6),a);}'));
+  gl.linkProgram(pr); gl.useProgram(pr);
+  var hex = parseInt((opts.color || '#818cf8').slice(1), 16);
+  gl.uniform3f(gl.getUniformLocation(pr, 'uColor'), ((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255);
+  gl.uniform1f(gl.getUniformLocation(pr, 'uSize'), (+opts.size || 2) * dpr * 2);
+  var uRes = gl.getUniformLocation(pr, 'uRes');
+  var pos = new Float32Array(count * 2), vel = new Float32Array(count * 2), life = new Float32Array(count), orb = new Float32Array(count * 2);
+  var W = canvas.width, H = canvas.height;
+  for (var i = 0; i < count; i++) {
+    pos[i * 2] = Math.random() * W; pos[i * 2 + 1] = Math.random() * H;
+    vel[i * 2] = (Math.random() - .5) * .6; vel[i * 2 + 1] = (Math.random() - .5) * .6;
+    life[i] = Math.random(); orb[i * 2] = 40 + Math.random() * Math.min(W, H) / 2; orb[i * 2 + 1] = Math.random() * 6.283;
+  }
+  var pb = gl.createBuffer(), lb = gl.createBuffer();
+  var aPos = gl.getAttribLocation(pr, 'aPos'), aLife = gl.getAttribLocation(pr, 'aLife');
+  gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aLife);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  var visible = true, t = 0;
+  new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(canvas);
+  (function step() {
+    requestAnimationFrame(step);
+    if (!visible) return;
+    t += .016 * speed;
+    var cx = W / 2, cy = H / 2;
+    for (var i = 0; i < count; i++) {
+      if (mode === '\xF3rbita') {
+        orb[i * 2 + 1] += .004 * speed * (1 + (i % 5) * .15);
+        pos[i * 2] = cx + Math.cos(orb[i * 2 + 1]) * orb[i * 2];
+        pos[i * 2 + 1] = cy + Math.sin(orb[i * 2 + 1]) * orb[i * 2] * .6;
+      } else if (mode === 'lluvia') {
+        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * speed * dpr;
+        if (pos[i * 2 + 1] > H) { pos[i * 2 + 1] = -4; pos[i * 2] = Math.random() * W; }
+      } else {
+        pos[i * 2] += vel[i * 2] * speed * dpr + Math.sin(t + i) * .1;
+        pos[i * 2 + 1] += vel[i * 2 + 1] * speed * dpr + Math.cos(t * .7 + i) * .1;
+        if (pos[i * 2] < 0) pos[i * 2] = W; else if (pos[i * 2] > W) pos[i * 2] = 0;
+        if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H; else if (pos[i * 2 + 1] > H) pos[i * 2 + 1] = 0;
+      }
+      life[i] += .01; if (life[i] > 1) life[i] = 0;
+    }
+    gl.uniform2f(uRes, W, H);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindBuffer(gl.ARRAY_BUFFER, pb); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, lb); gl.bufferData(gl.ARRAY_BUFFER, life, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(aLife, 1, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.POINTS, 0, count);
+  })();
+}
+document.querySelectorAll('.wb-particles').forEach(mountParticles);
+
+/* \u2500\u2500 Modelos 3D con Three.js \u2500\u2500 */
+var holders = document.querySelectorAll('.wb-3d');
+if (holders.length) {
+  Promise.all([
+    import('https://cdn.jsdelivr.net/npm/three@0.160.0/+esm'),
+    import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm'),
+  ]).then(function (mods) {
+    var THREE = mods[0], GLTFLoader = mods[1].GLTFLoader;
+    holders.forEach(function (elem) { mountModel(elem, THREE, GLTFLoader); });
+  }).catch(function (e) { console.warn('Three.js no disponible', e); });
+}
+
+function mountModel(elem, THREE, GLTFLoader) {
+  var w = elem.clientWidth || 300, h = elem.clientHeight || 240;
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  elem.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, w / h, .1, 100);
+  camera.position.set(0, .6, parseFloat(elem.dataset.cameraz) || 4);
+  scene.add(new THREE.AmbientLight(0xffffff, .6));
+  var light = new THREE.DirectionalLight(new THREE.Color(elem.dataset.lightcolor || '#fff'), parseFloat(elem.dataset.lightintensity) || 2);
+  light.position.set(3, 5, 4); scene.add(light);
+  var pivot = new THREE.Group(); scene.add(pivot);
+  var mixer = null, clock = new THREE.Clock();
+
+  function addDemo() {
+    pivot.add(new THREE.Mesh(new THREE.TorusKnotGeometry(.8, .28, 128, 24),
+      new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: .6, roughness: .25 })));
+  }
+  var src = elem.dataset.model;
+  if (src) {
+    new GLTFLoader().load(src, function (gltf) {
+      var model = gltf.scene;
+      var box = new THREE.Box3().setFromObject(model);
+      var size = box.getSize(new THREE.Vector3());
+      var scale = 2 / Math.max(size.x, size.y, size.z, .001);
+      model.scale.setScalar(scale);
+      box.getCenter(size); model.position.sub(size.multiplyScalar(scale));
+      pivot.add(model);
+      if (elem.dataset.playanim !== 'false' && gltf.animations.length) {
+        mixer = new THREE.AnimationMixer(model);
+        gltf.animations.forEach(function (clip) { mixer.clipAction(clip).play(); });
+      }
+    }, undefined, addDemo);
+  } else addDemo();
+
+  var dragging = false, lastX = 0, lastY = 0;
+  renderer.domElement.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+  window.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    pivot.rotation.y += (e.clientX - lastX) * .01; pivot.rotation.x += (e.clientY - lastY) * .01;
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  window.addEventListener('pointerup', function () { dragging = false; });
+
+  var visible = true;
+  new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(elem);
+  var autoRotate = elem.dataset.autorotate !== 'false';
+  var rotSpeed = parseFloat(elem.dataset.speed) || 1;
+  (function tick() {
+    requestAnimationFrame(tick);
+    if (!visible) return;
+    var dt = clock.getDelta();
+    if (autoRotate && !dragging) pivot.rotation.y += dt * .6 * rotSpeed;
+    if (mixer) mixer.update(dt);
+    renderer.render(scene, camera);
+  })();
+}
+`;
+  }
+
+  // src/editor/main.js
+  async function boot() {
+    const store = new ProjectStore();
+    await store.init();
+    const assets = new AssetManager(store);
+    await assets.init();
+    const view = new CanvasView(store);
+    const three = new ThreeManager(assets);
+    new Interactions(store, view);
+    new Panels(store, assets, view);
+    new PropertiesPanel(store, assets, view);
+    new DrawTool(store, assets, view);
+    const exporter = new Exporter(store, assets);
+    const repaint = () => renderPage(view.artboard, store, assets, { mountEmbeds: (root) => three.mountAll(root) });
+    store.on("change", repaint);
+    store.on("page", () => view.fit());
+    buildTopbar(store, view, exporter, assets, repaint);
+    bindKeyboard(store, view);
+    view.syncSize();
+    repaint();
+    view.fit();
+  }
+  function buildTopbar(store, view, exporter, assets, repaint) {
+    const bar = document.getElementById("topbar");
+    const savedDot = el("span", { class: "saved-dot", title: "Guardado autom\xE1tico activo", text: "\u25CF" });
+    store.on("saved", () => {
+      savedDot.classList.add("flash");
+      setTimeout(() => savedDot.classList.remove("flash"), 600);
+    });
+    const deviceButtons = el("div", { class: "seg" }, Object.entries(DEVICES).map(([key, meta]) => el("button", {
+      class: `seg-btn${store.device === key ? " active" : ""}`,
+      text: `${meta.icon} ${meta.label}`,
+      dataset: { device: key },
+      title: `${meta.width}px`,
+      onclick: () => store.setDevice(key)
+    })));
+    store.on("device", () => {
+      deviceButtons.querySelectorAll(".seg-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.device === store.device));
+    });
+    const zoomLabel = el("span", { class: "zoom-label", text: "100%" });
+    store.on("view", () => {
+      zoomLabel.textContent = `${Math.round(store.zoom * 100)}%`;
+    });
+    const fileInput = el("input", {
+      type: "file",
+      accept: ".json",
+      style: { display: "none" },
+      onchange: async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const data = JSON.parse(await file.text());
+          if (Array.isArray(data.assetsData)) {
+            await assets.importData(data.assetsData);
+            delete data.assetsData;
+          }
+          store.importJSON(data);
+        } catch (err) {
+          alert(`No se pudo importar: ${err.message}`);
+        }
+        e.target.value = "";
+      }
+    });
+    bar.append(
+      el("div", { class: "brand", text: "\u25C6 Builder" }),
+      savedDot,
+      el("div", { class: "sep" }),
+      el("button", { class: "btn", text: "\u21B6", title: "Deshacer (Ctrl+Z)", onclick: () => store.undo() }),
+      el("button", { class: "btn", text: "\u21B7", title: "Rehacer (Ctrl+Y)", onclick: () => store.redo() }),
+      el("div", { class: "sep" }),
+      deviceButtons,
+      el("div", { class: "sep" }),
+      el("button", { class: "btn", text: "\u2212", title: "Alejar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
+      zoomLabel,
+      el("button", { class: "btn", text: "+", title: "Acercar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
+      el("button", { class: "btn", text: "\u2922", title: "Ajustar a pantalla", onclick: () => view.fit() }),
+      el("div", { class: "sep" }),
+      el("button", { class: "btn", text: "\u270E Dibujar", onclick: () => store.setTool(store.tool === "draw" ? "select" : "draw") }),
+      el("span", { class: "spacer" }),
+      el("button", { class: "btn", text: "\u25B6 Vista previa", onclick: () => togglePreview(store, view, repaint) }),
+      el("div", { class: "sep" }),
+      fileInput,
+      el("button", { class: "btn", text: "\u2B71 Importar", title: "Importar proyecto .json", onclick: () => fileInput.click() }),
+      el("button", {
+        class: "btn",
+        text: "\u2B73 Guardar .json",
+        title: "Descarga el proyecto COMPLETO (incluye tus GIFs, im\xE1genes y v\xEDdeos)",
+        onclick: () => {
+          const data = { ...store.exportJSON(), assetsData: assets.exportData() };
+          download(
+            `${store.project.meta.name}.json`,
+            new Blob([JSON.stringify(data)], { type: "application/json" })
+          );
+        }
+      }),
+      el("button", {
+        class: "btn primary",
+        text: "\u2B07 Exportar sitio (.zip)",
+        onclick: async (e) => {
+          e.target.disabled = true;
+          e.target.textContent = "Empaquetando\u2026";
+          try {
+            await exporter.export();
+          } catch (err) {
+            alert(`Error al exportar: ${err.message}`);
+            console.error(err);
+          }
+          e.target.disabled = false;
+          e.target.textContent = "\u2B07 Exportar sitio (.zip)";
+        }
+      }),
+      el("button", {
+        class: "btn danger",
+        text: "\u{1F5D1} Nuevo",
+        title: "Proyecto nuevo (borra el actual)",
+        onclick: () => {
+          if (!confirm("\xBFEmpezar un proyecto nuevo? El actual se descartar\xE1.")) return;
+          const template = confirm("\xBFEmpezar con la plantilla de ejemplo?\n(Aceptar = plantilla \xB7 Cancelar = lienzo en blanco)");
+          store.reset(!template);
+        }
+      })
+    );
+  }
+  var previewCleanup = null;
+  function togglePreview(store, view, repaint) {
+    const body = document.body;
+    if (body.classList.contains("preview")) {
+      body.classList.remove("preview");
+      previewCleanup?.();
+      previewCleanup = null;
+      repaint();
+      return;
+    }
+    body.classList.add("preview");
+    store.clearSelection();
+    repaint();
+    const animations = [];
+    const artboard = view.artboard;
+    for (const node2 of store.pageNodes()) {
+      const elem = artboard.querySelector(`[data-id="${node2.id}"]`);
+      if (!elem) continue;
+      const anim = node2.animation;
+      if (anim?.preset && anim.preset !== "ninguna") {
+        if (anim.trigger === "load") animations.push(playAnimation(elem, anim));
+        else if (anim.trigger === "click") elem.addEventListener("click", () => playAnimation(elem, anim));
+        else if (anim.trigger === "hover") elem.addEventListener("mouseenter", () => playAnimation(elem, anim));
+        else if (anim.trigger === "scroll") {
+          const io = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+              playAnimation(elem, anim);
+              io.disconnect();
+            }
+          }, { threshold: 0.25 });
+          io.observe(elem);
+        }
+      }
+      for (const event of node2.events || []) {
+        const handler = () => {
+          if (event.action === "goToPage") store.setPage(event.target);
+          else if (event.action === "openUrl" && event.target) window.open(event.target, "_blank", "noopener");
+          else if (event.action === "toggleNode") {
+            const target = artboard.querySelector(`[data-id="${event.target}"]`);
+            if (target) target.style.visibility = target.style.visibility === "hidden" ? "" : "hidden";
+          } else if (event.action === "playAnimation") {
+            const target = artboard.querySelector(`[data-id="${event.target}"]`);
+            const targetNode = store.node(event.target);
+            if (target && targetNode) playAnimation(target, targetNode.animation);
+          }
+        };
+        elem.addEventListener(event.on === "hover" ? "mouseenter" : "click", handler);
+        elem.style.cursor = "pointer";
+      }
+    }
+    previewCleanup = () => animations.forEach((a) => a?.cancel());
+  }
+  function bindKeyboard(store, view) {
+    window.addEventListener("keydown", (e) => {
+      if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === "z") {
+        e.preventDefault();
+        e.shiftKey ? store.redo() : store.undo();
+      } else if (mod && e.key === "y") {
+        e.preventDefault();
+        store.redo();
+      } else if (mod && e.key === "c") {
+        store.copy();
+      } else if (mod && e.key === "v") {
+        store.paste();
+      } else if (mod && e.key === "d") {
+        e.preventDefault();
+        store.duplicateNodes();
+      } else if (mod && e.key === "s") {
+        e.preventDefault();
+        store.persist();
+      } else if (mod && e.key === "a") {
+        e.preventDefault();
+        store.select(store.pageNodes().map((n) => n.id));
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        store.removeNodes();
+      } else if (e.key === "Escape") {
+        store.clearSelection();
+        store.setTool("select");
+      } else if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const [dx, dy] = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+        store.nudge(dx, dy);
+      } else if (e.key === "0" && mod) {
+        e.preventDefault();
+        view.fit();
+      }
+    });
+  }
+  boot().catch((err) => {
+    console.error(err);
+    document.body.innerHTML = `<pre style="color:#f87171;padding:40px">Error al iniciar el editor:
+${err.stack}</pre>`;
+  });
+})();
+
+  </script>
 </body>
 </html>

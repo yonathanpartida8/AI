@@ -146,7 +146,7 @@ ${nodesHTML}
   <script>window.WB_SOUNDS=${JSON.stringify(soundPaths)};</script>
   <script src="${prefix}js/app.js"></script>
   <script src="${prefix}js/animations.js"></script>
-${has3D ? `  <script type="module" src="${prefix}js/webgl.js"></script>` : ''}
+${has3D ? `  <script src="${prefix}js/webgl.js"></script>` : ''}
 </body>
 </html>`;
   }

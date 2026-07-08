@@ -116,6 +116,16 @@ button { font: inherit; color: inherit; }
 .palette-item:active { cursor: grabbing; }
 .palette-icon { font-size: 20px; color: var(--accent-2); }
 
+.block-list { display: flex; flex-direction: column; gap: 6px; }
+.block-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(139,92,246,.06));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; text-align: left; font-size: 12px;
+  transition: border-color .12s, transform .12s;
+}
+.block-item:hover { border-color: var(--accent); transform: translateX(3px); }
+
 /* ── Assets ─────────────────────────────────────────── */
 
 .input {

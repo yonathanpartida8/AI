@@ -131,6 +131,22 @@ export class AssetManager extends EventBus {
     this.emit('change');
   }
 
+  /** Todos los assets con sus datos, para incrustarlos en el .json del proyecto. */
+  exportData() {
+    return [...this.#byId.values()];
+  }
+
+  /** Restaura assets incrustados en un .json importado (GIFs, imágenes, etc.). */
+  async importData(list = []) {
+    for (const asset of list) {
+      if (!asset?.id || !asset?.data) continue;
+      this.#byId.set(asset.id, asset);
+      await DB.putAsset(asset).catch(console.warn);
+    }
+    this.#syncProject();
+    this.emit('change');
+  }
+
   #syncProject() {
     this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
   }

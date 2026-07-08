@@ -17,6 +17,7 @@
 
 import { EventBus, uid, deepClone, debounce, clamp } from '../utils/helpers.js';
 import { createNodeData, componentDef } from '../components/registry.js';
+import { starterProject, buildBlock } from './templates.js';
 import { DB } from './db.js';
 
 const LS_KEY = 'nocode-builder:project';
@@ -49,7 +50,11 @@ export class ProjectStore extends EventBus {
     if (saved) {
       try { this.project = JSON.parse(saved); } catch { this.project = null; }
     }
-    if (!this.project) this.project = ProjectStore.blankProject();
+    // Sin proyecto guardado (o guardado vacío) → plantilla inicial completa,
+    // nunca un lienzo en blanco.
+    if (!this.project || !Object.keys(this.project.nodes || {}).length) {
+      this.project = starterProject();
+    }
     this.pageId = this.project.pages[0].id;
   }
 
@@ -250,6 +255,25 @@ export class ProjectStore extends EventBus {
     this.commit();
   }
 
+  /** Inserta un bloque prediseñado al final de la página y la agranda. */
+  addBlock(key) {
+    const bottom = this.pageNodes().reduce((max, n) => Math.max(max, n.base.y + n.base.h), 0);
+    const y = bottom ? bottom + 60 : 0;
+    const block = buildBlock(key, y);
+    if (!block) return;
+    this.snapshot();
+    const ids = [];
+    for (const node of block.nodes) {
+      this.project.nodes[node.id] = node;
+      this.page.nodes.push(node.id);
+      ids.push(node.id);
+    }
+    this.page.height = Math.max(this.page.height, y + block.height + 40);
+    this.commit();
+    this.select(ids);
+    return ids;
+  }
+
   /** Reordena capa dentro de la página: dir = +1 (subir) / -1 (bajar) */
   moveLayer(id, dir) {
     const nodes = this.page.nodes;
@@ -364,9 +388,10 @@ export class ProjectStore extends EventBus {
     this.commit(); this.emit('page');
   }
 
-  reset() {
+  /** Proyecto nuevo: plantilla completa o lienzo en blanco. */
+  reset(blank = false) {
     this.snapshot();
-    this.project = ProjectStore.blankProject();
+    this.project = blank ? ProjectStore.blankProject() : starterProject();
     this.pageId = this.project.pages[0].id;
     this.clearSelection();
     this.commit(); this.emit('page');

@@ -12,6 +12,7 @@
 
 import { el, esc, formatBytes } from '../utils/helpers.js';
 import { Components, CATEGORIES } from '../components/registry.js';
+import { BLOCKS } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
 
 export class Panels {
@@ -54,6 +55,17 @@ export class Panels {
   /* ── Paleta de componentes ─────────────────────────── */
 
   #renderComponents(body) {
+    // Bloques prediseñados: secciones completas listas para usar
+    body.append(el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
+    const blockList = el('div', { class: 'block-list' });
+    for (const [key, block] of Object.entries(BLOCKS)) {
+      blockList.append(el('button', {
+        class: 'block-item', title: 'Añade esta sección al final de la página',
+        onclick: () => this.store.addBlock(key),
+      }, [el('span', { class: 'palette-icon', text: block.icon }), el('span', { text: block.label })]));
+    }
+    body.append(blockList);
+
     for (const cat of CATEGORIES) {
       body.append(el('h4', { class: 'panel-heading', text: cat }));
       const grid = el('div', { class: 'palette-grid' });

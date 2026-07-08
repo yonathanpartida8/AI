@@ -221,7 +221,15 @@ export class Interactions {
       }).map((n) => n.id);
       if (hits.length) this.store.select(hits, g.additive);
     }
-    if ((g.kind === 'move' && g.moved) || g.kind === 'resize' || g.kind === 'rotate') this.store.commit();
+    if ((g.kind === 'move' && g.moved) || g.kind === 'resize' || g.kind === 'rotate') {
+      // La página crece automáticamente si un elemento se arrastra más abajo del borde
+      const bottom = this.store.selectedNodes.reduce((max, n) => {
+        const f = this.store.frame(n);
+        return Math.max(max, f.y + f.h);
+      }, 0);
+      if (bottom > this.store.page.height) this.store.page.height = Math.ceil(bottom + 160);
+      this.store.commit();
+    }
   }
 
   #onWheel(e) {
