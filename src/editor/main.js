@@ -18,7 +18,10 @@ import { el, download } from '../utils/helpers.js';
 import { ProjectStore, DEVICES } from '../storage/projectStore.js';
 import { AssetManager } from '../assets/assetManager.js';
 import { renderPage } from '../renderer/renderer.js';
+import { COMPONENT_CSS } from '../renderer/componentStyles.js';
 import { playAnimation } from '../animations/engine.js';
+import { wbEffects } from '../runtime/effectsRuntime.js';
+import { wbActions } from '../runtime/actionsRuntime.js';
 import { CanvasView } from './canvasView.js';
 import { Interactions } from './interactions.js';
 import { Panels } from './panels.js';
@@ -28,11 +31,27 @@ import { ThreeManager } from '../webgl/threeManager.js';
 import { Exporter } from '../exporter/exporter.js';
 
 async function boot() {
+  // CSS compartido de componentes: la MISMA hoja que llevará el export
+  const shared = document.createElement('style');
+  shared.id = 'wb-component-css';
+  shared.textContent = COMPONENT_CSS;
+  document.head.append(shared);
+
   const store = new ProjectStore();
   await store.init();
 
   const assets = new AssetManager(store);
   await assets.init();
+  assets.injectFonts();
+  assets.on('change', () => assets.injectFonts());
+
+  // CSS personalizado global del usuario, visible también en el editor
+  const customStyle = document.createElement('style');
+  customStyle.id = 'wb-custom-css';
+  document.head.append(customStyle);
+  const syncCustomCSS = () => { customStyle.textContent = store.project.custom?.css || ''; };
+  store.on('change', syncCustomCSS);
+  syncCustomCSS();
 
   const view = new CanvasView(store);
   const three = new ThreeManager(assets);
@@ -82,13 +101,20 @@ function buildTopbar(store, view, exporter, assets, repaint) {
   store.on('view', () => { zoomLabel.textContent = `${Math.round(store.zoom * 100)}%`; });
 
   const fileInput = el('input', {
-    type: 'file', accept: '.json', style: { display: 'none' },
+    type: 'file', accept: '.json,.html,.htm', style: { display: 'none' },
     onchange: async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        const data = JSON.parse(await file.text());
-        // Restaura los assets incrustados (GIFs, imágenes, vídeos…)
+        const text = await file.text();
+        let data;
+        if (/\.html?$/i.test(file.name)) {
+          // HTML todo-en-uno: recupera el proyecto incrustado y detecta
+          // el código personalizado añadido a mano por el usuario.
+          data = parseProjectFromHTML(text);
+        } else {
+          data = JSON.parse(text);
+        }
         if (Array.isArray(data.assetsData)) {
           await assets.importData(data.assetsData);
           delete data.assetsData;
@@ -115,7 +141,7 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     el('div', { class: 'sep' }),
     el('button', { class: 'btn', text: '✎ Dibujar', onclick: () => store.setTool(store.tool === 'draw' ? 'select' : 'draw') }),
     el('span', { class: 'spacer' }),
-    el('button', { class: 'btn', text: '▶ Vista previa', onclick: () => togglePreview(store, view, repaint) }),
+    el('button', { class: 'btn', text: '▶ Vista previa', onclick: () => togglePreview(store, view, repaint, assets) }),
     el('div', { class: 'sep' }),
     fileInput,
     el('button', { class: 'btn', text: '⭱ Importar', title: 'Importar proyecto .json', onclick: () => fileInput.click() }),
@@ -157,6 +183,26 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
   );
+}
+
+/**
+ * Recupera el proyecto de un HTML exportado "todo en uno" y detecta
+ * bloques <style class="custom"> / <script class="custom"> que el
+ * usuario haya añadido a mano — se integran como código personalizado
+ * del proyecto sin tocar la estructura principal.
+ */
+function parseProjectFromHTML(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const embedded = doc.getElementById('wb-project');
+  if (!embedded) throw new Error('Este HTML no contiene un proyecto del builder (falta #wb-project)');
+  const data = JSON.parse(embedded.textContent);
+  data.custom ||= { css: '', js: '' };
+
+  const extraCSS = [...doc.querySelectorAll('style.custom')].map((s) => s.textContent).join('\n');
+  const extraJS = [...doc.querySelectorAll('script.custom')].map((s) => s.textContent).join('\n');
+  if (extraCSS && !data.custom.css.includes(extraCSS)) data.custom.css += `\n/* detectado en el HTML importado */\n${extraCSS}`;
+  if (extraJS && !data.custom.js.includes(extraJS)) data.custom.js += `\n/* detectado en el HTML importado */\n${extraJS}`;
+  return data;
 }
 
 /* ── Barra de navegación móvil ───────────────────────── */
@@ -203,7 +249,11 @@ function buildMobileNav(store, panels, view) {
 
 let previewCleanup = null;
 
-function togglePreview(store, view, repaint) {
+/**
+ * Vista previa: ejecuta LOS MISMOS runtimes compartidos que llevará el
+ * sitio exportado (wbEffects + wbActions) + las animaciones WAAPI.
+ */
+function togglePreview(store, view, repaint, assets) {
   const body = document.body;
   if (body.classList.contains('preview')) {
     body.classList.remove('preview');
@@ -216,9 +266,10 @@ function togglePreview(store, view, repaint) {
   store.clearSelection();
   repaint();
 
-  // Ejecuta animaciones según su trigger, como en el sitio exportado
-  const animations = [];
   const artboard = view.artboard;
+  const animations = [];
+
+  // Animaciones por trigger (WAAPI, igual comportamiento que el CSS exportado)
   for (const node of store.pageNodes()) {
     const elem = artboard.querySelector(`[data-id="${node.id}"]`);
     if (!elem) continue;
@@ -234,25 +285,34 @@ function togglePreview(store, view, repaint) {
         io.observe(elem);
       }
     }
-    // Eventos: navegación entre páginas y toggles funcionan en preview
-    for (const event of node.events || []) {
-      const handler = () => {
-        if (event.action === 'goToPage') store.setPage(event.target);
-        else if (event.action === 'openUrl' && event.target) window.open(event.target, '_blank', 'noopener');
-        else if (event.action === 'toggleNode') {
-          const target = artboard.querySelector(`[data-id="${event.target}"]`);
-          if (target) target.style.visibility = target.style.visibility === 'hidden' ? '' : 'hidden';
-        } else if (event.action === 'playAnimation') {
-          const target = artboard.querySelector(`[data-id="${event.target}"]`);
-          const targetNode = store.node(event.target);
-          if (target && targetNode) playAnimation(target, targetNode.animation);
-        }
-      };
-      elem.addEventListener(event.on === 'hover' ? 'mouseenter' : 'click', handler);
-      elem.style.cursor = 'pointer';
-    }
   }
-  previewCleanup = () => animations.forEach((a) => a?.cancel());
+
+  // Runtimes compartidos: efectos interactivos + sistema de acciones
+  const sounds = {};
+  for (const asset of assets?.list({ kind: 'audio' }) || []) sounds[asset.id] = asset.data;
+  const disposeEffects = wbEffects(artboard, { editor: true, runScripts: true });
+  const disposeActions = wbActions(artboard, {
+    editor: true,
+    sounds,
+    stage: () => artboard,
+    goToPage: (id) => store.setPage(id),
+    playAnim: (id, targetEl) => {
+      const targetNode = store.node(id);
+      if (targetEl && targetNode) playAnimation(targetEl, targetNode.animation);
+    },
+  });
+
+  // JavaScript personalizado (global + de la página) en un sandbox try/catch
+  try {
+    const code = `${store.project.custom?.js || ''}\n${store.page.custom?.js || ''}`;
+    if (code.trim()) new Function(code)();
+  } catch (e) { console.warn('JS personalizado:', e); }
+
+  previewCleanup = () => {
+    animations.forEach((a) => a?.cancel());
+    disposeEffects();
+    disposeActions();
+  };
 }
 
 /* ── Atajos de teclado ───────────────────────────────── */

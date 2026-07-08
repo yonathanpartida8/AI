@@ -32,6 +32,16 @@ const CLIP_PATHS = {
   'hexágono': 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
 };
 
+const TEXT_GLOW_CSS = {
+  ninguno: '',
+  suave: '0 2px 12px rgba(0,0,0,.45)',
+  'neón': '0 0 8px rgba(129,140,248,.9), 0 0 26px rgba(129,140,248,.6)',
+  rosa: '0 0 10px rgba(244,114,182,.95), 0 0 30px rgba(236,72,153,.6)',
+  dorado: '0 0 10px rgba(251,191,36,.95), 0 0 28px rgba(245,158,11,.55)',
+  fuego: '0 0 6px rgba(251,146,60,.9), 0 0 20px rgba(239,68,68,.75), 0 0 44px rgba(220,38,38,.5)',
+  hielo: '0 0 8px rgba(186,230,253,.95), 0 0 26px rgba(56,189,248,.6)',
+};
+
 const IMG_FILTERS = {
   ninguno: () => 'none',
   grises: (a) => `grayscale(${a}%)`,
@@ -68,6 +78,7 @@ export function styleCSS(node) {
   if (s.textAlign) css['text-align'] = s.textAlign;
   if (s.letterSpacing) css['letter-spacing'] = `${s.letterSpacing}px`;
   if (s.lineHeight) css['line-height'] = String(s.lineHeight);
+  if (s.textGlow && TEXT_GLOW_CSS[s.textGlow]) css['text-shadow'] = TEXT_GLOW_CSS[s.textGlow];
   if (s.radius) css['border-radius'] = `${s.radius}px`;
   if (s.borderWidth) css.border = `${s.borderWidth}px solid ${s.borderColor || '#94a3b8'}`;
   if (s.shadow && s.shadow !== 'ninguna') css['box-shadow'] = SHADOWS[s.shadow] || 'none';
@@ -96,7 +107,8 @@ export function contentHTML(node, ctx) {
   switch (node.type) {
     case 'text': {
       const tag = ['h1', 'h2', 'h3', 'p', 'span'].includes(p.tag) ? p.tag : 'p';
-      return `<${tag} class="wb-text">${esc(p.text).replaceAll('\n', '<br>')}</${tag}>`;
+      const fx = p.textFx && p.textFx !== 'ninguno' ? ` data-fx="${p.textFx}"` : '';
+      return `<${tag} class="wb-text"${fx}>${esc(p.text).replaceAll('\n', '<br>')}</${tag}>`;
     }
     case 'button':
       return `<button class="wb-btn" type="button">${esc(p.text)}</button>`;
@@ -178,10 +190,81 @@ export function contentHTML(node, ctx) {
     }
 
     case 'model3d':
-      return `<div class="wb-3d" data-model="${p.assetId || ''}"
+      return `<div class="wb-3d" data-kind="model" data-model="${p.assetId ? ctx.resolve(p.assetId) : ''}"
         data-autorotate="${p.autoRotate !== false}" data-speed="${p.rotateSpeed ?? 1}"
         data-cameraz="${p.cameraZ ?? 4}" data-lightcolor="${p.lightColor || '#ffffff'}"
         data-lightintensity="${p.lightIntensity ?? 2}" data-playanim="${p.playAnimations !== false}"></div>`;
+
+    case 'heart3d':
+      return `<div class="wb-3d" data-kind="heart" data-color="${p.color || '#e11d48'}"
+        data-autorotate="${p.autoRotate !== false}" data-speed="${p.rotateSpeed ?? 1}"
+        data-metal="${p.metal ?? 0.35}" data-cameraz="${p.cameraZ ?? 4}"></div>`;
+
+    case 'photo3d': {
+      if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Diseño</small></div>`;
+      return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
+    }
+
+    case 'gradientBg': {
+      const colors = String(p.colors || '#ec4899,#8b5cf6').split(',').map((c) => c.trim()).filter(Boolean);
+      const gradient = `linear-gradient(270deg, ${colors.join(', ')})`;
+      return `<div class="wb-gradbg" style="background:${gradient};--gspeed:${p.speed || 8}s"></div>`;
+    }
+
+    case 'loveLetter':
+      return `<div class="wb-letter">
+        <div class="wb-letter-paper"><p>${esc(p.message)}</p><span>${esc(p.signature || '')}</span></div>
+        <div class="wb-letter-front">${esc(p.cover || 'Toca para abrir')}</div></div>`;
+
+    case 'timeline': {
+      const items = String(p.items || '').split(';').map((row) => row.trim()).filter(Boolean);
+      const lis = items.map((row, i) => {
+        const [date = '', title = '', body = ''] = row.split('|').map((s2) => s2.trim());
+        return `<li style="--i:${i}"><b>${esc(date)}</b><strong>${esc(title)}</strong><p>${esc(body)}</p></li>`;
+      }).join('');
+      return `<ul class="wb-timeline${ctx.editor ? ' wb-play' : ''}">${lis}</ul>`;
+    }
+
+    case 'hiddenMessage':
+      return `<div class="wb-hiddenmsg">
+        <div class="wb-hm-secret">${esc(p.message)}</div>
+        <div class="wb-hm-cover">${esc(p.cover || 'Toca para revelar')}</div></div>`;
+
+    case 'heartButton':
+      return `<button type="button" class="wb-heartbtn" data-emoji="${esc(p.emoji || '❤️')}">${esc(p.text || '')}</button>`;
+
+    case 'typewriter':
+      // En el editor se ve el texto completo (estático); la vista previa
+      // y el export lo animan mediante wbEffects.
+      return ctx.editor
+        ? `<span class="wb-typewriter-static wb-text" data-text="${esc(p.text)}" data-tspeed="${p.speed || 90}" data-tloop="${!!p.loop}">${esc(p.text)}</span>`
+        : `<span class="wb-typewriter" data-text="${esc(p.text)}" data-tspeed="${p.speed || 90}" data-tloop="${!!p.loop}"></span>`;
+
+    case 'countdown': {
+      const tiles = [['d', 'días'], ['h', 'horas'], ['m', 'min'], ['s', 'seg']].map(([u, label]) =>
+        `<div class="wb-count-tile"><b data-u="${u}">0</b><small>${label}</small></div>`).join('');
+      return `<div class="wb-count" data-date="${esc(p.date || '')}" data-cmode="${p.mode || 'desde'}">
+        <div class="wb-count-label">${esc(p.label || '')}</div>${tiles}</div>`;
+    }
+
+    case 'polaroid': {
+      const src = p.assetId ? ctx.resolve(p.assetId) : '';
+      const img = src
+        ? `<img src="${src}" alt="${esc(p.caption || '')}" draggable="false">`
+        : `<div class="wb-placeholder">📸<small>Elige una foto</small></div>`;
+      return `<figure class="wb-polaroid" style="--prot:${p.rotate ?? -3}deg">${img}<figcaption>${esc(p.caption || '')}</figcaption></figure>`;
+    }
+
+    case 'floatingEmojis':
+      return `<div class="wb-floaties" data-emojis="${esc(p.emojis || '💖')}" data-fcount="${p.count ?? 12}" data-fspeed="${p.speed ?? 1}"></div>`;
+
+    case 'customHTML': {
+      // En el editor el JS se marca como inerte (lo ejecuta la vista previa);
+      // en el export es un <script> normal que corre nativamente.
+      const code = String(p.js || '').replaceAll('</script', '<\\/script');
+      const js = ctx.editor ? `<script type="text/wb-js">${code}</script>` : `<script>${code}</script>`;
+      return `<div class="wb-custom"><style>${p.css || ''}</style>${p.html || ''}${js}</div>`;
+    }
 
     case 'particles':
       return `<canvas class="wb-particles" data-count="${p.count ?? 400}" data-color="${p.color || '#818cf8'}"
@@ -212,9 +295,13 @@ export function syncNodeEl(elem, node, store) {
 
 export function buildNodeEl(node, store, ctx) {
   const elem = document.createElement('div');
-  elem.className = 'wb-node';
+  elem.className = `wb-node el-${node.id}`;
   elem.dataset.id = node.id;
   elem.dataset.type = node.type;
+  // Metadatos que consumen los runtimes compartidos (vista previa = export)
+  if (node.effects?.tilt) elem.dataset.tilt = '1';
+  if (node.effects?.parallax) elem.dataset.parallax = String(node.effects.parallax);
+  if (node.events?.length) elem.dataset.events = JSON.stringify(node.events);
   elem.innerHTML = contentHTML(node, ctx);
   syncNodeEl(elem, node, store);
   return elem;

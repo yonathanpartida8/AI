@@ -1,37 +1,36 @@
 /* ============================================================
  * exporter/exporter.js — Exportador profesional
  *
- * Dos formatos de salida:
+ * PRINCIPIO CLAVE: el sitio exportado ejecuta LOS MISMOS runtimes
+ * que el editor (wbParticles / wbEffects / wbActions se inyectan
+ * con Function.toString()) y la MISMA hoja de componentes
+ * (COMPONENT_CSS). Cero divergencia: lo que ves es lo que se
+ * exporta, multimedia incluida.
  *
- * 1) export()        → ZIP con estructura de carpetas clásica.
- *    CADA página lleva el CSS y el JS INCRUSTADOS (inline), de
- *    modo que aunque se abra un HTML suelto —sin extraer todo—
- *    conserva estilos, animaciones y eventos. Los archivos
- *    multimedia van como ficheros reales en assets/{gifs,…}.
- *
- * 2) exportSingle()  → UN SOLO archivo .html autocontenido:
- *    todas las páginas, estilos, scripts, GIFs, vídeos y audio
- *    incrustados como dataURL. Se abre directamente en un móvil
- *    (WhatsApp, correo, Archivos…) y se ve EXACTAMENTE como se
- *    diseñó. La navegación entre páginas es interna (SPA).
- *
- * Claves:
- *  - El MISMO contentHTML() del renderer genera el markup → el
- *    export es idéntico a lo que se ve en el editor.
- *  - Animaciones de carga = CSS puro (@keyframes); triggers
- *    scroll/click/hover añaden una clase — cero framework.
- *  - Responsive: media queries por breakpoint + escala
- *    proporcional del stage para cualquier viewport intermedio.
- *  - ZIP con Blob API + escritor propio (interfaz JSZip).
+ * Formatos:
+ *  1) export()       → ZIP: páginas con TODO incrustado (CSS, JS
+ *     y multimedia como dataURL → funcionan aunque se abra un
+ *     HTML suelto sin extraer) + carpeta assets/ organizada con
+ *     los archivos reales + project.json re-importable.
+ *  2) exportSingle() → UN archivo .html: todas las páginas con
+ *     navegación interna, transiciones cinematográficas y el
+ *     proyecto incrustado (#wb-project) para re-importarlo.
  * ============================================================ */
 
 import { ZipWriter } from '../utils/zip.js';
 import { download, slugify, dataURLToBytes, esc } from '../utils/helpers.js';
 import { contentHTML, styleCSS } from '../renderer/renderer.js';
 import { PRESETS, presetToKeyframesCSS } from '../animations/engine.js';
+import { COMPONENT_CSS } from '../renderer/componentStyles.js';
 import { ASSET_KINDS } from '../assets/assetManager.js';
+import { wbParticles } from '../runtime/particlesRuntime.js';
+import { wbEffects } from '../runtime/effectsRuntime.js';
+import { wbActions } from '../runtime/actionsRuntime.js';
 
-const BP = { tablet: 860, mobile: 520 }; // media queries max-width
+const BP = { tablet: 860, mobile: 520 };
+
+/** Transiciones que además disparan una lluvia de partículas. */
+const OVERLAY_TRANSITIONS = { corazones: 'corazones', estrellas: 'estrellas', nieve: 'nieve' };
 
 export class Exporter {
   constructor(store, assets) {
@@ -39,15 +38,18 @@ export class Exporter {
     this.assets = assets;
   }
 
-  /* ── Utilidades comunes ────────────────────────────── */
+  /* ── Utilidades ────────────────────────────────────── */
 
   #usedAssetIds() {
     const used = new Set();
     for (const node of Object.values(this.store.project.nodes)) {
       if (node.props?.assetId) used.add(node.props.assetId);
       for (const id of node.props?.assetIds || []) used.add(id);
-      for (const event of node.events || []) if (event.action === 'playSound' && event.target) used.add(event.target);
+      for (const event of node.events || []) {
+        for (const a of event.actions || []) if (a.action === 'playSound' && a.target) used.add(a.target);
+      }
     }
+    for (const asset of this.assets.list({ kind: 'font' })) used.add(asset.id);
     return used;
   }
 
@@ -62,7 +64,13 @@ export class Exporter {
   }
 
   #has3D() {
-    return Object.values(this.store.project.nodes).some((n) => ['model3d', 'particles'].includes(n.type));
+    return Object.values(this.store.project.nodes).some((n) => ['model3d', 'heart3d', 'photo3d', 'particles'].includes(n.type));
+  }
+
+  #soundsMap() {
+    const sounds = {};
+    for (const asset of this.assets.list({ kind: 'audio' })) sounds[asset.id] = asset.data;
+    return sounds;
   }
 
   #nodesHTML(page, renderCtx) {
@@ -76,157 +84,152 @@ export class Exporter {
         const attrs = [
           `class="wb-node el-${node.id}${hasAnim && anim.trigger === 'load' ? ' wb-play' : ''}"`,
           hasAnim ? `data-trigger="${anim.trigger}"` : '',
+          node.effects?.tilt ? 'data-tilt="1"' : '',
+          node.effects?.parallax ? `data-parallax="${node.effects.parallax}"` : '',
           node.events?.length ? `data-events='${JSON.stringify(node.events).replaceAll("'", '&#39;')}'` : '',
         ].filter(Boolean).join(' ');
         return `      <div ${attrs}>${contentHTML(node, renderCtx)}</div>`;
       }).join('\n');
   }
 
-  /* ══ 1) EXPORT ZIP (carpeta de proyecto) ═══════════════ */
+  /* ══ 1) EXPORT ZIP ═════════════════════════════════════ */
 
   async export() {
     const project = this.store.project;
     const zip = new ZipWriter();
 
-    // Assets usados → archivos reales en assets/<carpeta>/
-    const assetPath = new Map();
+    // Carpeta assets/ con los archivos reales, organizados por tipo
     for (const id of this.#usedAssetIds()) {
       const asset = this.assets.get(id);
       if (!asset) continue;
       const dot = asset.name.lastIndexOf('.');
       const ext = dot > 0 ? asset.name.slice(dot + 1).toLowerCase() : 'bin';
       const base = slugify(dot > 0 ? asset.name.slice(0, dot) : asset.name);
-      const path = `assets/${ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
-      assetPath.set(id, path);
-      zip.file(path, dataURLToBytes(asset.data));
+      zip.file(`assets/${ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`, dataURLToBytes(asset.data));
     }
 
     const slugs = this.#slugs();
     const has3D = this.#has3D();
     const cssText = this.#buildCSS(project, (page) => slugs.get(page.id));
 
+    // Mapa de navegación entre páginas del ZIP
+    const hrefFrom = (depth, targetSlug) => {
+      if (targetSlug === 'index') return depth ? '../index.html' : 'index.html';
+      return depth ? `${targetSlug}.html` : `paginas/${targetSlug}.html`;
+    };
+
     for (const page of project.pages) {
       const slug = slugs.get(page.id);
       const isIndex = slug === 'index';
-      const html = this.#buildPageHTML(page, { slugs, assetPath, depth: isIndex ? 0 : 1, has3D, cssText });
+      const depth = isIndex ? 0 : 1;
+      const pagesMap = {};
+      for (const p2 of project.pages) pagesMap[p2.id] = hrefFrom(depth, slugs.get(p2.id));
+      const renderCtx = {
+        editor: false,
+        // Multimedia INCRUSTADA → la página funciona aunque se abra suelta
+        resolve: (id) => this.assets.url(id),
+        pages: project.pages,
+        pageHref: (target) => hrefFrom(depth, slugs.get(target.id)),
+      };
+      const html = this.#pageDocument({
+        title: `${page.name} — ${project.meta.name}`,
+        cssText,
+        body: `  <div class="wb-scale-wrap">
+    <main class="wb-stage ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}" id="stage"
+      data-page="${slug}" data-overlay="${OVERLAY_TRANSITIONS[page.transition] || ''}"
+      style="background:${page.background || '#0b1020'};--tdur:${page.transitionDuration || 700}ms">
+${this.#nodesHTML(page, renderCtx)}
+    </main>
+  </div>`,
+        boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_SINGLE=false;`,
+        runtime: this.#buildRuntime({ single: false, has3D }),
+        pageJS: `${project.custom?.js || ''}\n${page.custom?.js || ''}`,
+      });
       zip.file(isIndex ? 'index.html' : `paginas/${slug}.html`, html);
     }
 
-    // project.json CON assets incrustados → re-importable sin pérdidas
     zip.file('project.json', JSON.stringify({ ...project, assetsData: this.assets.exportData() }));
     zip.file('LEEME.txt',
-      `Sitio generado con No-Code Website Builder\n` +
-      `Proyecto: ${project.meta.name}\n\n` +
-      `- Abre index.html en un navegador (estilos y scripts van incrustados en cada página).\n` +
-      `- Sube la carpeta completa a cualquier hosting estático (Netlify, Vercel, GitHub Pages…).\n` +
-      `- project.json puede re-importarse en el editor CON todos los assets incluidos.\n` +
-      `- ¿Un solo archivo para compartir por el móvil? Usa "Exportar HTML (1 archivo)" en el editor.\n`);
+      `Sitio generado con No-Code Website Builder\nProyecto: ${project.meta.name}\n\n` +
+      `- Cada página lleva TODO incrustado (estilos, scripts y multimedia):\n` +
+      `  funciona aunque abras un HTML suelto, sin extraer nada.\n` +
+      `- La carpeta assets/ contiene además tus archivos organizados\n` +
+      `  (gifs, imágenes, vídeos, audio, modelos, fuentes) por si quieres editarlos.\n` +
+      `- Sube la carpeta completa a Netlify, Vercel o GitHub Pages para publicarla.\n` +
+      `- project.json se re-importa en el editor con todos los assets.\n`);
 
     download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
   }
 
-  #buildPageHTML(page, ctx) {
-    const { slugs, assetPath, depth, has3D, cssText } = ctx;
-    const project = this.store.project;
-    const prefix = depth ? '../' : '';
-    const pageHref = (target) => {
-      const slug = slugs.get(target.id);
-      if (slug === 'index') return `${prefix}index.html`;
-      return depth ? `${slug}.html` : `paginas/${slug}.html`;
-    };
-    const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ''), pages: project.pages, pageHref };
-
-    const soundPaths = {};
-    for (const node of page.nodes.map((id) => project.nodes[id])) {
-      for (const event of node?.events || []) {
-        if (event.action === 'playSound' && event.target) soundPaths[event.target] = prefix + (assetPath.get(event.target) || '');
-      }
-    }
-
-    return `<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${esc(page.name)} — ${esc(project.meta.name)}</title>
-  <link rel="icon" href="data:,">
-  <style>
-${cssText}
-  </style>
-</head>
-<body>
-  <div class="wb-scale-wrap">
-    <main class="wb-stage wb-enter-${page.transition || 'fade'}" id="stage" data-page="${slugs.get(page.id)}"
-      style="background:${page.background || '#0b1020'}">
-${this.#nodesHTML(page, renderCtx)}
-    </main>
-  </div>
-  <script>window.WB_SOUNDS=${JSON.stringify(soundPaths)};</script>
-  <script>
-${buildAppJS()}
-  </script>
-  <script>
-${buildAnimationsJS()}
-  </script>
-${has3D ? `  <script>\n${buildWebglJS()}\n  </script>` : ''}
-</body>
-</html>`;
-  }
-
-  /* ══ 2) EXPORT DE UN SOLO ARCHIVO HTML ═════════════════ */
+  /* ══ 2) EXPORT DE UN SOLO ARCHIVO ══════════════════════ */
 
   async exportSingle() {
     const project = this.store.project;
     const has3D = this.#has3D();
     const cssText = this.#buildCSS(project, (page) => page.id);
-
-    // Todos los assets como dataURL → autocontenido al 100 %
     const renderCtx = {
       editor: false,
       resolve: (id) => this.assets.url(id),
       pages: project.pages,
       pageHref: () => '#',
     };
-    const sounds = {};
-    for (const id of this.#usedAssetIds()) {
-      const asset = this.assets.get(id);
-      if (asset?.kind === 'audio') sounds[id] = asset.data;
-    }
 
     const sections = project.pages.map((page, i) => `  <div class="wb-scale-wrap"${i ? ' style="display:none"' : ''} data-wrap="${page.id}">
-    <main class="wb-stage wb-enter-${page.transition || 'fade'}" data-page="${page.id}" data-enter="wb-enter-${page.transition || 'fade'}"
-      style="background:${page.background || '#0b1020'}">
+    <main class="wb-stage ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}"
+      data-page="${page.id}" data-enter="${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}"
+      data-overlay="${OVERLAY_TRANSITIONS[page.transition] || ''}"
+      style="background:${page.background || '#0b1020'};--tdur:${page.transitionDuration || 700}ms">
 ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`).join('\n');
 
-    const html = `<!doctype html>
+    // Proyecto incrustado → el HTML es re-importable y editable a mano
+    const projectJSON = JSON.stringify({ ...project, assetsData: this.assets.exportData() })
+      .replaceAll('</', '<\\/');
+
+    const pagesJS = project.pages.map((p) => p.custom?.js || '').join('\n');
+
+    const html = this.#pageDocument({
+      title: project.meta.name,
+      cssText,
+      body: sections,
+      boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_SINGLE=true;`,
+      runtime: this.#buildRuntime({ single: true, has3D }),
+      pageJS: `${project.custom?.js || ''}\n${pagesJS}`,
+      extraHead: `<script type="application/json" id="wb-project">${projectJSON}</script>`,
+    });
+
+    download(`${slugify(project.meta.name)}.html`, new Blob([html], { type: 'text/html' }));
+  }
+
+  /* ── Documento HTML común ──────────────────────────── */
+
+  #pageDocument({ title, cssText, body, boot, runtime, pageJS, extraHead = '' }) {
+    const custom = (pageJS || '').trim();
+    return `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${esc(project.meta.name)}</title>
+  <title>${esc(title)}</title>
   <link rel="icon" href="data:,">
-  <!-- Sitio autocontenido generado con No-Code Website Builder.
-       Todas las páginas, estilos, GIFs y vídeos van dentro de este archivo. -->
+  ${extraHead}
   <style>
 ${cssText}
   </style>
 </head>
 <body>
-${sections}
-  <script>window.WB_SOUNDS=${JSON.stringify(sounds)};</script>
+${body}
+  <script>${boot}</script>
   <script>
-${buildSingleRuntime()}
+${runtime}
   </script>
-${has3D ? `  <script>\n${buildWebglJS()}\n  </script>` : ''}
+${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\\/script')}\n}catch(e){console.warn('JS personalizado:',e)}\n  </script>` : ''}
 </body>
 </html>`;
-
-    download(`${slugify(project.meta.name)}.html`, new Blob([html], { type: 'text/html' }));
   }
 
-  /* ── CSS del sitio (compartido por ambos formatos) ───── */
+  /* ── CSS del sitio ─────────────────────────────────── */
 
   #buildCSS(project, keyFor) {
     const bps = project.settings.breakpoints;
@@ -265,263 +268,132 @@ ${has3D ? `  <script>\n${buildWebglJS()}\n  </script>` : ''}
     const perPage = project.pages.map((page) =>
       `.wb-stage[data-page="${keyFor(page)}"]{height:${page.height}px}`);
 
-    /*
-     * Breakpoints SOLO si el usuario diseñó overrides para ellos.
-     * Sin overrides, la página conserva su diseño de escritorio y se
-     * ESCALA proporcionalmente (runtime fit) → en el móvil se ve
-     * EXACTAMENTE como fue diseñada, nunca cortada ni descuadrada.
-     */
     const tabletBlock = tabletRules.length ? `
-/* ── Breakpoint tablet (${bps.tablet}px de diseño) ── */
 @media (max-width:${BP.tablet}px){
 .wb-stage{width:${bps.tablet}px}
 ${tabletRules.join('\n')}
 }` : '';
     const mobileBlock = mobileRules.length ? `
-/* ── Breakpoint móvil (${bps.mobile}px de diseño) ── */
 @media (max-width:${BP.mobile}px){
 .wb-stage{width:${bps.mobile}px}
 ${mobileRules.join('\n')}
 }` : '';
 
     const keyframes = [...usedPresets].map(presetToKeyframesCSS).join('\n');
-    const transitions = `
-@keyframes wb-page-fade{from{opacity:0}to{opacity:1}}
-@keyframes wb-page-slide{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
-@keyframes wb-page-zoom{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-@keyframes wb-page-blur{from{opacity:0;filter:blur(14px)}to{opacity:1;filter:blur(0)}}
-.wb-enter-fade{animation:wb-page-fade .5s ease-out both}
-.wb-enter-slide{animation:wb-page-slide .5s ease-out both}
-.wb-enter-zoom{animation:wb-page-zoom .5s ease-out both}
-.wb-enter-blur{animation:wb-page-blur .6s ease-out both}`;
+    const fontFaces = this.assets.fontFaceCSS();
+    const pagesCSS = project.pages.map((p) => p.custom?.css || '').join('\n');
 
     return `/* Generado por No-Code Website Builder */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
 .wb-scale-wrap{width:100%;overflow:hidden}
 .wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
-.wb-node{position:absolute;display:block}
-.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit;line-height:inherit}
-.wb-btn{width:100%;height:100%;font:inherit;color:inherit;background:none;border:none;cursor:pointer;border-radius:inherit;background:inherit;text-align:inherit}
-.wb-icon{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:inherit}
-.wb-hidden{visibility:hidden!important}
-.wb-slider{position:relative;width:100%;height:100%;overflow:hidden;border-radius:inherit}
-.wb-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s,transform .6s}
-.wb-slide.active{opacity:1}
-.wb-slider[data-transition="slide"] .wb-slide{transform:translateX(100%)}
-.wb-slider[data-transition="slide"] .wb-slide.active{transform:translateX(0)}
-.wb-form{display:flex;flex-direction:column;gap:10px;width:100%;height:100%;padding:20px;border-radius:inherit;background:inherit;color:inherit;font-family:inherit}
-.wb-form input,.wb-form textarea{padding:10px;border-radius:8px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font:inherit}
-.wb-form button{padding:12px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer}
-.wb-menu{display:flex;width:100%;height:100%;align-items:center;justify-content:space-between;padding:0 28px;border-radius:inherit;background:inherit}
-.wb-menu-links{display:flex;gap:22px}
-.wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
-.wb-menu a:hover{opacity:1;text-decoration:underline}
-.wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
-.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
-@keyframes wb-spin{to{transform:rotate(360deg)}}
-.wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.wb-player-info span{opacity:.75;font-size:13px}
-.wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
-.wb-gallery img{border-radius:6px}
-
+[data-trigger],[data-tilt],[data-parallax]{will-change:transform,opacity}
+${fontFaces}
+${COMPONENT_CSS}
 ${perPage.join('\n')}
 
 /* ── Nodos ── */
 ${rules.join('\n')}
-
 ${tabletBlock}
 ${mobileBlock}
 
 /* ── Animaciones ── */
 ${keyframes}
-${transitions}
+
+/* ── Código personalizado ── */
+${project.custom?.css || ''}
+${pagesCSS}
 
 @media (prefers-reduced-motion:reduce){
   .wb-node,.wb-stage{animation:none!important}
 }`;
   }
+
+  /* ── Runtime del sitio (runtimes compartidos inyectados) ── */
+
+  #buildRuntime({ single, has3D }) {
+    return `/* Runtime — generado por No-Code Website Builder.
+ * wbParticles / wbEffects / wbActions son EXACTAMENTE las mismas
+ * funciones que ejecuta el editor (inyectadas con toString). */
+'use strict';
+var WB_PARTICLES = (${wbParticles.toString()});
+var WB_EFFECTS = (${wbEffects.toString()});
+var WB_ACTIONS = (${wbActions.toString()});
+
+/* ── Escala proporcional a cualquier pantalla ── */
+function wbActiveWrap() {
+  var wraps = document.querySelectorAll('.wb-scale-wrap');
+  for (var i = 0; i < wraps.length; i++) if (wraps[i].style.display !== 'none') return wraps[i];
+  return wraps[0];
+}
+function wbFit() {
+  var wrap = wbActiveWrap();
+  if (!wrap) return;
+  var stage = wrap.querySelector('.wb-stage');
+  stage.style.transform = 'none';
+  var scale = Math.min(1, window.innerWidth / stage.offsetWidth);
+  if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
+  wrap.style.height = (stage.offsetHeight * scale) + 'px';
+}
+var wbFitRaf;
+window.addEventListener('resize', function () { cancelAnimationFrame(wbFitRaf); wbFitRaf = requestAnimationFrame(wbFit); });
+
+/* ── Transiciones con lluvia de partículas ── */
+function wbOverlay(mode, ms) {
+  var colors = { corazones: '#f472b6', estrellas: '#facc15', nieve: '#e0f2fe' };
+  var canvas = document.createElement('canvas');
+  canvas.className = 'wb-transition-overlay wb-particles';
+  canvas.dataset.mode = mode;
+  canvas.dataset.color = colors[mode] || '#f472b6';
+  canvas.dataset.count = mode === 'nieve' ? 260 : 140;
+  canvas.dataset.speed = 1.6;
+  canvas.dataset.size = mode === 'corazones' ? 3.4 : 2.4;
+  document.body.appendChild(canvas);
+  var dispose = WB_PARTICLES(canvas);
+  setTimeout(function () {
+    canvas.style.transition = 'opacity .6s';
+    canvas.style.opacity = '0';
+    setTimeout(function () { dispose(); canvas.remove(); }, 650);
+  }, ms || 1400);
 }
 
-/* ════════════════════════════════════════════════════════
- * Runtimes generados (se incrustan tal cual en el HTML)
- * ════════════════════════════════════════════════════════ */
-
-function buildAppJS() {
-  return `/* Runtime base — generado por No-Code Website Builder */
-(function () {
-  'use strict';
-  var stage = document.getElementById('stage');
-  var wrap = document.querySelector('.wb-scale-wrap');
-
-  /* Escala proporcional: el diseño mantiene sus coordenadas y se
-     ajusta a CUALQUIER viewport sin reflow (transform GPU). */
-  function fit() {
-    stage.style.transform = 'none';
-    var designW = stage.offsetWidth;
-    var scale = Math.min(1, window.innerWidth / designW);
-    if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
-    wrap.style.height = (stage.offsetHeight * scale) + 'px';
-  }
-  var rafFit;
-  window.addEventListener('resize', function () { cancelAnimationFrame(rafFit); rafFit = requestAnimationFrame(fit); });
-  fit(); setTimeout(fit, 50);
-
-  /* Eventos declarativos data-events */
-  function runAction(ev) {
-    if (ev.action === 'goToPage') {
-      var link = document.querySelector('.wb-menu a[data-page="' + ev.target + '"]');
-      if (link) location.href = link.getAttribute('href');
-    } else if (ev.action === 'openUrl' && ev.target) {
-      window.open(ev.target, '_blank', 'noopener');
-    } else if (ev.action === 'toggleNode' && ev.target) {
-      var node = document.querySelector('.el-' + ev.target);
-      if (node) node.classList.toggle('wb-hidden');
-    } else if (ev.action === 'playAnimation' && ev.target) {
-      var target = document.querySelector('.el-' + ev.target);
-      if (target) { target.classList.remove('wb-play'); void target.offsetWidth; target.classList.add('wb-play'); }
-    } else if (ev.action === 'playSound' && ev.target && window.WB_SOUNDS[ev.target]) {
-      new Audio(window.WB_SOUNDS[ev.target]).play().catch(function(){});
-    }
-  }
-  document.querySelectorAll('[data-events]').forEach(function (elem) {
-    var events;
-    try { events = JSON.parse(elem.getAttribute('data-events')); } catch (e) { return; }
-    events.forEach(function (ev) {
-      elem.addEventListener(ev.on === 'hover' ? 'mouseenter' : 'click', function () { runAction(ev); });
-    });
-    elem.style.cursor = 'pointer';
-  });
-
-  /* Vídeos que se reproducen al entrar en pantalla */
-  var vids = document.querySelectorAll('video[data-scrollplay]');
-  if (vids.length && 'IntersectionObserver' in window) {
-    var vio = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) entry.target.play().catch(function(){});
-        else entry.target.pause();
-      });
-    }, { threshold: 0.35 });
-    vids.forEach(function (v) { vio.observe(v); });
-  }
-
-  /* GIFs pausados: se congelan pintando el primer frame en un canvas */
-  document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
-    function freeze() {
-      var canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
-      img.replaceWith(canvas);
-    }
-    if (img.complete) freeze(); else img.addEventListener('load', freeze);
-  });
-})();
-`;
-}
-
-function buildAnimationsJS() {
-  return `/* Triggers de animación + sliders — generado por No-Code Website Builder */
-(function () {
-  'use strict';
-
-  var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
-  if (scrollNodes.length && 'IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) { entry.target.classList.add('wb-play'); io.unobserve(entry.target); }
-      });
-    }, { threshold: 0.25 });
-    scrollNodes.forEach(function (node) { io.observe(node); });
-  }
-
-  document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
-    node.addEventListener('click', function () {
-      node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
-    });
-  });
-
-  document.querySelectorAll('.wb-slider').forEach(function (slider) {
-    var slides = slider.querySelectorAll('.wb-slide');
-    if (slides.length < 2) return;
-    var index = 0;
-    setInterval(function () {
-      slides[index].classList.remove('active');
-      index = (index + 1) % slides.length;
-      slides[index].classList.add('active');
-    }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
-  });
-})();
-`;
-}
-
-/** Runtime del export de UN SOLO ARCHIVO: navegación SPA entre páginas. */
-function buildSingleRuntime() {
-  return `/* Runtime autocontenido — generado por No-Code Website Builder */
-(function () {
-  'use strict';
-
-  function activeWrap() {
-    var wraps = document.querySelectorAll('.wb-scale-wrap');
-    for (var i = 0; i < wraps.length; i++) if (wraps[i].style.display !== 'none') return wraps[i];
-    return wraps[0];
-  }
-
-  /* Escala proporcional del stage visible → se adapta a cualquier móvil */
-  function fit() {
-    var wrap = activeWrap();
-    if (!wrap) return;
-    var stage = wrap.querySelector('.wb-stage');
-    stage.style.transform = 'none';
-    var designW = stage.offsetWidth;
-    var scale = Math.min(1, window.innerWidth / designW);
-    if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
-    wrap.style.height = (stage.offsetHeight * scale) + 'px';
-  }
-  var rafFit;
-  window.addEventListener('resize', function () { cancelAnimationFrame(rafFit); rafFit = requestAnimationFrame(fit); });
-
-  /* Navegación interna entre páginas (SPA) */
-  function showPage(pageId) {
+/* ── Navegación entre páginas ── */
+function wbGoToPage(pageId) {
+  if (window.WB_SINGLE) {
     document.querySelectorAll('.wb-scale-wrap').forEach(function (wrap) {
       wrap.style.display = wrap.getAttribute('data-wrap') === pageId ? '' : 'none';
     });
     var stage = document.querySelector('.wb-stage[data-page="' + pageId + '"]');
-    if (stage) { // re-dispara la transición de entrada de la página
+    if (stage) {
       var cls = stage.getAttribute('data-enter');
-      stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls);
+      if (cls) { stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls); }
+      var overlay = stage.getAttribute('data-overlay');
+      if (overlay) wbOverlay(overlay, parseFloat(stage.style.getPropertyValue('--tdur')) * 2 || 1400);
     }
     window.scrollTo(0, 0);
-    fit();
+    wbFit();
+  } else if (window.WB_PAGES && window.WB_PAGES[pageId]) {
+    location.href = window.WB_PAGES[pageId];
   }
-  document.querySelectorAll('.wb-menu a[data-page]').forEach(function (link) {
-    link.addEventListener('click', function (e) { e.preventDefault(); showPage(link.getAttribute('data-page')); });
-  });
-
-  /* Eventos declarativos */
-  function runAction(ev) {
-    if (ev.action === 'goToPage' && ev.target) showPage(ev.target);
-    else if (ev.action === 'openUrl' && ev.target) window.open(ev.target, '_blank', 'noopener');
-    else if (ev.action === 'toggleNode' && ev.target) {
-      var node = document.querySelector('.el-' + ev.target);
-      if (node) node.classList.toggle('wb-hidden');
-    } else if (ev.action === 'playAnimation' && ev.target) {
-      var target = document.querySelector('.el-' + ev.target);
-      if (target) { target.classList.remove('wb-play'); void target.offsetWidth; target.classList.add('wb-play'); }
-    } else if (ev.action === 'playSound' && ev.target && window.WB_SOUNDS[ev.target]) {
-      new Audio(window.WB_SOUNDS[ev.target]).play().catch(function(){});
-    }
+}
+document.querySelectorAll('.wb-menu a[data-page]').forEach(function (link) {
+  if (window.WB_SINGLE) {
+    link.addEventListener('click', function (e) { e.preventDefault(); wbGoToPage(link.getAttribute('data-page')); });
   }
-  document.querySelectorAll('[data-events]').forEach(function (elem) {
-    var events;
-    try { events = JSON.parse(elem.getAttribute('data-events')); } catch (e) { return; }
-    events.forEach(function (ev) {
-      elem.addEventListener(ev.on === 'hover' ? 'mouseenter' : 'click', function () { runAction(ev); });
-    });
-    elem.style.cursor = 'pointer';
-  });
+});
 
-  /* Animaciones por scroll */
+/* ── Arranque ── */
+document.querySelectorAll('.wb-particles:not(.wb-transition-overlay)').forEach(function (c) { WB_PARTICLES(c); });
+WB_EFFECTS(document, {});
+WB_ACTIONS(document, {
+  goToPage: wbGoToPage,
+  sounds: window.WB_SOUNDS || {},
+  stage: function () { return wbActiveWrap().querySelector('.wb-stage'); },
+});
+
+/* Animaciones por scroll y clic */
+(function () {
   var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
   if (scrollNodes.length && 'IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
@@ -536,193 +408,178 @@ function buildSingleRuntime() {
       node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
     });
   });
+})();
 
-  /* Sliders */
-  document.querySelectorAll('.wb-slider').forEach(function (slider) {
-    var slides = slider.querySelectorAll('.wb-slide');
-    if (slides.length < 2) return;
-    var index = 0;
-    setInterval(function () {
-      slides[index].classList.remove('active');
-      index = (index + 1) % slides.length;
-      slides[index].classList.add('active');
-    }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
-  });
+/* Sliders automáticos */
+document.querySelectorAll('.wb-slider').forEach(function (slider) {
+  var slides = slider.querySelectorAll('.wb-slide');
+  if (slides.length < 2) return;
+  var index = 0;
+  setInterval(function () {
+    slides[index].classList.remove('active');
+    index = (index + 1) % slides.length;
+    slides[index].classList.add('active');
+  }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
+});
 
-  /* Vídeos con reproducción al hacer scroll */
+/* Vídeos con reproducción al hacer scroll */
+(function () {
   var vids = document.querySelectorAll('video[data-scrollplay]');
   if (vids.length && 'IntersectionObserver' in window) {
     var vio = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) entry.target.play().catch(function(){});
+        if (entry.isIntersecting) entry.target.play().catch(function () {});
         else entry.target.pause();
       });
     }, { threshold: 0.35 });
     vids.forEach(function (v) { vio.observe(v); });
   }
-
-  /* GIFs pausados → primer frame congelado */
-  document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
-    function freeze() {
-      var canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
-      img.replaceWith(canvas);
-    }
-    if (img.complete) freeze(); else img.addEventListener('load', freeze);
-  });
-
-  fit(); setTimeout(fit, 50);
 })();
-`;
+
+/* GIFs pausados → primer frame congelado */
+document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
+  function freeze() {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    canvas.style.cssText = img.style.cssText; canvas.className = img.className;
+    img.replaceWith(canvas);
+  }
+  if (img.complete) freeze(); else img.addEventListener('load', freeze);
+});
+
+/* Transición de entrada con partículas de la primera página */
+(function () {
+  var stage = wbActiveWrap() && wbActiveWrap().querySelector('.wb-stage');
+  if (stage && stage.getAttribute('data-overlay')) {
+    wbOverlay(stage.getAttribute('data-overlay'), parseFloat(stage.style.getPropertyValue('--tdur')) * 2 || 1400);
+  }
+})();
+
+wbFit(); setTimeout(wbFit, 60);
+${has3D ? build3DJS() : ''}`;
+  }
 }
 
-function buildWebglJS() {
-  return `/* Motor WebGL — generado por No-Code Website Builder
- * Partículas: WebGL2 nativo con simulación basada en TIEMPO REAL:
- * la velocidad es idéntica a 60, 90, 120, 144 o 165 Hz y el motor
- * aprovecha la tasa de refresco nativa del dispositivo. */
-function mountParticles(canvas) {
-  var opts = canvas.dataset;
-  var count = Math.min(+opts.count || 400, 8000);
-  var speed = +opts.speed || 1, mode = opts.mode || 'nebulosa';
-  var gl = canvas.getContext('webgl2', { alpha: true, powerPreference: 'high-performance' });
-  if (!gl) return;
-  var dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
-  var pr = gl.createProgram();
-  gl.attachShader(pr, sh(gl.VERTEX_SHADER,
-    '#version 300 es\\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;' +
-    'void main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);gl_PointSize=uSize*(0.5+aLife);vLife=aLife;}'));
-  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER,
-    '#version 300 es\\nprecision mediump float;uniform vec3 uColor;in float vLife;out vec4 o;' +
-    'void main(){float d=length(gl_PointCoord-vec2(.5));float a=smoothstep(.5,0.,d)*(.35+vLife*.65);o=vec4(uColor*(.6+vLife*.6),a);}'));
-  gl.linkProgram(pr); gl.useProgram(pr);
-  var hex = parseInt((opts.color || '#818cf8').slice(1), 16);
-  gl.uniform3f(gl.getUniformLocation(pr, 'uColor'), ((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255);
-  gl.uniform1f(gl.getUniformLocation(pr, 'uSize'), (+opts.size || 2) * dpr * 2);
-  var uRes = gl.getUniformLocation(pr, 'uRes');
-  var pos = new Float32Array(count * 2), vel = new Float32Array(count * 2), life = new Float32Array(count), orb = new Float32Array(count * 2);
-  var W = canvas.width, H = canvas.height;
-  for (var i = 0; i < count; i++) {
-    pos[i * 2] = Math.random() * W; pos[i * 2 + 1] = Math.random() * H;
-    vel[i * 2] = (Math.random() - .5) * .6; vel[i * 2 + 1] = (Math.random() - .5) * .6;
-    life[i] = Math.random(); orb[i * 2] = 40 + Math.random() * Math.min(W, H) / 2; orb[i * 2 + 1] = Math.random() * 6.283;
-  }
-  var pb = gl.createBuffer(), lb = gl.createBuffer();
-  var aPos = gl.getAttribLocation(pr, 'aPos'), aLife = gl.getAttribLocation(pr, 'aLife');
-  gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aLife);
-  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-  var visible = true, t = 0, last = 0;
-  new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(canvas);
-  function step(now) {
-    requestAnimationFrame(step);
-    if (!visible) { last = now; return; }
-    var dt = Math.min((now - last) / 1000 || 0.016, 0.05); // segundos reales
-    last = now;
-    var k = dt * 60 * speed; // misma velocidad en cualquier Hz
-    t += dt * speed;
-    var cx = W / 2, cy = H / 2;
-    for (var i = 0; i < count; i++) {
-      if (mode === 'órbita') {
-        orb[i * 2 + 1] += .24 * dt * speed * (1 + (i % 5) * .15);
-        pos[i * 2] = cx + Math.cos(orb[i * 2 + 1]) * orb[i * 2];
-        pos[i * 2 + 1] = cy + Math.sin(orb[i * 2 + 1]) * orb[i * 2] * .6;
-      } else if (mode === 'lluvia') {
-        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * dpr;
-        if (pos[i * 2 + 1] > H) { pos[i * 2 + 1] = -4; pos[i * 2] = Math.random() * W; }
-      } else {
-        pos[i * 2] += vel[i * 2] * k * dpr + Math.sin(t + i) * .1 * k;
-        pos[i * 2 + 1] += vel[i * 2 + 1] * k * dpr + Math.cos(t * .7 + i) * .1 * k;
-        if (pos[i * 2] < 0) pos[i * 2] = W; else if (pos[i * 2] > W) pos[i * 2] = 0;
-        if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H; else if (pos[i * 2 + 1] > H) pos[i * 2 + 1] = 0;
-      }
-      life[i] += .01 * k; if (life[i] > 1) life[i] = 0;
-    }
-    gl.uniform2f(uRes, W, H);
-    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.bindBuffer(gl.ARRAY_BUFFER, pb); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, lb); gl.bufferData(gl.ARRAY_BUFFER, life, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(aLife, 1, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.POINTS, 0, count);
-  }
-  requestAnimationFrame(step);
-}
-document.querySelectorAll('.wb-particles').forEach(mountParticles);
+/* ── Motor Three.js del sitio exportado ────────────────── */
 
-/* ── Modelos 3D con Three.js (CDN, carga perezosa) ── */
-var holders = document.querySelectorAll('.wb-3d');
-if (holders.length) {
+function build3DJS() {
+  return `
+/* ── Three.js: modelos GLB, corazón 3D y fotos con profundidad ── */
+(function () {
+  var holders = document.querySelectorAll('.wb-3d');
+  if (!holders.length) return;
   Promise.all([
     import('https://cdn.jsdelivr.net/npm/three@0.160.0/+esm'),
     import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm'),
   ]).then(function (mods) {
     var THREE = mods[0], GLTFLoader = mods[1].GLTFLoader;
-    holders.forEach(function (elem) { mountModel(elem, THREE, GLTFLoader); });
+    holders.forEach(function (elem) { mount(elem, THREE, GLTFLoader); });
   }).catch(function (e) { console.warn('Three.js no disponible', e); });
-}
 
-function mountModel(elem, THREE, GLTFLoader) {
-  var w = elem.clientWidth || 300, h = elem.clientHeight || 240;
-  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(w, h);
-  elem.appendChild(renderer.domElement);
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(45, w / h, .1, 100);
-  camera.position.set(0, .6, parseFloat(elem.dataset.cameraz) || 4);
-  scene.add(new THREE.AmbientLight(0xffffff, .6));
-  var light = new THREE.DirectionalLight(new THREE.Color(elem.dataset.lightcolor || '#fff'), parseFloat(elem.dataset.lightintensity) || 2);
-  light.position.set(3, 5, 4); scene.add(light);
-  var pivot = new THREE.Group(); scene.add(pivot);
-  var mixer = null, clock = new THREE.Clock();
-
-  function addDemo() {
-    pivot.add(new THREE.Mesh(new THREE.TorusKnotGeometry(.8, .28, 128, 24),
-      new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: .6, roughness: .25 })));
+  function heartGeometry(THREE) {
+    var shape = new THREE.Shape();
+    shape.moveTo(0, 0.5);
+    shape.bezierCurveTo(0, 0.9, -0.9, 0.9, -0.9, 0.3);
+    shape.bezierCurveTo(-0.9, -0.3, -0.3, -0.7, 0, -1.05);
+    shape.bezierCurveTo(0.3, -0.7, 0.9, -0.3, 0.9, 0.3);
+    shape.bezierCurveTo(0.9, 0.9, 0, 0.9, 0, 0.5);
+    var geo = new THREE.ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.12, bevelSegments: 5, curveSegments: 24 });
+    geo.center();
+    return geo;
   }
-  var src = elem.dataset.model;
-  if (src) {
-    new GLTFLoader().load(src, function (gltf) {
-      var model = gltf.scene;
-      var box = new THREE.Box3().setFromObject(model);
-      var size = box.getSize(new THREE.Vector3());
-      var scale = 2 / Math.max(size.x, size.y, size.z, .001);
-      model.scale.setScalar(scale);
-      box.getCenter(size); model.position.sub(size.multiplyScalar(scale));
-      pivot.add(model);
-      if (elem.dataset.playanim !== 'false' && gltf.animations.length) {
-        mixer = new THREE.AnimationMixer(model);
-        gltf.animations.forEach(function (clip) { mixer.clipAction(clip).play(); });
-      }
-    }, undefined, addDemo);
-  } else addDemo();
 
-  var dragging = false, lastX = 0, lastY = 0;
-  renderer.domElement.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; });
-  window.addEventListener('pointermove', function (e) {
-    if (!dragging) return;
-    pivot.rotation.y += (e.clientX - lastX) * .01; pivot.rotation.x += (e.clientY - lastY) * .01;
-    lastX = e.clientX; lastY = e.clientY;
-  });
-  window.addEventListener('pointerup', function () { dragging = false; });
+  function mount(elem, THREE, GLTFLoader) {
+    var kind = elem.getAttribute('data-kind') || 'model';
+    var w = elem.clientWidth || 300, h = elem.clientHeight || 240;
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+    renderer.setSize(w, h);
+    elem.appendChild(renderer.domElement);
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    camera.position.set(0, 0.4, parseFloat(elem.getAttribute('data-cameraz')) || 4);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    var light = new THREE.DirectionalLight(new THREE.Color(elem.getAttribute('data-lightcolor') || '#ffffff'), parseFloat(elem.getAttribute('data-lightintensity')) || 2);
+    light.position.set(3, 5, 4); scene.add(light);
+    var rim = new THREE.PointLight(0xf472b6, 1.4, 12);
+    rim.position.set(-3, -1, 3); scene.add(rim);
+    var pivot = new THREE.Group(); scene.add(pivot);
+    var mixer = null, clock = new THREE.Clock();
+    var interactive = kind !== 'photo';
 
-  var visible = true;
-  new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(elem);
-  var autoRotate = elem.dataset.autorotate !== 'false';
-  var rotSpeed = parseFloat(elem.dataset.speed) || 1;
-  (function tick() {
-    requestAnimationFrame(tick);
-    if (!visible) return;
-    var dt = clock.getDelta();
-    if (autoRotate && !dragging) pivot.rotation.y += dt * .6 * rotSpeed;
-    if (mixer) mixer.update(dt);
-    renderer.render(scene, camera);
-  })();
-}
-`;
+    if (kind === 'heart') {
+      pivot.add(new THREE.Mesh(heartGeometry(THREE), new THREE.MeshStandardMaterial({
+        color: new THREE.Color(elem.getAttribute('data-color') || '#e11d48'),
+        metalness: parseFloat(elem.getAttribute('data-metal')) || 0.35, roughness: 0.25,
+      })));
+    } else if (kind === 'photo') {
+      var depth = parseFloat(elem.getAttribute('data-depth')) || 1;
+      new THREE.TextureLoader().load(elem.getAttribute('data-src') || '', function (tex) {
+        var ratio = tex.image ? tex.image.width / tex.image.height : 1.4;
+        var geo = new THREE.PlaneGeometry(2.6, 2.6 / ratio, 24, 24);
+        var pa = geo.attributes.position;
+        for (var i = 0; i < pa.count; i++) {
+          var px = pa.getX(i) / 1.3, py = pa.getY(i) / (1.3 / ratio);
+          pa.setZ(i, -(px * px + py * py) * 0.16 * depth);
+        }
+        geo.computeVertexNormals();
+        pivot.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })));
+      });
+      elem.addEventListener('pointermove', function (e) {
+        var r = elem.getBoundingClientRect();
+        pivot.rotation.y = ((e.clientX - r.left) / r.width - 0.5) * 0.55 * depth;
+        pivot.rotation.x = ((e.clientY - r.top) / r.height - 0.5) * -0.45 * depth;
+      });
+      camera.position.z = 2.6;
+    } else {
+      var src = elem.getAttribute('data-model');
+      var demo = function () {
+        pivot.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.8, 0.28, 128, 24),
+          new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: 0.6, roughness: 0.25 })));
+      };
+      if (src) {
+        new GLTFLoader().load(src, function (gltf) {
+          var model = gltf.scene;
+          var box = new THREE.Box3().setFromObject(model);
+          var size = box.getSize(new THREE.Vector3());
+          var scale = 2 / Math.max(size.x, size.y, size.z, 0.001);
+          model.scale.setScalar(scale);
+          box.getCenter(size); model.position.sub(size.multiplyScalar(scale));
+          pivot.add(model);
+          if (elem.getAttribute('data-playanim') !== 'false' && gltf.animations.length) {
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach(function (clip) { mixer.clipAction(clip).play(); });
+          }
+        }, undefined, demo);
+      } else demo();
+    }
+
+    var dragging = false, lastX = 0, lastY = 0;
+    if (interactive) {
+      renderer.domElement.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+      window.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        pivot.rotation.y += (e.clientX - lastX) * 0.01;
+        pivot.rotation.x += (e.clientY - lastY) * 0.01;
+        lastX = e.clientX; lastY = e.clientY;
+      });
+      window.addEventListener('pointerup', function () { dragging = false; });
+    }
+
+    var visible = true;
+    new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(elem);
+    var autoRotate = elem.getAttribute('data-autorotate') !== 'false' && kind !== 'photo';
+    var rotSpeed = parseFloat(elem.getAttribute('data-speed')) || 1;
+    (function tick() {
+      requestAnimationFrame(tick);
+      if (!visible) return;
+      var dt = clock.getDelta();
+      if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+      if (kind === 'heart') pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08;
+      if (mixer) mixer.update(dt);
+      renderer.render(scene, camera);
+    })();
+  }
+})();`;
 }

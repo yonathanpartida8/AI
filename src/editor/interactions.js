@@ -51,6 +51,9 @@ export class Interactions {
   /* ── Inicio de gesto ───────────────────────────────── */
 
   #onDown(e) {
+    // En vista previa la página es interactiva: la edición se apaga por
+    // completo (el pointer capture robaría los clics a los componentes).
+    if (document.body.classList.contains('preview')) return;
     if (this.store.tool === 'draw') return; // lo gestiona DrawTool
     this.view.viewport.setPointerCapture(e.pointerId);
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -241,6 +244,7 @@ export class Interactions {
   /* ── Edición inline de texto ───────────────────────── */
 
   #onDblClick(e) {
+    if (document.body.classList.contains('preview')) return;
     const nodeEl = e.target.closest('.wb-node');
     if (!nodeEl) return;
     const node = this.store.node(nodeEl.dataset.id);

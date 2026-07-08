@@ -55,6 +55,7 @@ export class ProjectStore extends EventBus {
     if (!this.project || !Object.keys(this.project.nodes || {}).length) {
       this.project = starterProject();
     }
+    this.migrate(this.project);
     this.pageId = this.project.pages[0].id;
   }
 
@@ -71,6 +72,21 @@ export class ProjectStore extends EventBus {
       nodes: {},
       assets: [],
     };
+  }
+
+  /** Migra proyectos de versiones anteriores al modelo actual. */
+  migrate(project) {
+    project.custom ||= { css: '', js: '' };
+    for (const page of project.pages) {
+      page.transitionDuration ||= 700;
+      page.custom ||= { css: '', js: '' };
+    }
+    for (const node of Object.values(project.nodes)) {
+      node.effects ||= { parallax: 0, tilt: false };
+      // Formato antiguo de eventos {on, action, target} → cadenas de acciones
+      node.events = (node.events || []).map((ev) =>
+        ev.actions ? ev : { on: ev.on || 'click', actions: [{ action: ev.action, target: ev.target || '', value: '', delay: 0 }] });
+    }
   }
 
   persist() {
@@ -418,6 +434,7 @@ export class ProjectStore extends EventBus {
   importJSON(data) {
     if (!data?.pages || !data?.nodes) throw new Error('Proyecto inválido');
     this.snapshot();
+    this.migrate(data);
     this.project = data;
     this.pageId = data.pages[0].id;
     this.clearSelection();
@@ -428,6 +445,7 @@ export class ProjectStore extends EventBus {
   reset(blank = false) {
     this.snapshot();
     this.project = blank ? ProjectStore.blankProject() : starterProject();
+    this.migrate(this.project);
     this.pageId = this.project.pages[0].id;
     this.clearSelection();
     this.commit(); this.emit('page');

@@ -205,8 +205,22 @@ button { font: inherit; color: inherit; }
 .color-field input[type="color"] { width: 34px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
 .color-field .input { flex: 1; }
 
-.event-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
-.event-row > :nth-child(3) { grid-column: 1; }
+/* ── Editor de lógica visual (eventos + cadenas de acciones) ── */
+.event-block {
+  margin-bottom: 12px; padding: 8px; border: 1px solid var(--border);
+  border-radius: 10px; background: rgba(99,102,241,.05);
+}
+.event-head { display: flex; gap: 6px; margin-bottom: 8px; }
+.event-head select { flex: 1; }
+.action-row {
+  display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px;
+  padding: 7px; border-left: 3px solid var(--accent); border-radius: 6px;
+  background: rgba(15,20,36,.6);
+}
+.action-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.action-foot label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); }
+.input.mini { width: 76px; padding: 4px 6px; min-height: 0; }
+.input.code { font-family: 'Courier New', monospace; font-size: 12px; white-space: pre; }
 .mini-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
 .mini-chip {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;
@@ -259,47 +273,19 @@ button { font: inherit; color: inherit; }
 
 #overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 60; }
 
-/* Nodos dentro del artboard */
-.wb-node { position: absolute; user-select: none; }
-.wb-node .wb-text { width: 100%; height: 100%; font: inherit; color: inherit; text-align: inherit; outline: none; }
-.wb-btn {
-  width: 100%; height: 100%; font: inherit; color: inherit; text-align: inherit;
-  background: inherit; border: none; border-radius: inherit; cursor: default; pointer-events: none;
-}
-.wb-icon { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: inherit; }
-.wb-placeholder {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  width: 100%; height: 100%; border: 2px dashed #334155; border-radius: inherit;
-  color: #64748b; font-weight: 600; text-align: center; padding: 8px;
-}
-.wb-placeholder small { font-weight: 400; font-size: 11px; }
+/* Nodos dentro del artboard — overrides SOLO del editor.
+   (El CSS de componentes viene de componentStyles.js, compartido
+   con el export; #artboard da la especificidad para ganar aquí.) */
+#artboard .wb-node { user-select: none; }
+#artboard .wb-node .wb-text { outline: none; }
+#artboard .wb-btn, #artboard .wb-heartbtn { cursor: default; pointer-events: none; }
+#artboard .wb-form input, #artboard .wb-form textarea, #artboard .wb-form button { pointer-events: none; }
+#artboard .wb-menu a { pointer-events: none; }
+#artboard .wb-letter, #artboard .wb-hiddenmsg { cursor: default; }
 .wb-tag-label {
   position: absolute; top: 4px; left: 6px; font-size: 10px; color: rgba(148,163,184,.6);
   pointer-events: none;
 }
-.wb-slider { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
-.wb-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
-.wb-slide.active { opacity: 1; }
-.wb-form { display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 20px; border-radius: inherit; background: inherit; color: inherit; overflow: hidden; }
-.wb-form input, .wb-form textarea {
-  padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,.35);
-  background: rgba(148,163,184,.1); color: inherit; font: inherit; pointer-events: none;
-}
-.wb-form button { padding: 12px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; pointer-events: none; }
-.wb-menu { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; padding: 0 28px; border-radius: inherit; background: inherit; }
-.wb-menu-links { display: flex; gap: 22px; }
-.wb-menu a { color: inherit; text-decoration: none; opacity: .85; pointer-events: none; }
-.wb-player { display: flex; gap: 14px; align-items: center; width: 100%; height: 100%; padding: 14px; border-radius: inherit; background: inherit; color: inherit; }
-.wb-player-disc {
-  display: flex; width: 56px; height: 56px; flex: none; align-items: center; justify-content: center;
-  border-radius: 50%; background: rgba(255,255,255,.15); font-size: 24px;
-  animation: wb-disc-spin 6s linear infinite;
-}
-@keyframes wb-disc-spin { to { transform: rotate(360deg); } }
-.wb-player-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.wb-player-info span, .wb-player-info small { opacity: .7; font-size: 12px; }
-.wb-3d, .wb-particles { display: block; width: 100%; height: 100%; border-radius: inherit; }
-.wb-3d canvas { border-radius: inherit; }
 .wb-3d-loading {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   width: 100%; height: 100%; color: #64748b; text-align: center; gap: 6px;
@@ -307,8 +293,8 @@ button { font: inherit; color: inherit; }
   border-radius: inherit; font-size: 22px;
 }
 .wb-3d-loading small { font-size: 11px; }
-.wb-gallery img { border-radius: 6px; }
-.wb-node.locked { outline: 1px dashed rgba(148,163,184,.4); }
+#artboard .wb-node.locked { outline: 1px dashed rgba(148,163,184,.4); }
+.wb-typewriter-static { display: block; width: 100%; height: 100%; }
 
 /* ── Selección y tiradores ──────────────────────────── */
 

@@ -1,4 +1,24 @@
-# Arquitectura — No-Code Website Builder
+# Arquitectura — Creador de Experiencias Románticas Digitales
+
+> **Novedad clave (v3): runtimes compartidos.** Las funciones de
+> `/src/runtime` (`wbParticles`, `wbEffects`, `wbActions`) son 100 %
+> autocontenidas y corren tal cual en el editor; el exportador las inyecta
+> en el sitio final con `Function.prototype.toString()`. El CSS de
+> componentes (`componentStyles.js`) se comparte igual. Resultado: **cero
+> divergencia** entre editor, vista previa y sitio exportado — multimedia,
+> efectos, lógica y transiciones se comportan idéntico en los tres.
+>
+> **Sistema de lógica visual**: cualquier elemento acepta eventos
+> (tocar/doble toque/mantener/hover/deslizar/aparecer) con CADENAS de
+> acciones y retardos (`node.events[].actions[]`), ejecutadas por
+> `wbActions` — incluyendo `runJS` para código propio.
+>
+> **Zonas de código personalizado**: `project.custom{css,js}` (global),
+> `page.custom{css,js}` (por página) y el componente `customHTML`
+> (por elemento). El export de 1 archivo incrusta el proyecto en
+> `<script id="wb-project">`; al re-importar ese HTML se recuperan proyecto
+> y assets, y se detectan bloques `<style class="custom">` /
+> `<script class="custom">` añadidos a mano.
 
 Documento técnico del sistema, organizado en las 10 fases del diseño.
 Todo lo descrito aquí **está implementado y funcionando** en `/src`.

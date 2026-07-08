@@ -1,73 +1,95 @@
-# ◆ No-Code Website Builder
+# ◆ Creador de Experiencias Románticas Digitales
 
-Constructor visual de sitios web profesional: diseña páginas completas con
-drag-and-drop, personaliza cada elemento, anima, dibuja, integra 3D y **exporta
-un sitio HTML/CSS/JS real en un ZIP** — sin escribir código.
+Un Website Builder visual avanzado enfocado en **experiencias románticas**:
+páginas de amor, regalos virtuales, cartas interactivas, recuerdos y momentos
+especiales — con movimiento, interacción y personalidad. Sin escribir código
+(pero con libertad total para añadir el tuyo).
 
 ## Ejecutar — solo doble clic
 
-**Abre `index.html` con doble clic. Ya está.** No necesitas servidor, ni
-instalar nada, ni conexión a internet (Three.js se descarga de CDN solo si
-usas modelos 3D).
-
-El editor arranca con una **plantilla completa**: una landing larga con héroe
-de partículas, características, cita, galería, llamada a la acción y pie de
-página — lista para que la edites, no un lienzo en blanco.
+**Abre `index.html` con doble clic. Ya está.** Sin servidor, sin instalar
+nada. El editor arranca con una **experiencia romántica completa** lista para
+personalizar: portada con corazones y estrellas, dedicatoria a máquina de
+escribir, carta que se abre, línea de tiempo de recuerdos, contador de días
+juntos, fotos polaroid con tilt 3D, mensaje secreto y vuestra canción.
 
 ### Para desarrolladores
-
-El código fuente vive en `/src` (ES Modules) y se prueba con `dev.html`
-servido en local; `index.html` es el archivo autocontenido generado:
 
 ```bash
 npm install
 npm run build     # regenera index.html desde /src y /css
-npm run dev       # sirve dev.html en http://localhost:8080
+npm run dev       # sirve dev.html (ES Modules) en localhost:8080
 ```
 
-## Qué puedes hacer
+## Qué puedes crear
 
-- **Bloques prediseñados**: inserta secciones completas (héroe, tarjetas,
-  galería, CTA, pie…) con un clic — la página crece sola y queda bonita.
-- **Diseñar**: arrastra 18 tipos de componentes (texto, botones, imágenes, GIFs,
-  vídeos, galerías, sliders, formularios, menús, reproductores, formas,
-  modelos 3D, partículas WebGL2…). Mueve, redimensiona, rota, alinea con guías
-  inteligentes, snap, rejilla, reglas, zoom y pan.
-- **Tu galería**: sube imágenes/GIFs/vídeos/audio/modelos GLB desde el móvil o
-  el PC (botón *Subir* o soltando archivos directamente sobre el lienzo).
-- **Multipágina**: páginas ilimitadas, duplicar, ordenar, transiciones de
-  entrada (fade/slide/zoom/blur) y menú de navegación automático.
-- **Responsive**: por defecto tu diseño se escala proporcionalmente a
-  cualquier pantalla (se ve exacto en cualquier móvil); si quieres layouts
-  distintos por dispositivo, usa los modos Escritorio/Tablet/Móvil.
-- **Editor móvil**: en Android/iOS los paneles son hojas deslizantes con una
-  barra inferior táctil (Piezas · Assets · Páginas · Capas · Diseño).
-- **Animar**: 15 presets (fadeInUp, zoomIn, bounce, float…) con duración, delay,
-  loop, curvas y triggers (cargar / scroll / clic / hover) + eventos
-  (ir a página, abrir URL, mostrar/ocultar, reproducir sonido…).
-- **Dibujar**: pincel con presión de stylus, opacidad, borrador — y convierte el
-  trazo en un componente editable.
-- **Exportar** (2 formatos):
-  - **📱 HTML (1 archivo)**: todo el sitio —páginas, estilos, animaciones,
-    GIFs, vídeos y audio— en un único archivo autocontenido. Ábrelo
-    directamente en el móvil o compártelo por WhatsApp/correo: se ve
-    exactamente como lo diseñaste.
-  - **⬇ Sitio (.zip)**: carpeta de proyecto con `index.html`, `paginas/` y
-    `assets/{gifs,images,videos,…}` para subir a Netlify, Vercel o GitHub
-    Pages. Cada página lleva CSS y JS incrustados: nunca se ve "en blanco".
-- **Herramientas rápidas**: alinear a la página, traer al frente / enviar al
-  fondo, copiar/pegar estilo (Ctrl+Shift+C/V), gradientes de un toque,
-  interlineado, y 10 bloques prediseñados (héroe, precios, equipo, FAQ,
-  contacto…).
+### 💘 Componentes románticos
+Carta interactiva que se abre al tocarla · línea de tiempo de recuerdos ·
+mensaje oculto que se revela · botón que estalla en corazones · texto máquina
+de escribir · contador de amor (días/horas/min/seg juntos o cuenta atrás) ·
+fotos polaroid · elementos flotantes (emojis) · **corazón 3D** (Three.js) ·
+**foto con profundidad 3D** · gradientes animados · reproductor de música.
 
-Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). Además:
+### ✨ Fondos dinámicos (WebGL2 nativo, shaders propios)
+Corazones (con forma real por SDF) · nieve · estrellas titilantes ·
+luciérnagas · aurora · ondas de agua · nebulosa · lluvia · órbita. Simulación
+por tiempo real: idéntica velocidad y máxima fluidez a 60/90/120/144/165 Hz.
 
-- **Guardar .json** descarga el proyecto **con tus GIFs, imágenes y vídeos
-  incrustados dentro** — un solo archivo autocontenido que puedes mover de
-  equipo y re-importar sin perder nada.
-- Al **Exportar sitio (.zip)**, tus GIFs quedan guardados como archivos
-  reales dentro de la carpeta del proyecto: `assets/gifs/`, las imágenes en
-  `assets/images/`, los vídeos en `assets/videos/`, etc.
+### 🎬 Animaciones y transiciones
+26 presets (latido, tada, flip 3D, giro 3D, brillo, caída, respirar…) con
+triggers al cargar / scroll / clic / hover. Letras animadas (olas, saltos,
+brillo, arcoíris). Brillos de texto (neón, rosa, dorado, fuego, hielo).
+Efectos por elemento: **parallax al scroll** y **tilt 3D** táctil.
+Transiciones de página cinematográficas: círculo mágico, cortina, giro 3D,
+ascenso, **lluvia de corazones**, polvo de estrellas, nevada — con duración
+configurable.
+
+### 🧠 Lógica visual (cualquier elemento es interactivo)
+Cada elemento —imagen, texto, fondo, vídeo, 3D…— acepta eventos con
+**cadenas de acciones** y retardos: *"al tocar este botón → aparece una foto,
+cambia el fondo, suena una canción y estallan corazones"*. Disparadores:
+tocar, doble toque, **mantener presionado**, pasar el cursor, **deslizar**,
+aparecer en pantalla. Acciones: ir a página, mostrar/ocultar, animar,
+reproducir/detener sonidos, cambiar texto/estilo/fondo, estallido de
+corazones, **vibración móvil**, abrir URL y **ejecutar JavaScript propio**.
+
+### 🧩 Extensión con tu propio código
+- Componente **"Código personalizado"**: HTML + CSS + JS dentro de un elemento.
+- **CSS/JS global** del proyecto y **por página** (nuevas animaciones, fondos,
+  partículas, efectos Canvas/WebGL...).
+- El export de 1 archivo **incrusta el proyecto** (`#wb-project`): puedes
+  editar el HTML a mano añadiendo `<style class="custom">` o
+  `<script class="custom">` y al **re-importarlo** el editor los detecta y
+  los integra automáticamente.
+- **Fuentes propias**: sube .ttf/.woff2 desde Assets y aparecen en el
+  selector de fuentes (y en el sitio exportado).
+
+### 📤 Exportación (multimedia garantizada)
+- **📱 HTML (1 archivo)**: todo el sitio —páginas, GIFs, vídeos, audio,
+  fuentes, efectos— en un único archivo autocontenido con navegación interna.
+  Se abre en cualquier móvil y se ve EXACTO al editor.
+- **⬇ Sitio (.zip)**: cada página lleva CSS/JS/multimedia incrustados (nunca
+  se ve rota, ni abriendo un HTML suelto) + carpeta `assets/` organizada
+  (gifs, imágenes, vídeos, audio, modelos, fuentes) + `project.json`
+  re-importable. Lista para Netlify/Vercel/GitHub Pages.
+
+El sitio exportado ejecuta **los mismos runtimes que el editor** (se inyectan
+con `Function.toString()`): cero divergencia entre lo que diseñas y lo que
+compartes.
+
+## Arquitectura
+
+Documentación técnica en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+
+```
+Editor visual → ProjectStore (JSON) → Renderer compartido
+     ├─ /runtime  wbParticles · wbEffects · wbActions  ← LOS MISMOS
+     │            corren en el editor y se inyectan en el export
+     ├─ Animaciones (WAAPI ↔ @keyframes CSS)
+     ├─ Three.js lazy (GLB, corazón 3D, foto con profundidad)
+     ├─ Asset Manager (IndexedDB, fuentes, galería del móvil)
+     └─ Exportador (ZIP con carpeta assets/ · HTML de 1 archivo)
+```
 
 ## Atajos
 
@@ -75,20 +97,7 @@ Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). Además:
 |---|---|
 | Ctrl+Z / Ctrl+Y | deshacer / rehacer |
 | Ctrl+C / V / D | copiar / pegar / duplicar |
-| Supr | eliminar · Flechas: mover (Shift ×10) |
-| Ctrl+rueda | zoom al cursor · rueda: pan |
-| Espacio + arrastrar | pan · doble clic en texto: editar |
-| Shift al rotar/escalar | pasos de 15° / proporción fija |
-
-## Arquitectura
-
-Documentación técnica completa (modelo JSON, motores, decisiones de
-escalabilidad y rendimiento) en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
-
-```
-Editor visual → ProjectStore (JSON = fuente de verdad) → Renderer
-                     ├─ Motor de animaciones (WAAPI ↔ CSS)
-                     ├─ Motor WebGL (WebGL2 nativo + Three.js lazy)
-                     ├─ Asset Manager (IndexedDB)
-                     └─ Exportador (JSON → sitio estático + ZIP)
-```
+| Ctrl+Shift+C / V | copiar / pegar estilo |
+| Supr · Flechas | eliminar · mover (Shift ×10) |
+| Ctrl+rueda · Espacio+arrastrar | zoom · pan |
+| Doble clic en texto | editar inline |

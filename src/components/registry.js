@@ -13,7 +13,9 @@
  * de render en renderer/renderer.js. Nada más.
  * ============================================================ */
 
-const FONTS = ['system-ui', 'Georgia', 'Courier New', 'Arial Black', 'Trebuchet MS', 'Verdana'];
+export const FONTS = ['system-ui', 'Georgia', 'Courier New', 'Arial Black', 'Trebuchet MS', 'Verdana', 'Brush Script MT', 'Palatino', 'Impact'];
+export const TEXT_GLOWS = ['ninguno', 'suave', 'neón', 'rosa', 'dorado', 'fuego', 'hielo'];
+export const TEXT_FX = ['ninguno', 'olas', 'saltos', 'brillo', 'arcoiris'];
 const num = (key, label, min = 0, max = 400, step = 1) => ({ key, label, type: 'number', min, max, step });
 const color = (key, label) => ({ key, label, type: 'color' });
 const select = (key, label, options) => ({ key, label, type: 'select', options });
@@ -31,13 +33,14 @@ const STYLE_COMMON = [
 ];
 
 const TEXT_STYLE = [
-  select('styles.fontFamily', 'Fuente', FONTS),
+  { key: 'styles.fontFamily', label: 'Fuente', type: 'font' },
   num('styles.fontSize', 'Tamaño de letra', 8, 200),
   select('styles.fontWeight', 'Peso', ['300', '400', '600', '700', '900']),
   color('styles.color', 'Color de texto'),
   select('styles.textAlign', 'Alineación', ['left', 'center', 'right']),
   num('styles.letterSpacing', 'Espaciado letras', -5, 30, 0.5),
   num('styles.lineHeight', 'Interlineado', 0.8, 3, 0.05),
+  select('styles.textGlow', 'Brillo del texto', TEXT_GLOWS),
 ];
 
 export const Components = {
@@ -45,12 +48,13 @@ export const Components = {
   text: {
     label: 'Texto', icon: 'T', cat: 'Básicos', size: [320, 60],
     defaults: {
-      props: { text: 'Doble clic para editar', tag: 'p' },
+      props: { text: 'Doble clic para editar', tag: 'p', textFx: 'ninguno' },
       styles: { fontSize: 28, color: '#e2e8f0', fontWeight: '600', textAlign: 'left', fontFamily: 'system-ui' },
     },
     schema: [
       { key: 'props.text', label: 'Contenido', type: 'textarea' },
       select('props.tag', 'Etiqueta HTML', ['h1', 'h2', 'h3', 'p', 'span']),
+      select('props.textFx', 'Letras animadas', TEXT_FX),
       ...TEXT_STYLE,
     ],
   },
@@ -230,11 +234,11 @@ export const Components = {
       styles: { background: '#020617', radius: 12 },
     },
     schema: [
+      select('props.mode', 'Modo', ['nebulosa', 'corazones', 'nieve', 'estrellas', 'luciérnagas', 'aurora', 'ondas', 'lluvia', 'órbita']),
       num('props.count', 'Cantidad', 10, 5000, 10),
       color('props.color', 'Color'),
       num('props.speed', 'Velocidad', 0.1, 10, 0.1),
       num('props.size', 'Tamaño', 0.5, 20, 0.5),
-      select('props.mode', 'Modo', ['nebulosa', 'lluvia', 'órbita']),
       ...STYLE_COMMON,
     ],
   },
@@ -244,9 +248,173 @@ export const Components = {
     defaults: { props: { assetId: null, fit: 'contain' }, styles: {} },
     schema: [asset('props.assetId', 'Trazo exportado', 'image'), ...STYLE_COMMON],
   },
+
+  /* ── Componentes románticos ─────────────────────────── */
+  loveLetter: {
+    label: 'Carta interactiva', icon: '💌', cat: 'Románticos', size: [380, 300],
+    defaults: {
+      props: {
+        cover: 'Toca para abrir',
+        message: 'Cada día a tu lado es mi lugar favorito del mundo.\n\nGracias por existir.',
+        signature: 'Con amor, para ti',
+      },
+      styles: { fontSize: 16, fontFamily: 'system-ui', color: '#7c2d12' },
+    },
+    schema: [
+      text('props.cover', 'Texto del sobre'),
+      { key: 'props.message', label: 'Mensaje de la carta', type: 'textarea' },
+      text('props.signature', 'Firma'),
+      num('styles.fontSize', 'Tamaño de letra', 10, 40),
+    ],
+  },
+
+  timeline: {
+    label: 'Línea de tiempo', icon: '🕰', cat: 'Románticos', size: [420, 420],
+    defaults: {
+      props: {
+        items: '14/02/2023 | Nos conocimos | El día que todo empezó ; 20/06/2023 | Primer viaje | Descubrimos el mundo juntos ; Hoy | Seguimos escribiendo | Nuestra historia continúa…',
+      },
+      styles: { color: '#e2e8f0', fontSize: 16, background: 'rgba(15,23,42,.55)', radius: 18 },
+    },
+    schema: [
+      { key: 'props.items', label: 'Recuerdos (fecha | título | texto ; …)', type: 'textarea' },
+      ...TEXT_STYLE.slice(0, 4),
+      ...STYLE_COMMON,
+    ],
+  },
+
+  hiddenMessage: {
+    label: 'Mensaje oculto', icon: '🔮', cat: 'Románticos', size: [380, 180],
+    defaults: {
+      props: { cover: '✨ Toca para revelar el secreto', message: 'Te amo más de lo que las palabras pueden decir 💗' },
+      styles: { fontSize: 20, color: '#fdf2f8', background: 'rgba(88,28,135,.35)', radius: 18, fontFamily: 'Georgia' },
+    },
+    schema: [
+      text('props.cover', 'Texto de la cubierta'),
+      { key: 'props.message', label: 'Mensaje secreto', type: 'textarea' },
+      ...TEXT_STYLE.slice(0, 4),
+      ...STYLE_COMMON,
+    ],
+  },
+
+  heartButton: {
+    label: 'Botón de corazones', icon: '💗', cat: 'Románticos', size: [220, 60],
+    defaults: {
+      props: { text: 'Pulsa aquí 💗', emoji: '❤️' },
+      styles: {
+        fontSize: 17, fontWeight: '700', textAlign: 'center', color: '#fff',
+        background: 'linear-gradient(90deg,#ec4899,#f43f5e)', radius: 30, shadow: 'neón',
+      },
+    },
+    schema: [text('props.text', 'Texto'), text('props.emoji', 'Emoji del estallido'), ...TEXT_STYLE, ...STYLE_COMMON],
+  },
+
+  typewriter: {
+    label: 'Máquina de escribir', icon: '⌨', cat: 'Románticos', size: [420, 70],
+    defaults: {
+      props: { text: 'Escribiendo nuestra historia…', speed: 90, loop: true },
+      styles: { fontSize: 26, color: '#fbcfe8', fontWeight: '600', textAlign: 'left', fontFamily: 'Courier New' },
+    },
+    schema: [
+      { key: 'props.text', label: 'Texto a escribir', type: 'textarea' },
+      num('props.speed', 'Velocidad (ms por letra)', 20, 400, 10),
+      check('props.loop', 'Repetir en bucle'),
+      ...TEXT_STYLE,
+    ],
+  },
+
+  countdown: {
+    label: 'Contador de amor', icon: '⏳', cat: 'Románticos', size: [480, 110],
+    defaults: {
+      props: { date: '2023-02-14', mode: 'desde', label: 'Juntos desde hace' },
+      styles: { color: '#fdf2f8', fontSize: 15, fontFamily: 'system-ui' },
+    },
+    schema: [
+      text('props.date', 'Fecha (AAAA-MM-DD)'),
+      select('props.mode', 'Modo', ['desde', 'hasta']),
+      text('props.label', 'Etiqueta'),
+      color('styles.color', 'Color'),
+      num('styles.fontSize', 'Tamaño base', 10, 30),
+    ],
+  },
+
+  polaroid: {
+    label: 'Foto polaroid', icon: '📸', cat: 'Románticos', size: [260, 320], accepts: ['image', 'gif'],
+    defaults: { props: { assetId: null, caption: 'Nuestro recuerdo', rotate: -3 }, styles: {} },
+    schema: [
+      asset('props.assetId', 'Foto', 'image'),
+      text('props.caption', 'Pie de foto'),
+      num('props.rotate', 'Inclinación °', -15, 15),
+    ],
+  },
+
+  floatingEmojis: {
+    label: 'Elementos flotantes', icon: '🎈', cat: 'Románticos', size: [640, 420],
+    defaults: { props: { emojis: '💖, 🌹, ✨', count: 14, speed: 1 }, styles: {} },
+    schema: [
+      text('props.emojis', 'Emojis (separados por coma)'),
+      num('props.count', 'Cantidad', 1, 60),
+      num('props.speed', 'Velocidad', 0.2, 4, 0.1),
+    ],
+  },
+
+  heart3d: {
+    label: 'Corazón 3D', icon: '💎', cat: 'Románticos', size: [340, 320],
+    defaults: {
+      props: { color: '#e11d48', autoRotate: true, rotateSpeed: 1, metal: 0.35, cameraZ: 4 },
+      styles: {},
+    },
+    schema: [
+      color('props.color', 'Color del corazón'),
+      check('props.autoRotate', 'Rotación automática'),
+      num('props.rotateSpeed', 'Velocidad', 0, 10, 0.1),
+      num('props.metal', 'Brillo metálico', 0, 1, 0.05),
+      num('props.cameraZ', 'Distancia de cámara', 2, 12, 0.1),
+    ],
+  },
+
+  photo3d: {
+    label: 'Foto con profundidad 3D', icon: '🖼', cat: 'Románticos', size: [360, 280], accepts: ['image'],
+    defaults: { props: { assetId: null, depth: 1 }, styles: {} },
+    schema: [
+      asset('props.assetId', 'Foto', 'image'),
+      num('props.depth', 'Profundidad del efecto', 0.2, 3, 0.1),
+    ],
+  },
+
+  gradientBg: {
+    label: 'Gradiente animado', icon: '🌈', cat: 'Románticos', size: [640, 420],
+    defaults: {
+      props: { colors: '#ec4899, #8b5cf6, #38bdf8, #f43f5e', speed: 8 },
+      styles: { radius: 0 },
+    },
+    schema: [
+      text('props.colors', 'Colores (separados por coma)'),
+      num('props.speed', 'Duración del ciclo (s)', 2, 30, 0.5),
+      ...STYLE_COMMON,
+    ],
+  },
+
+  /* ── Extensión con código propio ────────────────────── */
+  customHTML: {
+    label: 'Código personalizado', icon: '</>', cat: 'Avanzados', size: [420, 300],
+    defaults: {
+      props: {
+        html: '<div class="mi-efecto">Mi componente ✨</div>',
+        css: '.mi-efecto{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;color:#f0abfc;background:radial-gradient(circle,#3b0764,#0b1020);border-radius:14px}',
+        js: '// Se ejecuta en la vista previa y en el sitio exportado\n// document.querySelector(".mi-efecto").onclick = () => alert("¡Hola!");',
+      },
+      styles: {},
+    },
+    schema: [
+      { key: 'props.html', label: 'HTML', type: 'textarea' },
+      { key: 'props.css', label: 'CSS', type: 'textarea' },
+      { key: 'props.js', label: 'JavaScript', type: 'textarea' },
+    ],
+  },
 };
 
-export const CATEGORIES = ['Básicos', 'Avanzados'];
+export const CATEGORIES = ['Románticos', 'Básicos', 'Avanzados'];
 
 export function componentDef(type) { return Components[type] || Components.shape; }
 
@@ -261,7 +429,8 @@ export function createNodeData(type, overrides = {}) {
     styles: { ...(def.defaults.styles || {}) },
     props: JSON.parse(JSON.stringify(def.defaults.props || {})),
     animation: { preset: 'ninguna', trigger: 'load', duration: 800, delay: 0, loop: false, easing: 'ease-out' },
-    events: [],                  // [{ on:'click', action:'goToPage', target:'pg_…' }]
+    effects: { parallax: 0, tilt: false }, // efectos de scroll y profundidad
+    events: [],                  // [{ on:'click', actions:[{action,target,value,delay}] }]
     locked: false,
     hidden: false,
     ...overrides,

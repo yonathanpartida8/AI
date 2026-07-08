@@ -151,6 +151,28 @@ export class AssetManager extends EventBus {
     this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
   }
 
+  /** Nombre de familia tipográfica de un asset de fuente. */
+  fontName(asset) {
+    return asset.name.replace(/\.(woff2?|ttf|otf)$/i, '').replace(/[^\w\sáéíóúñ-]/gi, '').trim() || 'FuentePropia';
+  }
+
+  /** Reglas @font-face de todas las fuentes subidas (editor y export). */
+  fontFaceCSS() {
+    return this.list({ kind: 'font' }).map((asset) =>
+      `@font-face{font-family:"${this.fontName(asset)}";src:url("${asset.data}");font-display:swap}`).join('\n');
+  }
+
+  /** Inyecta las fuentes del usuario en el documento del editor. */
+  injectFonts() {
+    let style = document.getElementById('wb-fonts');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'wb-fonts';
+      document.head.append(style);
+    }
+    style.textContent = this.fontFaceCSS();
+  }
+
   /** Tipo de componente sugerido al soltar un asset en el lienzo. */
   componentForAsset(asset) {
     return { image: 'image', svg: 'image', gif: 'gif', video: 'video', audio: 'musicPlayer', model: 'model3d', font: null }[asset.kind];

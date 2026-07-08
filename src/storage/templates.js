@@ -225,89 +225,203 @@ function footerBlock(y) {
   };
 }
 
-function pricingBlock(y) {
-  const plans = [
-    ['Básico', '9€', 'rgba(148,163,184,.08)', 'Para empezar\n1 sitio · Soporte email'],
-    ['Pro', '29€', 'linear-gradient(160deg,rgba(139,92,246,.25),rgba(236,72,153,.15))', 'El más popular\n10 sitios · Dominio · Analíticas'],
-    ['Empresa', '99€', 'rgba(148,163,184,.08)', 'Sin límites\nSitios ilimitados · Soporte 24/7'],
-  ];
-  const nodes = [
-    node('text', { x: 340, y: y + 70, w: 600, h: 60 }, {
-      name: 'Título precios', props: { text: 'Planes y precios', tag: 'h2' },
-      styles: { fontSize: 38, fontWeight: '800', textAlign: 'center', color: '#f1f5f9' },
-      animation: scroll('fadeInUp'),
-    }),
-  ];
-  plans.forEach(([name, price, bg, features], i) => {
-    const x = 70 + i * 400;
-    nodes.push(
-      node('container', { x, y: y + 180, w: 340, h: 380 }, {
-        name: `Plan ${name}`,
-        styles: { background: bg, radius: 24, borderWidth: i === 1 ? 2 : 1, borderColor: i === 1 ? '#8b5cf6' : 'rgba(148,163,184,.25)', shadow: i === 1 ? 'neón' : 'suave' },
-        animation: scroll('fadeInUp', i * 150),
+/* ── Bloques ROMÁNTICOS ─────────────────────────────── */
+
+function romanticHeroBlock(y) {
+  return {
+    height: 820,
+    nodes: [
+      node('section', { x: 0, y, w: W, h: 820 }, {
+        name: 'Cielo romántico',
+        styles: { background: 'linear-gradient(175deg,#1e0a2e 0%,#3b0f3f 45%,#180b2b 100%)' },
       }),
-      node('text', { x: x + 20, y: y + 215, w: 300, h: 40 }, {
-        name: `Nombre ${name}`, props: { text: name, tag: 'h3' },
-        styles: { fontSize: 20, fontWeight: '700', textAlign: 'center', color: '#c7d2fe' },
-        animation: scroll('fadeIn', i * 150 + 100),
+      node('particles', { x: 0, y, w: W, h: 820 }, {
+        name: 'Corazones flotando',
+        styles: { background: 'transparent', radius: 0 },
+        props: { count: 90, color: '#f472b6', speed: 0.7, size: 3, mode: 'corazones' },
       }),
-      node('text', { x: x + 20, y: y + 265, w: 300, h: 70 }, {
-        name: `Precio ${name}`, props: { text: `${price}/mes`, tag: 'p' },
-        styles: { fontSize: 42, fontWeight: '900', textAlign: 'center', color: '#ffffff' },
-        animation: scroll('zoomIn', i * 150 + 150),
+      node('particles', { x: 0, y, w: W, h: 820 }, {
+        name: 'Estrellas titilando',
+        styles: { background: 'transparent', radius: 0 },
+        props: { count: 160, color: '#fbcfe8', speed: 0.6, size: 1.6, mode: 'estrellas' },
       }),
-      node('text', { x: x + 30, y: y + 355, w: 280, h: 100 }, {
-        name: `Detalle ${name}`, props: { text: features, tag: 'p' },
-        styles: { fontSize: 14, fontWeight: '400', textAlign: 'center', color: '#94a3b8', lineHeight: 1.8 },
+      node('text', { x: 240, y: y + 210, w: 800, h: 150 }, {
+        name: 'Título romántico',
+        props: { text: 'Para ti, mi amor', tag: 'h1', textFx: 'brillo' },
+        styles: { fontSize: 64, fontWeight: '900', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia', textGlow: 'rosa' },
+        animation: load('zoomIn', 200, { duration: 1400 }),
       }),
-      node('button', { x: x + 80, y: y + 475, w: 180, h: 48 }, {
-        name: `Botón ${name}`, props: { text: 'Elegir plan' },
-        styles: {
-          fontSize: 15, fontWeight: '700', textAlign: 'center', color: i === 1 ? '#ffffff' : '#c7d2fe',
-          background: i === 1 ? 'linear-gradient(90deg,#8b5cf6,#ec4899)' : 'rgba(148,163,184,.12)', radius: 24,
-        },
-        animation: scroll('fadeInUp', i * 150 + 250),
+      node('typewriter', { x: 290, y: y + 390, w: 700, h: 60 }, {
+        name: 'Dedicatoria',
+        props: { text: 'Hice esta página solo para ti… cada rincón guarda algo nuestro 💌', speed: 70, loop: true },
+        styles: { fontSize: 21, color: '#f9a8d4', textAlign: 'center', fontFamily: 'Georgia' },
       }),
-    );
-  });
-  return { height: 660, nodes };
+      node('heartButton', { x: 520, y: y + 540, w: 240, h: 62 }, {
+        name: 'Botón corazones héroe',
+        props: { text: 'Tócame 💗', emoji: '💖' },
+        animation: load('latido', 800, { loop: true, duration: 1600 }),
+      }),
+      node('text', { x: 490, y: y + 730, w: 300, h: 40 }, {
+        name: 'Indicación scroll',
+        props: { text: '↓ desliza para ver nuestra historia', tag: 'p' },
+        styles: { fontSize: 14, color: 'rgba(249,168,212,.7)', textAlign: 'center' },
+        animation: load('float', 0, { loop: true, duration: 2200 }),
+      }),
+    ],
+  };
 }
 
-function teamBlock(y) {
-  const members = [
-    ['Ana', 'Diseño', 'radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)'],
-    ['Leo', 'Desarrollo', 'radial-gradient(circle at 30% 30%,#38bdf8,#6366f1)'],
-    ['Mar', 'Marketing', 'radial-gradient(circle at 30% 30%,#fbbf24,#ef4444)'],
-  ];
+function letterBlock(y) {
+  return {
+    height: 560,
+    nodes: [
+      node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
+        name: 'Título carta', props: { text: 'Tengo algo que decirte…', tag: 'h2' },
+        styles: { fontSize: 36, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      node('loveLetter', { x: 420, y: y + 160, w: 440, h: 340 }, {
+        name: 'Carta de amor',
+        animation: scroll('zoomIn', 200),
+      }),
+    ],
+  };
+}
+
+function timelineBlock(y) {
+  return {
+    height: 620,
+    nodes: [
+      node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
+        name: 'Título recuerdos', props: { text: 'Nuestra historia', tag: 'h2' },
+        styles: { fontSize: 36, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      node('timeline', { x: 340, y: y + 150, w: 600, h: 420 }, {
+        name: 'Línea de recuerdos',
+        animation: scroll('fadeIn', 150),
+      }),
+    ],
+  };
+}
+
+function countdownBlock(y) {
+  return {
+    height: 320,
+    nodes: [
+      node('section', { x: 0, y, w: W, h: 320 }, {
+        name: 'Fondo contador',
+        styles: { background: 'linear-gradient(90deg,#180b2b,#4a1042,#180b2b)' },
+      }),
+      node('text', { x: 340, y: y + 55, w: 600, h: 50 }, {
+        name: 'Título contador', props: { text: 'Cada segundo cuenta 💞', tag: 'h2' },
+        styles: { fontSize: 30, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      node('countdown', { x: 340, y: y + 160, w: 600, h: 110 }, {
+        name: 'Contador de amor',
+        animation: scroll('zoomIn', 150),
+      }),
+    ],
+  };
+}
+
+function polaroidsBlock(y) {
+  const captions = ['Nuestro primer día', 'Aquella tarde', 'Siempre así'];
   const nodes = [
-    node('text', { x: 340, y: y + 70, w: 600, h: 60 }, {
-      name: 'Título equipo', props: { text: 'Nuestro equipo', tag: 'h2' },
-      styles: { fontSize: 38, fontWeight: '800', textAlign: 'center', color: '#f1f5f9' },
+    node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
+      name: 'Título fotos', props: { text: 'Momentos que amo', tag: 'h2' },
+      styles: { fontSize: 36, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
       animation: scroll('fadeInUp'),
     }),
   ];
-  members.forEach(([name, role, bg], i) => {
-    const x = 250 + i * 300;
-    nodes.push(
-      node('shape', { x, y: y + 180, w: 150, h: 150 }, {
-        name: `Avatar ${name}`, props: { shape: 'círculo' },
-        styles: { background: bg, radius: 0, shadow: 'media' },
-        animation: scroll('zoomIn', i * 140),
-      }),
-      node('text', { x: x - 25, y: y + 350, w: 200, h: 34 }, {
-        name: `Nombre ${name}`, props: { text: name, tag: 'h3' },
-        styles: { fontSize: 20, fontWeight: '700', textAlign: 'center', color: '#e2e8f0' },
-        animation: scroll('fadeInUp', i * 140 + 120),
-      }),
-      node('text', { x: x - 25, y: y + 388, w: 200, h: 30 }, {
-        name: `Rol ${name}`, props: { text: role, tag: 'p' },
-        styles: { fontSize: 14, fontWeight: '400', textAlign: 'center', color: '#8b5cf6' },
-        animation: scroll('fadeInUp', i * 140 + 160),
-      }),
-    );
+  captions.forEach((caption, i) => {
+    nodes.push(node('polaroid', { x: 155 + i * 340, y: y + 170, w: 300, h: 360, rotation: [-4, 2, -2][i] }, {
+      name: `Polaroid ${i + 1}`,
+      props: { assetId: null, caption, rotate: [-3, 2, -2][i] },
+      animation: scroll('caida', i * 200),
+      // Sustituye por tus fotos desde Assets; con tilt 3D se sienten vivas
+    }));
+    nodes[nodes.length - 1].effects = { parallax: 0, tilt: true };
   });
-  return { height: 480, nodes };
+  return { height: 620, nodes };
 }
+
+function secretBlock(y) {
+  return {
+    height: 380,
+    nodes: [
+      node('floatingEmojis', { x: 0, y, w: W, h: 380 }, {
+        name: 'Emojis flotantes secreto',
+        props: { emojis: '✨, 💫', count: 10, speed: 0.7 },
+      }),
+      node('text', { x: 340, y: y + 60, w: 600, h: 50 }, {
+        name: 'Título secreto', props: { text: 'Hay un secreto escondido aquí…', tag: 'h2' },
+        styles: { fontSize: 28, fontWeight: '700', textAlign: 'center', color: '#e9d5ff', fontFamily: 'Georgia' },
+        animation: scroll('fadeIn'),
+      }),
+      node('hiddenMessage', { x: 390, y: y + 150, w: 500, h: 170 }, {
+        name: 'Mensaje secreto',
+        animation: scroll('zoomIn', 200),
+      }),
+    ],
+  };
+}
+
+function chapterBlock(y) {
+  return {
+    height: 520,
+    nodes: [
+      node('section', { x: 0, y, w: W, h: 520 }, {
+        name: 'Fondo capítulo',
+        styles: { background: 'linear-gradient(160deg,#0f0a1e,#2a0f35)' },
+      }),
+      node('text', { x: 440, y: y + 90, w: 400, h: 40 }, {
+        name: 'Número capítulo', props: { text: '— Capítulo 1 —', tag: 'p' },
+        styles: { fontSize: 15, color: '#c084fc', textAlign: 'center', letterSpacing: 4 },
+        animation: scroll('fadeIn'),
+      }),
+      node('text', { x: 290, y: y + 150, w: 700, h: 70 }, {
+        name: 'Título capítulo', props: { text: 'Donde todo comenzó', tag: 'h2' },
+        styles: { fontSize: 40, fontWeight: '900', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp', 150),
+      }),
+      node('text', { x: 340, y: y + 250, w: 600, h: 120 }, {
+        name: 'Texto capítulo',
+        props: { text: 'Escribe aquí este capítulo de vuestra historia:\ncómo empezó, qué sentiste, qué recuerdas de ese día…', tag: 'p' },
+        styles: { fontSize: 17, color: '#d8b4fe', textAlign: 'center', lineHeight: 1.8, fontFamily: 'Georgia' },
+        animation: scroll('fadeIn', 300),
+      }),
+      node('button', { x: 540, y: y + 410, w: 200, h: 52 }, {
+        name: 'Siguiente capítulo',
+        props: { text: 'Continuar →' },
+        styles: { fontSize: 15, fontWeight: '700', textAlign: 'center', color: '#fff', background: 'linear-gradient(90deg,#a855f7,#ec4899)', radius: 26, shadow: 'neón' },
+        animation: scroll('fadeInUp', 450),
+      }),
+    ],
+  };
+}
+
+function musicBlock(y) {
+  return {
+    height: 320,
+    nodes: [
+      node('text', { x: 340, y: y + 60, w: 600, h: 50 }, {
+        name: 'Título música', props: { text: 'Nuestra canción 🎶', tag: 'h2' },
+        styles: { fontSize: 30, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      node('musicPlayer', { x: 400, y: y + 150, w: 480, h: 120 }, {
+        name: 'Reproductor',
+        props: { assetId: null, title: 'La canción que nos define', artist: 'Súbela desde Assets 💿' },
+        styles: { background: 'linear-gradient(135deg,#701a75,#be185d)', radius: 20, color: '#fff' },
+        animation: scroll('zoomIn', 150),
+      }),
+    ],
+  };
+}
+
+
 
 function faqBlock(y) {
   const faqs = [
@@ -376,12 +490,18 @@ function contactBlock(y) {
 /* ── API pública ─────────────────────────────────────── */
 
 export const BLOCKS = {
+  romanticHero: { label: 'Portada romántica 💘', icon: '💘', build: romanticHeroBlock },
+  letter: { label: 'Carta de amor', icon: '💌', build: letterBlock },
+  timelineB: { label: 'Nuestra historia (línea de tiempo)', icon: '🕰', build: timelineBlock },
+  countdownB: { label: 'Contador de amor', icon: '⏳', build: countdownBlock },
+  polaroids: { label: 'Fotos polaroid', icon: '📸', build: polaroidsBlock },
+  secret: { label: 'Mensaje secreto', icon: '🔮', build: secretBlock },
+  chapter: { label: 'Capítulo de historia', icon: '📖', build: chapterBlock },
+  music: { label: 'Nuestra canción', icon: '🎶', build: musicBlock },
   hero: { label: 'Héroe con partículas', icon: '✨', build: heroBlock },
   features: { label: 'Características (3 tarjetas)', icon: '🃏', build: featuresBlock },
   quote: { label: 'Cita destacada', icon: '❝', build: quoteBlock },
   gallery: { label: 'Galería', icon: '⊞', build: galleryBlock },
-  pricing: { label: 'Planes y precios', icon: '💳', build: pricingBlock },
-  team: { label: 'Equipo', icon: '👥', build: teamBlock },
   faq: { label: 'Preguntas frecuentes', icon: '❓', build: faqBlock },
   contact: { label: 'Contacto con formulario', icon: '✉', build: contactBlock },
   cta: { label: 'Llamada a la acción', icon: '📣', build: ctaBlock },
@@ -392,36 +512,36 @@ export function buildBlock(key, y) {
   return BLOCKS[key] ? BLOCKS[key].build(y) : null;
 }
 
-/** Proyecto inicial: landing completa, larga y lista para editar. */
+/**
+ * Proyecto inicial: EXPERIENCIA ROMÁNTICA completa y lista para
+ * personalizar — portada con corazones, carta, historia, contador,
+ * fotos, mensaje secreto y canción.
+ */
 export function starterProject() {
   const pageId = uid('pg');
   const allNodes = [];
   let y = 0;
-  for (const key of ['hero', 'features', 'quote', 'gallery', 'cta', 'footer']) {
+  for (const key of ['romanticHero', 'letter', 'timelineB', 'countdownB', 'polaroids', 'secret', 'music', 'footer']) {
     const block = buildBlock(key, y);
     allNodes.push(...block.nodes);
     y += block.height;
   }
-  // Menú fijo arriba, por encima del héroe
-  allNodes.push(node('menu', { x: 0, y: 0, w: W, h: 64 }, {
-    name: 'Menú principal',
-    props: { brand: '◆ Mi Sitio' },
-    styles: { background: 'rgba(10,14,26,.55)', color: '#e2e8f0', fontSize: 15, blur: 10 },
-  }));
 
   const nodesMap = {};
   for (const n of allNodes) nodesMap[n.id] = n;
 
   return {
     version: 1,
-    meta: { name: 'Mi Proyecto', created: Date.now(), modified: Date.now() },
+    meta: { name: 'Para Ti', created: Date.now(), modified: Date.now() },
     settings: {
       breakpoints: { desktop: 1280, tablet: 768, mobile: 390 },
       grid: { size: 8, visible: false, snap: true },
     },
+    custom: { css: '', js: '' },
     pages: [{
-      id: pageId, name: 'Inicio', slug: 'index', height: y, background: '#0b1020',
-      transition: 'fade', nodes: allNodes.map((n) => n.id),
+      id: pageId, name: 'Inicio', slug: 'index', height: y, background: '#150a24',
+      transition: 'corazones', transitionDuration: 900, custom: { css: '', js: '' },
+      nodes: allNodes.map((n) => n.id),
     }],
     nodes: nodesMap,
     assets: [],

@@ -252,8 +252,26 @@ export class Panels {
       this.#field('Transición de entrada', el('select', {
         class: 'input',
         onchange: (e) => this.store.updatePage(page.id, { transition: e.target.value }),
-      }, ['fade', 'slide', 'zoom', 'blur', 'ninguna'].map((t) =>
-        el('option', { value: t, text: t, selected: page.transition === t ? 'true' : null })))),
+      }, [
+        ['fade', 'Fundido'], ['slide', 'Deslizar'], ['zoom', 'Zoom'], ['blur', 'Desenfoque'],
+        ['circulo', 'Círculo mágico'], ['cortina', 'Cortina'], ['giro3d', 'Giro 3D'], ['ascenso', 'Ascenso'],
+        ['corazones', 'Lluvia de corazones'], ['estrellas', 'Polvo de estrellas'], ['nieve', 'Nevada'],
+        ['ninguna', 'Sin transición'],
+      ].map(([t, label]) =>
+        el('option', { value: t, text: label, selected: page.transition === t ? 'true' : null })))),
+      this.#field('Duración de la transición (ms)', el('input', {
+        class: 'input', type: 'number', min: 100, max: 5000, step: 100, value: page.transitionDuration || 700,
+        onchange: (e) => this.store.updatePage(page.id, { transitionDuration: +e.target.value || 700 }),
+      })),
+      el('h4', { class: 'panel-heading', text: 'Código de esta página' }),
+      this.#field('CSS propio', el('textarea', {
+        class: 'input code', rows: 3, text: page.custom?.css || '', placeholder: '.mi-estilo { … }',
+        onchange: (e) => this.store.updatePage(page.id, { custom: { ...(page.custom || {}), css: e.target.value } }),
+      })),
+      this.#field('JavaScript propio', el('textarea', {
+        class: 'input code', rows: 3, text: page.custom?.js || '', placeholder: '// corre al cargar esta página',
+        onchange: (e) => this.store.updatePage(page.id, { custom: { ...(page.custom || {}), js: e.target.value } }),
+      })),
     );
   }
 

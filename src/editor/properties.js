@@ -10,7 +10,7 @@
  * ============================================================ */
 
 import { el, getPath, setPath } from '../utils/helpers.js';
-import { componentDef } from '../components/registry.js';
+import { componentDef, FONTS } from '../components/registry.js';
 import { PRESET_NAMES, TRIGGERS, EASINGS, playAnimation } from '../animations/engine.js';
 
 /** Gradientes rápidos para cualquier campo de fondo. */
@@ -24,12 +24,32 @@ const GRADIENT_SWATCHES = [
   'radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)',
 ];
 
+/** Disparadores del sistema de lógica visual. */
+const EVENT_TRIGGERS = {
+  click: 'Al tocar / clic',
+  doubletap: 'Doble toque',
+  hold: 'Mantener presionado',
+  hover: 'Al pasar el cursor',
+  swipe: 'Al deslizar',
+  appear: 'Al aparecer en pantalla',
+};
+
+/** Acciones encadenables. targetKind decide el selector de destino. */
 const EVENT_ACTIONS = {
-  goToPage: 'Ir a página',
-  openUrl: 'Abrir URL',
-  toggleNode: 'Mostrar/ocultar elemento',
-  playAnimation: 'Ejecutar animación',
-  playSound: 'Reproducir sonido',
+  goToPage: { label: 'Ir a página', targetKind: 'page' },
+  showNode: { label: 'Mostrar elemento', targetKind: 'node' },
+  hideNode: { label: 'Ocultar elemento', targetKind: 'node' },
+  toggleNode: { label: 'Mostrar/ocultar elemento', targetKind: 'node' },
+  playAnimation: { label: 'Ejecutar animación de…', targetKind: 'node' },
+  playSound: { label: 'Reproducir sonido', targetKind: 'audio' },
+  stopSounds: { label: 'Detener sonidos', targetKind: 'none' },
+  setText: { label: 'Cambiar texto de…', targetKind: 'node', valueLabel: 'Nuevo texto' },
+  setStyle: { label: 'Cambiar estilo de…', targetKind: 'node', valueLabel: 'CSS (ej: background:#f43f5e;opacity:.5)' },
+  changeBackground: { label: 'Cambiar fondo de página', targetKind: 'none', valueLabel: 'Color o gradiente CSS' },
+  burstHearts: { label: 'Estallido de corazones', targetKind: 'none', valueLabel: 'Emoji (ej: 💖)' },
+  vibrate: { label: 'Vibrar (móvil)', targetKind: 'none', valueLabel: 'Milisegundos' },
+  openUrl: { label: 'Abrir URL', targetKind: 'none', valueLabel: 'https://…' },
+  runJS: { label: 'Ejecutar JavaScript', targetKind: 'none', valueLabel: 'código JS (recibe `el`)' },
 };
 
 export class PropertiesPanel {
@@ -66,7 +86,28 @@ export class PropertiesPanel {
       this.#check('Snap a cuadrícula', this.store.project.settings.grid.snap, (v) => {
         this.store.project.settings.grid.snap = v; this.store.commit();
       }),
-      el('p', { class: 'panel-hint', html: 'Selecciona un elemento del lienzo para editar sus propiedades.<br><br><b>Atajos:</b><br>Ctrl+Z / Ctrl+Y — deshacer/rehacer<br>Ctrl+C/V/D — copiar/pegar/duplicar<br>Supr — eliminar · Flechas — mover<br>Espacio+arrastrar — pan · Ctrl+rueda — zoom<br>Doble clic en texto — editar' }),
+      this.#section('Código personalizado global', [
+        el('p', { class: 'panel-hint', text: 'CSS y JavaScript propios que se aplican a TODO el sitio (editor, vista previa y export). Aquí puedes crear tus propias animaciones, fondos, partículas y efectos Canvas/WebGL.' }),
+        this.#field('CSS global', el('textarea', {
+          class: 'input code', rows: 5, text: this.store.project.custom?.css || '',
+          placeholder: '@keyframes miAnim { … }\n.mi-clase { … }',
+          onchange: (e) => {
+            this.store.snapshot();
+            this.store.project.custom.css = e.target.value;
+            this.store.commit();
+          },
+        })),
+        this.#field('JavaScript global (corre en vista previa y export)', el('textarea', {
+          class: 'input code', rows: 5, text: this.store.project.custom?.js || '',
+          placeholder: '// tu código…',
+          onchange: (e) => {
+            this.store.snapshot();
+            this.store.project.custom.js = e.target.value;
+            this.store.commit();
+          },
+        })),
+      ]),
+      el('p', { class: 'panel-hint', html: 'Selecciona un elemento del lienzo para editar sus propiedades.<br><br><b>Atajos:</b><br>Ctrl+Z / Ctrl+Y — deshacer/rehacer<br>Ctrl+C/V/D — copiar/pegar/duplicar<br>Ctrl+Shift+C/V — copiar/pegar estilo<br>Supr — eliminar · Flechas — mover<br>Espacio+arrastrar — pan · Ctrl+rueda — zoom<br>Doble clic en texto — editar' }),
     );
   }
 
@@ -140,16 +181,28 @@ export class PropertiesPanel {
       }),
     ]));
 
-    /* Eventos */
+    /* Efectos avanzados: parallax y profundidad 3D */
+    this.root.append(this.#section('Efectos avanzados', [
+      this.#field('Parallax al hacer scroll (-1 a 1)', el('input', {
+        class: 'input', type: 'number', min: -1, max: 1, step: 0.05, value: node.effects?.parallax ?? 0,
+        onchange: (e) => this.store.updateNode(node.id, 'effects', { parallax: +e.target.value }),
+      })),
+      this.#check('Tilt 3D (sigue el dedo/cursor con profundidad)', !!node.effects?.tilt,
+        (v) => this.store.updateNode(node.id, 'effects', { tilt: v })),
+      el('p', { class: 'panel-hint', text: 'Los efectos se ven en Vista previa y en el sitio exportado.' }),
+    ]));
+
+    /* Lógica visual: eventos con cadenas de acciones */
     const eventRows = (node.events || []).map((event, i) => this.#renderEventRow(node, event, i));
-    this.root.append(this.#section('Eventos', [
+    this.root.append(this.#section('Lógica e interacción', [
+      el('p', { class: 'panel-hint', text: 'Conecta este elemento con otros: un toque puede mostrar una foto, cambiar el fondo, sonar una canción y lanzar corazones — todo en cadena.' }),
       ...eventRows,
       el('button', {
         class: 'btn block', text: '+ Añadir evento',
         onclick: () => {
           this.store.snapshot();
           node.events ||= [];
-          node.events.push({ on: 'click', action: 'goToPage', target: this.store.project.pages[0].id });
+          node.events.push({ on: 'click', actions: [{ action: 'burstHearts', target: '', value: '💖', delay: 0 }] });
           this.store.commit();
         },
       }),
@@ -222,6 +275,11 @@ export class PropertiesPanel {
       }
       case 'select':
         return this.#field(field.label, this.#select(field.options, value, commit));
+      case 'font': {
+        // Fuentes del sistema + fuentes subidas por el usuario (assets)
+        const customFonts = this.assets.list({ kind: 'font' }).map((a) => this.assets.fontName(a));
+        return this.#field(field.label, this.#select([...FONTS, ...customFonts], value || 'system-ui', commit));
+      }
       case 'checkbox':
         return this.#check(field.label, !!value, commit);
       case 'asset': {
@@ -252,36 +310,65 @@ export class PropertiesPanel {
   }
 
   #renderEventRow(node, event, index) {
-    const update = (patch) => {
-      this.store.snapshot();
-      Object.assign(node.events[index], patch);
-      this.store.commit();
-    };
-    const targetControl = () => {
-      if (event.action === 'goToPage') {
-        return this.#select(this.store.project.pages.map((p) => p.id), event.target, (v) => update({ target: v }),
-          (id) => this.store.project.pages.find((p) => p.id === id)?.name || id);
-      }
-      if (event.action === 'openUrl') {
-        return el('input', { class: 'input', value: event.target || '', placeholder: 'https://…', onchange: (e) => update({ target: e.target.value }) });
-      }
-      if (event.action === 'toggleNode' || event.action === 'playAnimation') {
-        const nodes = this.store.pageNodes();
-        return this.#select(nodes.map((n) => n.id), event.target, (v) => update({ target: v }), (id) => this.store.node(id)?.name || id);
-      }
-      if (event.action === 'playSound') {
+    const commit = () => { this.store.commit(); };
+    const snap = () => { this.store.snapshot(); };
+
+    const actionRow = (action, ai) => {
+      const def = EVENT_ACTIONS[action.action] || EVENT_ACTIONS.burstHearts;
+      const controls = [
+        this.#select(Object.keys(EVENT_ACTIONS), action.action,
+          (v) => { snap(); action.action = v; action.target = ''; action.value = ''; commit(); },
+          (k) => EVENT_ACTIONS[k].label),
+      ];
+      if (def.targetKind === 'page') {
+        controls.push(this.#select(this.store.project.pages.map((p) => p.id), action.target,
+          (v) => { snap(); action.target = v; commit(); },
+          (id) => '→ ' + (this.store.project.pages.find((p) => p.id === id)?.name || id)));
+      } else if (def.targetKind === 'node') {
+        const nodes = this.store.pageNodes().filter((n) => n.id !== node.id);
+        controls.push(this.#select(['', ...nodes.map((n) => n.id)], action.target,
+          (v) => { snap(); action.target = v; commit(); },
+          (id) => id ? '→ ' + (this.store.node(id)?.name || id) : '→ este elemento'));
+      } else if (def.targetKind === 'audio') {
         const sounds = this.assets.list({ kind: 'audio' });
-        return this.#select(sounds.map((a) => a.id), event.target, (v) => update({ target: v }), (id) => this.assets.get(id)?.name || id);
+        controls.push(this.#select(sounds.map((a) => a.id), action.target,
+          (v) => { snap(); action.target = v; commit(); },
+          (id) => '♫ ' + (this.assets.get(id)?.name || id)));
       }
-      return el('span');
+      if (def.valueLabel) {
+        controls.push(el(action.action === 'runJS' ? 'textarea' : 'input', {
+          class: 'input', rows: 3, placeholder: def.valueLabel,
+          value: action.action === 'runJS' ? null : (action.value || ''),
+          text: action.action === 'runJS' ? (action.value || '') : null,
+          onchange: (e) => { snap(); action.value = e.target.value; commit(); },
+        }));
+      }
+      controls.push(el('div', { class: 'action-foot' }, [
+        el('label', {}, ['retardo ms ', el('input', {
+          class: 'input mini', type: 'number', min: 0, step: 100, value: action.delay || 0,
+          onchange: (e) => { snap(); action.delay = +e.target.value; commit(); },
+        })]),
+        el('button', {
+          class: 'btn danger', text: '×', title: 'Quitar acción',
+          onclick: () => { snap(); event.actions.splice(ai, 1); commit(); },
+        }),
+      ]));
+      return el('div', { class: 'action-row' }, controls);
     };
-    return el('div', { class: 'event-row' }, [
-      this.#select(['click', 'hover'], event.on, (v) => update({ on: v })),
-      this.#select(Object.keys(EVENT_ACTIONS), event.action, (v) => update({ action: v, target: '' }), (k) => EVENT_ACTIONS[k]),
-      targetControl(),
+
+    return el('div', { class: 'event-block' }, [
+      el('div', { class: 'event-head' }, [
+        this.#select(Object.keys(EVENT_TRIGGERS), event.on,
+          (v) => { snap(); event.on = v; commit(); }, (k) => EVENT_TRIGGERS[k]),
+        el('button', {
+          class: 'btn danger', text: '× Evento',
+          onclick: () => { snap(); node.events.splice(index, 1); commit(); },
+        }),
+      ]),
+      ...(event.actions || []).map(actionRow),
       el('button', {
-        class: 'btn danger', text: '×',
-        onclick: () => { this.store.snapshot(); node.events.splice(index, 1); this.store.commit(); },
+        class: 'btn block', text: '+ Encadenar acción',
+        onclick: () => { snap(); event.actions.push({ action: 'playSound', target: '', value: '', delay: 200 }); commit(); },
       }),
     ]);
   }
