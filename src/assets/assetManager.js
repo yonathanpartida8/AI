@@ -1,0 +1,142 @@
+/* ============================================================
+ * assets/assetManager.js — Gestor de Assets Multimedia
+ *
+ * Sube archivos desde la galería del móvil, el disco o por
+ * drag-and-drop directo sobre la app. Cada asset se guarda como:
+ *
+ *   { id, name, kind, mime, size, folder, tags[], data(dataURL), created }
+ *
+ * - kind: image | gif | video | audio | model | font | svg
+ * - data (dataURL) se persiste en IndexedDB → sobrevive recargas
+ *   y se decodifica a bytes en el exportador ZIP.
+ * - En memoria mantenemos un Map id→asset para lookups síncronos
+ *   del renderer.
+ * ============================================================ */
+
+import { EventBus, uid, fileToDataURL } from '../utils/helpers.js';
+import { DB } from '../storage/db.js';
+
+export const ASSET_KINDS = {
+  image: { label: 'Imágenes', folder: 'images', icon: '🖼' },
+  gif: { label: 'GIFs', folder: 'gifs', icon: '🎞' },
+  video: { label: 'Vídeos', folder: 'videos', icon: '🎬' },
+  audio: { label: 'Audio', folder: 'audio', icon: '🎧' },
+  model: { label: 'Modelos 3D', folder: 'models', icon: '⬡' },
+  font: { label: 'Fuentes', folder: 'fonts', icon: '🔤' },
+  svg: { label: 'SVG', folder: 'images', icon: '✒' },
+};
+
+export function kindOfFile(file) {
+  const name = file.name.toLowerCase();
+  if (file.type === 'image/gif') return 'gif';
+  if (file.type === 'image/svg+xml' || name.endsWith('.svg')) return 'svg';
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('video/')) return 'video';
+  if (file.type.startsWith('audio/')) return 'audio';
+  if (/\.(glb|gltf)$/.test(name)) return 'model';
+  if (/\.(woff2?|ttf|otf)$/.test(name)) return 'font';
+  return 'image';
+}
+
+export const ACCEPT_ATTR = [
+  'image/*', 'video/*', 'audio/*',
+  '.gif', '.svg', '.glb', '.gltf', '.woff', '.woff2', '.ttf', '.otf',
+].join(',');
+
+export class AssetManager extends EventBus {
+  #byId = new Map();
+
+  constructor(store) {
+    super();
+    this.store = store; // sincroniza metadatos en project.assets
+  }
+
+  async init() {
+    const rows = await DB.getAllAssets().catch(() => []);
+    for (const asset of rows || []) this.#byId.set(asset.id, asset);
+    // Reconstruye metadatos en el proyecto si faltan
+    this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
+  }
+
+  list({ kind = null, query = '', folder = null } = {}) {
+    let all = [...this.#byId.values()];
+    if (kind) all = all.filter((a) => a.kind === kind || (kind === 'image' && a.kind === 'svg'));
+    if (folder) all = all.filter((a) => a.folder === folder);
+    if (query) {
+      const q = query.toLowerCase();
+      all = all.filter((a) => a.name.toLowerCase().includes(q) || (a.tags || []).some((t) => t.includes(q)));
+    }
+    return all.sort((a, b) => b.created - a.created);
+  }
+
+  get(id) { return this.#byId.get(id) || null; }
+
+  /** URL utilizable en src/href dentro del editor. */
+  url(id) { return this.#byId.get(id)?.data || ''; }
+
+  folders() { return [...new Set([...this.#byId.values()].map((a) => a.folder))].sort(); }
+
+  /** Importa una lista de File (input file / drop de la galería). */
+  async importFiles(files, { folder } = {}) {
+    const imported = [];
+    for (const file of files) {
+      const kind = kindOfFile(file);
+      const asset = {
+        id: uid('as'),
+        name: file.name,
+        kind,
+        mime: file.type || 'application/octet-stream',
+        size: file.size,
+        folder: folder || ASSET_KINDS[kind].folder,
+        tags: [],
+        created: Date.now(),
+        data: await fileToDataURL(file),
+      };
+      this.#byId.set(asset.id, asset);
+      await DB.putAsset(asset).catch(console.warn);
+      imported.push(asset);
+    }
+    this.#syncProject();
+    this.emit('change');
+    return imported;
+  }
+
+  /** Crea un asset desde un dataURL ya generado (p.ej. Canvas Draw). */
+  async addDataURL(name, dataURL, kind = 'image') {
+    const asset = {
+      id: uid('as'), name, kind, mime: dataURL.slice(5, dataURL.indexOf(';')),
+      size: Math.round(dataURL.length * 0.75), folder: ASSET_KINDS[kind].folder,
+      tags: ['dibujo'], created: Date.now(), data: dataURL,
+    };
+    this.#byId.set(asset.id, asset);
+    await DB.putAsset(asset).catch(console.warn);
+    this.#syncProject();
+    this.emit('change');
+    return asset;
+  }
+
+  async remove(id) {
+    this.#byId.delete(id);
+    await DB.deleteAsset(id).catch(console.warn);
+    this.#syncProject();
+    this.emit('change');
+  }
+
+  async setTags(id, tags) {
+    const asset = this.#byId.get(id);
+    if (!asset) return;
+    asset.tags = tags;
+    await DB.putAsset(asset).catch(console.warn);
+    this.#syncProject();
+    this.emit('change');
+  }
+
+  #syncProject() {
+    this.store.project.assets = [...this.#byId.values()].map(({ data, ...meta }) => meta);
+  }
+
+  /** Tipo de componente sugerido al soltar un asset en el lienzo. */
+  componentForAsset(asset) {
+    return { image: 'image', svg: 'image', gif: 'gif', video: 'video', audio: 'musicPlayer', model: 'model3d', font: null }[asset.kind];
+  }
+}

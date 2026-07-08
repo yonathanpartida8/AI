@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>No-Code Website Builder</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/editor.css">
+  <!-- Three.js con carga perezosa: solo se descarga si el proyecto usa componentes 3D -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header id="topbar"></header>
+  <div id="draw-toolbar-slot"></div>
+
+  <div id="workspace">
+    <aside id="left-panel"></aside>
+
+    <main id="stage-area">
+      <div id="ruler-corner"></div>
+      <div id="ruler-h-wrap"><canvas id="ruler-h"></canvas></div>
+      <div id="ruler-v-wrap"><canvas id="ruler-v"></canvas></div>
+      <div id="viewport">
+        <div id="world">
+          <div id="artboard"></div>
+          <svg id="guides"></svg>
+          <canvas id="draw-layer"></canvas>
+          <div id="overlay"></div>
+        </div>
+      </div>
+    </main>
+
+    <aside id="right-panel"></aside>
+  </div>
+
+  <script type="module" src="src/editor/main.js"></script>
+</body>
+</html>

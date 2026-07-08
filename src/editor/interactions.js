@@ -1,0 +1,347 @@
+/* ============================================================
+ * editor/interactions.js — Drag, resize, rotación, selección
+ *
+ * Todo se implementa con POINTER EVENTS → un solo código para
+ * ratón, táctil y stylus. setPointerCapture garantiza que el
+ * gesto no se pierde al salir del elemento.
+ *
+ * Gestos:
+ *  - click / tap            → seleccionar (Shift = múltiple)
+ *  - arrastrar nodo         → mover con snap a guías y rejilla
+ *  - tiradores (8)          → redimensionar
+ *  - tirador superior       → rotar (Shift = pasos de 15°)
+ *  - arrastrar lienzo vacío → selección por marco (marquee)
+ *  - rueda                  → pan · Ctrl+rueda → zoom al cursor
+ *  - espacio / botón medio  → pan temporal
+ *  - pinch (2 dedos)        → zoom táctil
+ *  - doble clic en texto    → edición inline
+ * ============================================================ */
+
+import { clamp, throttleRAF } from '../utils/helpers.js';
+import { syncNodeEl } from '../renderer/renderer.js';
+
+const SNAP_THRESHOLD = 6;
+
+export class Interactions {
+  constructor(store, view) {
+    this.store = store;
+    this.view = view;
+    this.gesture = null;      // estado del gesto activo
+    this.pointers = new Map(); // multi-touch (pinch)
+    this.updateOverlay = throttleRAF(() => this.#renderOverlay());
+
+    const vp = view.viewport;
+    vp.addEventListener('pointerdown', (e) => this.#onDown(e));
+    vp.addEventListener('pointermove', (e) => this.#onMove(e));
+    vp.addEventListener('pointerup', (e) => this.#onUp(e));
+    vp.addEventListener('pointercancel', (e) => this.#onUp(e));
+    vp.addEventListener('wheel', (e) => this.#onWheel(e), { passive: false });
+    vp.addEventListener('dblclick', (e) => this.#onDblClick(e));
+
+    store.on('selection', () => this.updateOverlay());
+    store.on('change', () => this.updateOverlay());
+    store.on('view', () => this.updateOverlay());
+
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.repeat && !this.#isTyping(e)) { this.spaceDown = true; vp.classList.add('panning'); } });
+    window.addEventListener('keyup', (e) => { if (e.code === 'Space') { this.spaceDown = false; vp.classList.remove('panning'); } });
+  }
+
+  #isTyping(e) { return /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable; }
+
+  /* ── Inicio de gesto ───────────────────────────────── */
+
+  #onDown(e) {
+    if (this.store.tool === 'draw') return; // lo gestiona DrawTool
+    this.view.viewport.setPointerCapture(e.pointerId);
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Pinch: dos punteros activos → gesto de zoom táctil
+    if (this.pointers.size === 2) {
+      const [a, b] = [...this.pointers.values()];
+      this.gesture = { kind: 'pinch', startDist: Math.hypot(a.x - b.x, a.y - b.y), startZoom: this.store.zoom };
+      return;
+    }
+
+    // Pan: espacio, botón medio o herramienta mano
+    if (this.spaceDown || e.button === 1 || this.store.tool === 'pan') {
+      this.gesture = { kind: 'pan', startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
+      return;
+    }
+    if (e.button !== 0) return;
+
+    const handle = e.target.closest('[data-handle]');
+    if (handle) { this.#startHandle(e, handle.dataset.handle); return; }
+
+    const nodeEl = e.target.closest('.wb-node');
+    if (nodeEl) {
+      const id = nodeEl.dataset.id;
+      const node = this.store.node(id);
+      if (!this.store.selection.includes(id)) this.store.select(id, e.shiftKey);
+      else if (e.shiftKey) { this.store.select(this.store.selection.filter((s) => s !== id)); return; }
+      if (node.locked) return;
+      this.#startMove(e);
+      return;
+    }
+
+    // Lienzo vacío → marquee
+    if (e.target.closest('#artboard') || e.target === this.view.viewport || e.target.closest('#world')) {
+      if (!e.shiftKey) this.store.clearSelection();
+      const point = this.view.toArtboard(e.clientX, e.clientY);
+      this.gesture = { kind: 'marquee', x0: point.x, y0: point.y, additive: e.shiftKey };
+    }
+  }
+
+  #startMove(e) {
+    this.store.snapshot();
+    const nodes = this.store.selectedNodes.filter((n) => !n.locked);
+    this.gesture = {
+      kind: 'move',
+      start: this.view.toArtboard(e.clientX, e.clientY),
+      frames: new Map(nodes.map((n) => [n.id, this.store.frame(n)])),
+      moved: false,
+    };
+  }
+
+  #startHandle(e, handle) {
+    const node = this.store.selectedNodes[0];
+    if (!node || node.locked) return;
+    this.store.snapshot();
+    const frame = this.store.frame(node);
+    if (handle === 'rotate') {
+      const elem = this.#nodeEl(node.id);
+      const rect = elem.getBoundingClientRect();
+      this.gesture = {
+        kind: 'rotate', node,
+        cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2,
+        startRotation: frame.rotation || 0,
+        startAngle: Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2)),
+      };
+    } else {
+      this.gesture = { kind: 'resize', node, handle, start: this.view.toArtboard(e.clientX, e.clientY), frame };
+    }
+  }
+
+  /* ── Movimiento ────────────────────────────────────── */
+
+  #onMove(e) {
+    if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = this.gesture;
+    if (!g) return;
+
+    if (g.kind === 'pinch' && this.pointers.size === 2) {
+      const [a, b] = [...this.pointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      this.view.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, (g.startZoom * (dist / g.startDist)) / this.store.zoom);
+      return;
+    }
+
+    if (g.kind === 'pan') {
+      this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
+      return;
+    }
+
+    if (g.kind === 'marquee') {
+      const point = this.view.toArtboard(e.clientX, e.clientY);
+      g.x1 = point.x; g.y1 = point.y;
+      this.#renderMarquee(g);
+      return;
+    }
+
+    if (g.kind === 'move') {
+      const point = this.view.toArtboard(e.clientX, e.clientY);
+      let dx = point.x - g.start.x, dy = point.y - g.start.y;
+      if (Math.abs(dx) + Math.abs(dy) > 1) g.moved = true;
+
+      // Snap del primer nodo; el delta corregido se aplica a todos
+      const first = this.store.node([...g.frames.keys()][0]);
+      if (first && !e.altKey) {
+        const f0 = g.frames.get(first.id);
+        const snapped = this.#snap(f0.x + dx, f0.y + dy, f0.w, f0.h, [...g.frames.keys()]);
+        dx += snapped.dx; dy += snapped.dy;
+        this.view.showGuides(snapped.lines);
+      }
+      for (const [id, f0] of g.frames) {
+        const node = this.store.node(id);
+        this.store.setFrame(node, { x: Math.round(f0.x + dx), y: Math.round(f0.y + dy) });
+        const elem = this.#nodeEl(id);
+        if (elem) syncNodeEl(elem, node, this.store);
+      }
+      this.updateOverlay();
+      return;
+    }
+
+    if (g.kind === 'resize') {
+      const point = this.view.toArtboard(e.clientX, e.clientY);
+      const dx = point.x - g.start.x, dy = point.y - g.start.y;
+      const f = { ...g.frame };
+      const h = g.handle;
+      if (h.includes('e')) f.w = Math.max(16, g.frame.w + dx);
+      if (h.includes('s')) f.h = Math.max(16, g.frame.h + dy);
+      if (h.includes('w')) { f.w = Math.max(16, g.frame.w - dx); f.x = g.frame.x + g.frame.w - f.w; }
+      if (h.includes('n')) { f.h = Math.max(16, g.frame.h - dy); f.y = g.frame.y + g.frame.h - f.h; }
+      if (e.shiftKey && g.frame.w && g.frame.h) { // proporción bloqueada
+        const ratio = g.frame.w / g.frame.h;
+        if (h.includes('e') || h.includes('w')) f.h = f.w / ratio; else f.w = f.h * ratio;
+      }
+      this.store.setFrame(g.node, { x: Math.round(f.x), y: Math.round(f.y), w: Math.round(f.w), h: Math.round(f.h) });
+      const elem = this.#nodeEl(g.node.id);
+      if (elem) syncNodeEl(elem, g.node, this.store);
+      this.updateOverlay();
+      return;
+    }
+
+    if (g.kind === 'rotate') {
+      const angle = Math.atan2(e.clientY - g.cy, e.clientX - g.cx);
+      let deg = g.startRotation + ((angle - g.startAngle) * 180) / Math.PI;
+      if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+      this.store.setFrame(g.node, { rotation: Math.round(deg) });
+      const elem = this.#nodeEl(g.node.id);
+      if (elem) syncNodeEl(elem, g.node, this.store);
+      this.updateOverlay();
+    }
+  }
+
+  /* ── Fin de gesto ──────────────────────────────────── */
+
+  #onUp(e) {
+    this.pointers.delete(e.pointerId);
+    const g = this.gesture;
+    if (!g) return;
+    if (g.kind === 'pinch' && this.pointers.size > 0) return;
+    this.gesture = null;
+    this.view.clearGuides();
+    document.getElementById('marquee')?.remove();
+
+    if (g.kind === 'marquee' && g.x1 != null) {
+      const [x0, x1] = [Math.min(g.x0, g.x1), Math.max(g.x0, g.x1)];
+      const [y0, y1] = [Math.min(g.y0, g.y1), Math.max(g.y0, g.y1)];
+      const hits = this.store.pageNodes().filter((n) => {
+        const f = this.store.frame(n);
+        return f.x < x1 && f.x + f.w > x0 && f.y < y1 && f.y + f.h > y0;
+      }).map((n) => n.id);
+      if (hits.length) this.store.select(hits, g.additive);
+    }
+    if ((g.kind === 'move' && g.moved) || g.kind === 'resize' || g.kind === 'rotate') this.store.commit();
+  }
+
+  #onWheel(e) {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) this.view.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.1 : 0.9);
+    else this.store.setView(null, { x: this.store.pan.x - e.deltaX, y: this.store.pan.y - e.deltaY });
+  }
+
+  /* ── Edición inline de texto ───────────────────────── */
+
+  #onDblClick(e) {
+    const nodeEl = e.target.closest('.wb-node');
+    if (!nodeEl) return;
+    const node = this.store.node(nodeEl.dataset.id);
+    if (!node || node.locked || !['text', 'button'].includes(node.type)) return;
+    const target = nodeEl.querySelector('.wb-text, .wb-btn') || nodeEl;
+    target.contentEditable = 'plaintext-only';
+    target.focus();
+    document.getSelection()?.selectAllChildren(target);
+    const finish = () => {
+      target.contentEditable = 'false';
+      this.store.snapshot();
+      this.store.updateNode(node.id, 'props', { text: target.innerText.trim() });
+    };
+    target.addEventListener('blur', finish, { once: true });
+    target.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') target.blur(); ev.stopPropagation(); });
+  }
+
+  /* ── Snap a guías y rejilla ────────────────────────── */
+
+  #snap(x, y, w, h, excludeIds) {
+    const lines = [];
+    let dx = 0, dy = 0;
+    const threshold = SNAP_THRESHOLD / this.store.zoom;
+    const width = this.store.project.settings.breakpoints[this.store.device];
+    const height = this.store.page.height;
+
+    const candidatesV = [0, width / 2, width];
+    const candidatesH = [0, height / 2, height];
+    for (const other of this.store.pageNodes()) {
+      if (excludeIds.includes(other.id) || other.hidden) continue;
+      const f = this.store.frame(other);
+      candidatesV.push(f.x, f.x + f.w / 2, f.x + f.w);
+      candidatesH.push(f.y, f.y + f.h / 2, f.y + f.h);
+    }
+    const edgesV = [x, x + w / 2, x + w];
+    const edgesH = [y, y + h / 2, y + h];
+
+    outer_v:
+    for (const candidate of candidatesV) {
+      for (const edge of edgesV) {
+        if (Math.abs(edge - candidate) < threshold) { dx = candidate - edge; lines.push({ axis: 'v', pos: candidate }); break outer_v; }
+      }
+    }
+    outer_h:
+    for (const candidate of candidatesH) {
+      for (const edge of edgesH) {
+        if (Math.abs(edge - candidate) < threshold) { dy = candidate - edge; lines.push({ axis: 'h', pos: candidate }); break outer_h; }
+      }
+    }
+
+    // Snap a rejilla si no hubo guía
+    const grid = this.store.project.settings.grid;
+    if (grid.snap) {
+      if (!dx) dx = Math.round((x + dx) / grid.size) * grid.size - x;
+      if (!dy) dy = Math.round((y + dy) / grid.size) * grid.size - y;
+    }
+    return { dx, dy, lines };
+  }
+
+  /* ── Overlay de selección ──────────────────────────── */
+
+  #nodeEl(id) { return this.view.artboard.querySelector(`[data-id="${id}"]`); }
+
+  #renderMarquee(g) {
+    let box = document.getElementById('marquee');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'marquee';
+      this.view.overlay.append(box);
+    }
+    box.style.left = `${Math.min(g.x0, g.x1)}px`;
+    box.style.top = `${Math.min(g.y0, g.y1)}px`;
+    box.style.width = `${Math.abs(g.x1 - g.x0)}px`;
+    box.style.height = `${Math.abs(g.y1 - g.y0)}px`;
+  }
+
+  #renderOverlay() {
+    const overlay = this.view.overlay;
+    const marquee = document.getElementById('marquee');
+    overlay.innerHTML = '';
+    if (marquee) overlay.append(marquee);
+    const selected = this.store.selectedNodes;
+    const single = selected.length === 1;
+
+    for (const node of selected) {
+      const f = this.store.frame(node);
+      const box = document.createElement('div');
+      box.className = `sel-box${node.locked ? ' locked' : ''}`;
+      Object.assign(box.style, {
+        left: `${f.x}px`, top: `${f.y}px`, width: `${f.w}px`, height: `${f.h}px`,
+        transform: `rotate(${f.rotation || 0}deg)`,
+      });
+      if (single && !node.locked) {
+        for (const h of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
+          const handle = document.createElement('div');
+          handle.className = `handle h-${h}`;
+          handle.dataset.handle = h;
+          box.append(handle);
+        }
+        const rot = document.createElement('div');
+        rot.className = 'handle h-rotate';
+        rot.dataset.handle = 'rotate';
+        box.append(rot);
+        const label = document.createElement('div');
+        label.className = 'sel-label';
+        label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
+        box.append(label);
+      }
+      overlay.append(box);
+    }
+  }
+}

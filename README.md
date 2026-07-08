@@ -1,0 +1,67 @@
+# ◆ No-Code Website Builder
+
+Constructor visual de sitios web profesional: diseña páginas completas con
+drag-and-drop, personaliza cada elemento, anima, dibuja, integra 3D y **exporta
+un sitio HTML/CSS/JS real en un ZIP** — sin escribir código.
+
+Vanilla JS (ES Modules), sin build, sin dependencias en el editor.
+Three.js se carga bajo demanda desde CDN solo si usas componentes 3D.
+
+## Ejecutar
+
+```bash
+# cualquier servidor estático vale:
+npx serve .
+# o
+python3 -m http.server 8080
+```
+
+Abre `http://localhost:8080` — el editor carga con un proyecto en blanco.
+
+> Se necesita un servidor (no `file://`) porque el editor usa ES Modules.
+
+## Qué puedes hacer
+
+- **Diseñar**: arrastra 18 tipos de componentes (texto, botones, imágenes, GIFs,
+  vídeos, galerías, sliders, formularios, menús, reproductores, formas,
+  modelos 3D, partículas WebGL2…). Mueve, redimensiona, rota, alinea con guías
+  inteligentes, snap, rejilla, reglas, zoom y pan.
+- **Tu galería**: sube imágenes/GIFs/vídeos/audio/modelos GLB desde el móvil o
+  el PC (botón *Subir* o soltando archivos directamente sobre el lienzo).
+- **Multipágina**: páginas ilimitadas, duplicar, ordenar, transiciones de
+  entrada (fade/slide/zoom/blur) y menú de navegación automático.
+- **Responsive**: modos Escritorio/Tablet/Móvil con overrides por dispositivo.
+- **Animar**: 15 presets (fadeInUp, zoomIn, bounce, float…) con duración, delay,
+  loop, curvas y triggers (cargar / scroll / clic / hover) + eventos
+  (ir a página, abrir URL, mostrar/ocultar, reproducir sonido…).
+- **Dibujar**: pincel con presión de stylus, opacidad, borrador — y convierte el
+  trazo en un componente editable.
+- **Exportar**: botón *Exportar sitio (.zip)* genera `index.html`, `paginas/`,
+  `css/`, `js/`, `assets/` — listo para Netlify, Vercel o GitHub Pages.
+
+Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). También
+puedes descargar/importar el proyecto como `.json`.
+
+## Atajos
+
+| | |
+|---|---|
+| Ctrl+Z / Ctrl+Y | deshacer / rehacer |
+| Ctrl+C / V / D | copiar / pegar / duplicar |
+| Supr | eliminar · Flechas: mover (Shift ×10) |
+| Ctrl+rueda | zoom al cursor · rueda: pan |
+| Espacio + arrastrar | pan · doble clic en texto: editar |
+| Shift al rotar/escalar | pasos de 15° / proporción fija |
+
+## Arquitectura
+
+Documentación técnica completa (modelo JSON, motores, decisiones de
+escalabilidad y rendimiento) en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+
+```
+Editor visual → ProjectStore (JSON = fuente de verdad) → Renderer
+                     ├─ Motor de animaciones (WAAPI ↔ CSS)
+                     ├─ Motor WebGL (WebGL2 nativo + Three.js lazy)
+                     ├─ Asset Manager (IndexedDB)
+                     └─ Exportador (JSON → sitio estático + ZIP)
+```
