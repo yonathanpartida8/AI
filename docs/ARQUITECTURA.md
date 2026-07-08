@@ -234,9 +234,16 @@ ejecutados por el runtime `app.js`.
 - **Edición no destructiva**: en modo tablet/móvil, mover o redimensionar escribe
   solo el *override* de ese breakpoint (`node.responsive.tablet = {x, w}`), nunca
   la base. Botón "quitar override" para volver a heredar.
-- En el export: media queries generadas por breakpoint + **escala proporcional
-  del stage** (`transform: scale(vw/designW)`) para todos los anchos intermedios
-  y ambas orientaciones → el diseño nunca se rompe entre breakpoints.
+- En el export, la regla de oro es **no romper nunca el diseño**: si el
+  usuario no creó overrides, NO se emiten media queries — el stage conserva
+  el ancho de diseño y se **escala proporcionalmente**
+  (`transform: scale(vw/designW)`) a cualquier pantalla y orientación, por lo
+  que el sitio se ve idéntico a lo diseñado en todo dispositivo. Las media
+  queries por breakpoint solo se generan cuando existen overrides reales.
+- El **editor** también es móvil: bajo 820 px los paneles se convierten en
+  hojas deslizantes inferiores controladas por una barra táctil
+  (`#mobile-nav`), las reglas se ocultan, los tiradores crecen con
+  `@media (pointer: coarse)` y el ajuste de zoom es "fit width".
 - Breakpoints personalizados = editar dos números del JSON; la cascada y el
   generador de media queries ya los leen de ahí.
 
@@ -244,7 +251,17 @@ ejecutados por el runtime `app.js`.
 
 ## FASE 9 — Exportador ZIP
 
-`src/exporter/exporter.js` compila el JSON a un sitio estático real:
+`src/exporter/exporter.js` compila el JSON a un sitio estático real en dos
+formatos:
+
+**A) Un solo archivo HTML** (`exportSingle()`): todas las páginas como
+secciones con navegación interna (SPA), estilos/scripts inline y multimedia
+como dataURL. Autocontenido al 100 %: se abre directamente en un móvil y se
+ve exactamente como el diseño original.
+
+**B) ZIP de carpeta de proyecto** (`export()`), con CSS y JS **incrustados en
+cada página** (un HTML suelto nunca aparece sin estilos) y la multimedia como
+archivos reales:
 
 ```
 MiProyecto/

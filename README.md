@@ -37,14 +37,28 @@ npm run dev       # sirve dev.html en http://localhost:8080
   el PC (botón *Subir* o soltando archivos directamente sobre el lienzo).
 - **Multipágina**: páginas ilimitadas, duplicar, ordenar, transiciones de
   entrada (fade/slide/zoom/blur) y menú de navegación automático.
-- **Responsive**: modos Escritorio/Tablet/Móvil con overrides por dispositivo.
+- **Responsive**: por defecto tu diseño se escala proporcionalmente a
+  cualquier pantalla (se ve exacto en cualquier móvil); si quieres layouts
+  distintos por dispositivo, usa los modos Escritorio/Tablet/Móvil.
+- **Editor móvil**: en Android/iOS los paneles son hojas deslizantes con una
+  barra inferior táctil (Piezas · Assets · Páginas · Capas · Diseño).
 - **Animar**: 15 presets (fadeInUp, zoomIn, bounce, float…) con duración, delay,
   loop, curvas y triggers (cargar / scroll / clic / hover) + eventos
   (ir a página, abrir URL, mostrar/ocultar, reproducir sonido…).
 - **Dibujar**: pincel con presión de stylus, opacidad, borrador — y convierte el
   trazo en un componente editable.
-- **Exportar**: botón *Exportar sitio (.zip)* genera `index.html`, `paginas/`,
-  `css/`, `js/`, `assets/` — listo para Netlify, Vercel o GitHub Pages.
+- **Exportar** (2 formatos):
+  - **📱 HTML (1 archivo)**: todo el sitio —páginas, estilos, animaciones,
+    GIFs, vídeos y audio— en un único archivo autocontenido. Ábrelo
+    directamente en el móvil o compártelo por WhatsApp/correo: se ve
+    exactamente como lo diseñaste.
+  - **⬇ Sitio (.zip)**: carpeta de proyecto con `index.html`, `paginas/` y
+    `assets/{gifs,images,videos,…}` para subir a Netlify, Vercel o GitHub
+    Pages. Cada página lleva CSS y JS incrustados: nunca se ve "en blanco".
+- **Herramientas rápidas**: alinear a la página, traer al frente / enviar al
+  fondo, copiar/pegar estilo (Ctrl+Shift+C/V), gradientes de un toque,
+  interlineado, y 10 bloques prediseñados (héroe, precios, equipo, FAQ,
+  contacto…).
 
 Todo se **autoguarda** en tu navegador (localStorage + IndexedDB). Además:
 

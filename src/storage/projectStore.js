@@ -274,6 +274,42 @@ export class ProjectStore extends EventBus {
     return ids;
   }
 
+  /** Lleva el nodo al frente (encima de todo) o al fondo. */
+  bringToFront(id) {
+    const nodes = this.page.nodes;
+    const i = nodes.indexOf(id);
+    if (i < 0 || i === nodes.length - 1) return;
+    this.snapshot();
+    nodes.splice(i, 1); nodes.push(id);
+    this.commit();
+  }
+
+  sendToBack(id) {
+    const nodes = this.page.nodes;
+    const i = nodes.indexOf(id);
+    if (i <= 0) return;
+    this.snapshot();
+    nodes.splice(i, 1); nodes.unshift(id);
+    this.commit();
+  }
+
+  /** Copia estilos + animación de un nodo y los aplica a otros. */
+  copyStyle() {
+    const node = this.selectedNodes[0];
+    if (!node) return;
+    this.styleClipboard = deepClone({ styles: node.styles, animation: node.animation });
+  }
+
+  pasteStyle() {
+    if (!this.styleClipboard || !this.selection.length) return;
+    this.snapshot();
+    for (const node of this.selectedNodes) {
+      Object.assign(node.styles, deepClone(this.styleClipboard.styles));
+      node.animation = deepClone(this.styleClipboard.animation);
+    }
+    this.commit();
+  }
+
   /** Reordena capa dentro de la página: dir = +1 (subir) / -1 (bajar) */
   moveLayer(id, dir) {
     const nodes = this.page.nodes;

@@ -18,7 +18,8 @@ export class DrawTool {
     this.assets = assets;
     this.view = view;
     this.canvas = view.drawLayer;
-    this.ctx = this.canvas.getContext('2d');
+    // desynchronized: menor latencia de trazo con stylus en pantallas 90-165 Hz
+    this.ctx = this.canvas.getContext('2d', { desynchronized: true, willReadFrequently: true });
     this.brush = { size: 8, color: '#f472b6', opacity: 1, eraser: false };
     this.strokes = []; // snapshots de ImageData → undo de trazos
     this.drawing = false;

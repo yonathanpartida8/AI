@@ -241,6 +241,7 @@ button { font: inherit; color: inherit; }
 
 #viewport {
   position: relative; overflow: hidden; touch-action: none;
+  grid-row: 2; grid-column: 2; /* posición explícita: no depende de las reglas */
   background:
     radial-gradient(circle at 20% 10%, rgba(99,102,241,.06), transparent 45%),
     var(--bg);
@@ -381,6 +382,84 @@ body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button { pointer-events: auto; cursor: pointer; }
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
+
+/* ── Swatches de gradientes ─────────────────────────── */
+
+.swatch-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.swatch {
+  width: 26px; height: 26px; border: 1px solid var(--border);
+  border-radius: 7px; cursor: pointer; padding: 0;
+}
+.swatch:hover { border-color: #fff; transform: scale(1.12); }
+
+/* ── Barra de navegación móvil ──────────────────────── */
+
+#mobile-nav {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; height: 58px;
+  background: var(--panel); border-top: 1px solid var(--border);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+#mobile-nav button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; background: none; border: none; color: var(--text-dim); cursor: pointer;
+}
+#mobile-nav button.active { color: var(--accent-2); }
+#mobile-nav .mn-icon { font-size: 19px; line-height: 1; }
+#mobile-nav .mn-label { font-size: 10px; }
+
+/* ── Rediseño MÓVIL (Android / iOS) ─────────────────── */
+
+@media (max-width: 820px) {
+  /* Los paneles se convierten en hojas deslizantes inferiores:
+     el lienzo ocupa TODA la pantalla y el zoom de ajuste es correcto. */
+  #left-panel, #right-panel {
+    position: fixed; left: 0; right: 0; bottom: 58px; top: auto;
+    width: 100%; max-height: 56vh;
+    border: none; border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -14px 44px rgba(0, 0, 0, .55);
+    transform: translateY(115%);
+    transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+    z-index: 90;
+    padding-bottom: 10px;
+  }
+  #left-panel.open, #right-panel.open { transform: none; }
+
+  #mobile-nav { display: flex; }
+
+  /* Sin reglas en pantallas pequeñas: más lienzo */
+  #stage-area { grid-template: 0 1fr / 0 1fr; }
+  #ruler-corner, #ruler-h-wrap, #ruler-v-wrap { display: none; }
+
+  #workspace { padding-bottom: 58px; }
+
+  /* Topbar compacta, desplazable y con objetivos táctiles amplios */
+  #topbar { height: 52px; gap: 5px; }
+  .btn, .seg-btn { padding: 9px 11px; min-height: 38px; }
+  .brand { font-size: 13px; }
+
+  /* Controles más grandes en paneles */
+  .input, select.input { min-height: 40px; font-size: 14px; }
+  .tab-btn { padding: 13px 4px; }
+  .palette-item { padding: 15px 6px; }
+  .block-item { padding: 13px 12px; }
+  .page-actions button, .layer-actions button { width: 28px; height: 28px; font-size: 13px; }
+
+  body.preview #mobile-nav { display: none; }
+  body.preview #workspace { padding-bottom: 0; }
+}
+
+/* Tiradores grandes en cualquier pantalla táctil (dedo ≈ 40px) */
+@media (pointer: coarse) {
+  .handle {
+    width: 18px; height: 18px; border-radius: 6px;
+    border-width: 2px;
+  }
+  .h-rotate { top: -34px; border-radius: 50%; }
+  .sel-label { margin-bottom: 40px; }
+}
 
 /* ── Scrollbars ─────────────────────────────────────── */
 
@@ -550,7 +629,8 @@ body.preview .wb-placeholder { opacity: .25; }
     select("styles.fontWeight", "Peso", ["300", "400", "600", "700", "900"]),
     color("styles.color", "Color de texto"),
     select("styles.textAlign", "Alineaci\xF3n", ["left", "center", "right"]),
-    num("styles.letterSpacing", "Espaciado letras", -5, 30, 0.5)
+    num("styles.letterSpacing", "Espaciado letras", -5, 30, 0.5),
+    num("styles.lineHeight", "Interlineado", 0.8, 3, 0.05)
   ];
   var Components = {
     /* ── Elementos básicos ─────────────────────────────── */
@@ -1052,11 +1132,177 @@ body.preview .wb-placeholder { opacity: .25; }
       ]
     };
   }
+  function pricingBlock(y) {
+    const plans = [
+      ["B\xE1sico", "9\u20AC", "rgba(148,163,184,.08)", "Para empezar\n1 sitio \xB7 Soporte email"],
+      ["Pro", "29\u20AC", "linear-gradient(160deg,rgba(139,92,246,.25),rgba(236,72,153,.15))", "El m\xE1s popular\n10 sitios \xB7 Dominio \xB7 Anal\xEDticas"],
+      ["Empresa", "99\u20AC", "rgba(148,163,184,.08)", "Sin l\xEDmites\nSitios ilimitados \xB7 Soporte 24/7"]
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
+        name: "T\xEDtulo precios",
+        props: { text: "Planes y precios", tag: "h2" },
+        styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    plans.forEach(([name, price, bg, features], i) => {
+      const x = 70 + i * 400;
+      nodes.push(
+        node("container", { x, y: y + 180, w: 340, h: 380 }, {
+          name: `Plan ${name}`,
+          styles: { background: bg, radius: 24, borderWidth: i === 1 ? 2 : 1, borderColor: i === 1 ? "#8b5cf6" : "rgba(148,163,184,.25)", shadow: i === 1 ? "ne\xF3n" : "suave" },
+          animation: scroll("fadeInUp", i * 150)
+        }),
+        node("text", { x: x + 20, y: y + 215, w: 300, h: 40 }, {
+          name: `Nombre ${name}`,
+          props: { text: name, tag: "h3" },
+          styles: { fontSize: 20, fontWeight: "700", textAlign: "center", color: "#c7d2fe" },
+          animation: scroll("fadeIn", i * 150 + 100)
+        }),
+        node("text", { x: x + 20, y: y + 265, w: 300, h: 70 }, {
+          name: `Precio ${name}`,
+          props: { text: `${price}/mes`, tag: "p" },
+          styles: { fontSize: 42, fontWeight: "900", textAlign: "center", color: "#ffffff" },
+          animation: scroll("zoomIn", i * 150 + 150)
+        }),
+        node("text", { x: x + 30, y: y + 355, w: 280, h: 100 }, {
+          name: `Detalle ${name}`,
+          props: { text: features, tag: "p" },
+          styles: { fontSize: 14, fontWeight: "400", textAlign: "center", color: "#94a3b8", lineHeight: 1.8 }
+        }),
+        node("button", { x: x + 80, y: y + 475, w: 180, h: 48 }, {
+          name: `Bot\xF3n ${name}`,
+          props: { text: "Elegir plan" },
+          styles: {
+            fontSize: 15,
+            fontWeight: "700",
+            textAlign: "center",
+            color: i === 1 ? "#ffffff" : "#c7d2fe",
+            background: i === 1 ? "linear-gradient(90deg,#8b5cf6,#ec4899)" : "rgba(148,163,184,.12)",
+            radius: 24
+          },
+          animation: scroll("fadeInUp", i * 150 + 250)
+        })
+      );
+    });
+    return { height: 660, nodes };
+  }
+  function teamBlock(y) {
+    const members = [
+      ["Ana", "Dise\xF1o", "radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)"],
+      ["Leo", "Desarrollo", "radial-gradient(circle at 30% 30%,#38bdf8,#6366f1)"],
+      ["Mar", "Marketing", "radial-gradient(circle at 30% 30%,#fbbf24,#ef4444)"]
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
+        name: "T\xEDtulo equipo",
+        props: { text: "Nuestro equipo", tag: "h2" },
+        styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    members.forEach(([name, role, bg], i) => {
+      const x = 250 + i * 300;
+      nodes.push(
+        node("shape", { x, y: y + 180, w: 150, h: 150 }, {
+          name: `Avatar ${name}`,
+          props: { shape: "c\xEDrculo" },
+          styles: { background: bg, radius: 0, shadow: "media" },
+          animation: scroll("zoomIn", i * 140)
+        }),
+        node("text", { x: x - 25, y: y + 350, w: 200, h: 34 }, {
+          name: `Nombre ${name}`,
+          props: { text: name, tag: "h3" },
+          styles: { fontSize: 20, fontWeight: "700", textAlign: "center", color: "#e2e8f0" },
+          animation: scroll("fadeInUp", i * 140 + 120)
+        }),
+        node("text", { x: x - 25, y: y + 388, w: 200, h: 30 }, {
+          name: `Rol ${name}`,
+          props: { text: role, tag: "p" },
+          styles: { fontSize: 14, fontWeight: "400", textAlign: "center", color: "#8b5cf6" },
+          animation: scroll("fadeInUp", i * 140 + 160)
+        })
+      );
+    });
+    return { height: 480, nodes };
+  }
+  function faqBlock(y) {
+    const faqs = [
+      ["\xBFNecesito saber programar?", "No. Todo se hace de forma visual, arrastrando y soltando."],
+      ["\xBFPuedo usar mis propios GIFs y v\xEDdeos?", "S\xED: s\xFAbelos desde tu galer\xEDa y quedan guardados con el proyecto."],
+      ["\xBFEl sitio funciona en m\xF3viles?", "S\xED, el dise\xF1o se adapta autom\xE1ticamente a cualquier pantalla."]
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
+        name: "T\xEDtulo FAQ",
+        props: { text: "Preguntas frecuentes", tag: "h2" },
+        styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    faqs.forEach(([q, a], i) => {
+      const rowY = y + 180 + i * 130;
+      nodes.push(
+        node("container", { x: 190, y: rowY, w: 900, h: 110 }, {
+          name: `FAQ ${i + 1}`,
+          styles: { background: "rgba(148,163,184,.06)", radius: 16, borderWidth: 1, borderColor: "rgba(148,163,184,.2)" },
+          animation: scroll("slideInLeft", i * 130)
+        }),
+        node("text", { x: 220, y: rowY + 18, w: 840, h: 34 }, {
+          name: `Pregunta ${i + 1}`,
+          props: { text: q, tag: "h3" },
+          styles: { fontSize: 18, fontWeight: "700", textAlign: "left", color: "#c7d2fe" },
+          animation: scroll("fadeIn", i * 130 + 120)
+        }),
+        node("text", { x: 220, y: rowY + 56, w: 840, h: 44 }, {
+          name: `Respuesta ${i + 1}`,
+          props: { text: a, tag: "p" },
+          styles: { fontSize: 15, fontWeight: "400", textAlign: "left", color: "#94a3b8" },
+          animation: scroll("fadeIn", i * 130 + 160)
+        })
+      );
+    });
+    return { height: 620, nodes };
+  }
+  function contactBlock(y) {
+    return {
+      height: 620,
+      nodes: [
+        node("section", { x: 0, y, w: W, h: 620 }, {
+          name: "Fondo contacto",
+          styles: { background: "linear-gradient(180deg,#0b1020,#151233,#0b1020)" }
+        }),
+        node("text", { x: 340, y: y + 60, w: 600, h: 60 }, {
+          name: "T\xEDtulo contacto",
+          props: { text: "Hablemos", tag: "h2" },
+          styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
+          animation: scroll("fadeInUp")
+        }),
+        node("text", { x: 390, y: y + 128, w: 500, h: 34 }, {
+          name: "Subt\xEDtulo contacto",
+          props: { text: "Cu\xE9ntanos tu proyecto y te respondemos hoy mismo", tag: "p" },
+          styles: { fontSize: 15, fontWeight: "400", textAlign: "center", color: "#94a3b8" },
+          animation: scroll("fadeIn", 150)
+        }),
+        node("form", { x: 380, y: y + 190, w: 520, h: 380 }, {
+          name: "Formulario contacto",
+          props: { title: "", fields: "Nombre,Email,Mensaje", buttonText: "Enviar mensaje" },
+          styles: { background: "rgba(15,23,42,.85)", radius: 22, color: "#e2e8f0", borderWidth: 1, borderColor: "rgba(139,92,246,.35)", shadow: "media" },
+          animation: scroll("zoomIn", 200)
+        })
+      ]
+    };
+  }
   var BLOCKS = {
     hero: { label: "H\xE9roe con part\xEDculas", icon: "\u2728", build: heroBlock },
     features: { label: "Caracter\xEDsticas (3 tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
     quote: { label: "Cita destacada", icon: "\u275D", build: quoteBlock },
     gallery: { label: "Galer\xEDa", icon: "\u229E", build: galleryBlock },
+    pricing: { label: "Planes y precios", icon: "\u{1F4B3}", build: pricingBlock },
+    team: { label: "Equipo", icon: "\u{1F465}", build: teamBlock },
+    faq: { label: "Preguntas frecuentes", icon: "\u2753", build: faqBlock },
+    contact: { label: "Contacto con formulario", icon: "\u2709", build: contactBlock },
     cta: { label: "Llamada a la acci\xF3n", icon: "\u{1F4E3}", build: ctaBlock },
     footer: { label: "Pie de p\xE1gina", icon: "\u2693", build: footerBlock }
   };
@@ -1402,6 +1648,40 @@ body.preview .wb-placeholder { opacity: .25; }
       this.select(ids);
       return ids;
     }
+    /** Lleva el nodo al frente (encima de todo) o al fondo. */
+    bringToFront(id) {
+      const nodes = this.page.nodes;
+      const i = nodes.indexOf(id);
+      if (i < 0 || i === nodes.length - 1) return;
+      this.snapshot();
+      nodes.splice(i, 1);
+      nodes.push(id);
+      this.commit();
+    }
+    sendToBack(id) {
+      const nodes = this.page.nodes;
+      const i = nodes.indexOf(id);
+      if (i <= 0) return;
+      this.snapshot();
+      nodes.splice(i, 1);
+      nodes.unshift(id);
+      this.commit();
+    }
+    /** Copia estilos + animación de un nodo y los aplica a otros. */
+    copyStyle() {
+      const node2 = this.selectedNodes[0];
+      if (!node2) return;
+      this.styleClipboard = deepClone({ styles: node2.styles, animation: node2.animation });
+    }
+    pasteStyle() {
+      if (!this.styleClipboard || !this.selection.length) return;
+      this.snapshot();
+      for (const node2 of this.selectedNodes) {
+        Object.assign(node2.styles, deepClone(this.styleClipboard.styles));
+        node2.animation = deepClone(this.styleClipboard.animation);
+      }
+      this.commit();
+    }
     /** Reordena capa dentro de la página: dir = +1 (subir) / -1 (bajar) */
     moveLayer(id, dir) {
       const nodes = this.page.nodes;
@@ -1717,6 +1997,7 @@ body.preview .wb-placeholder { opacity: .25; }
     if (s.fontWeight) css["font-weight"] = s.fontWeight;
     if (s.textAlign) css["text-align"] = s.textAlign;
     if (s.letterSpacing) css["letter-spacing"] = `${s.letterSpacing}px`;
+    if (s.lineHeight) css["line-height"] = String(s.lineHeight);
     if (s.radius) css["border-radius"] = `${s.radius}px`;
     if (s.borderWidth) css.border = `${s.borderWidth}px solid ${s.borderColor || "#94a3b8"}`;
     if (s.shadow && s.shadow !== "ninguna") css["box-shadow"] = SHADOWS[s.shadow] || "none";
@@ -1832,6 +2113,7 @@ body.preview .wb-placeholder { opacity: .25; }
       "fontWeight",
       "textAlign",
       "letterSpacing",
+      "lineHeight",
       "borderRadius",
       "border",
       "boxShadow",
@@ -1992,12 +2274,16 @@ ${steps.join("\n")}
         y: py - (py - pan.y) / zoom * next
       });
     }
+    /**
+     * Ajusta al ANCHO de la página (como Figma): en páginas largas se
+     * navega con scroll/pan, nunca se encoge todo a un sello de correos.
+     */
     fit() {
       const width = this.store.project.settings.breakpoints[this.store.device];
-      const height = this.store.page.height;
-      const vw = this.viewport.clientWidth, vh = this.viewport.clientHeight;
-      const zoom = clamp(Math.min(vw / (width + 120), vh / (height + 120)), 0.1, 1.5);
-      this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: Math.max(30, (vh - height * zoom) / 2) });
+      const vw = this.viewport.clientWidth || window.innerWidth;
+      const margin = vw < 700 ? 24 : 120;
+      const zoom = clamp((vw - margin) / width, 0.1, 1.5);
+      this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: 24 });
       this.syncSize();
     }
     /* ── Guías inteligentes ────────────────────────────── */
@@ -2408,6 +2694,11 @@ ${steps.join("\n")}
       this.#setupCanvasDrop();
       this.render();
     }
+    /** Abre una pestaña concreta (usado por la barra móvil). */
+    openTab(name) {
+      this.tab = name;
+      this.render();
+    }
     render() {
       this.root.innerHTML = "";
       const tabs = el("div", { class: "panel-tabs" }, ["componentes", "assets", "paginas", "capas"].map((name) => el("button", {
@@ -2701,6 +2992,17 @@ ${steps.join("\n")}
   };
 
   // src/editor/properties.js
+  var GRADIENT_SWATCHES = [
+    "#0b1020",
+    "#ffffff",
+    "#6366f1",
+    "linear-gradient(135deg,#7c3aed,#db2777)",
+    "linear-gradient(135deg,#0ea5e9,#6366f1)",
+    "linear-gradient(135deg,#f59e0b,#ef4444)",
+    "linear-gradient(135deg,#10b981,#0ea5e9)",
+    "linear-gradient(160deg,#0f0c29,#302b63,#24243e)",
+    "radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)"
+  ];
   var EVENT_ACTIONS = {
     goToPage: "Ir a p\xE1gina",
     openUrl: "Abrir URL",
@@ -2843,6 +3145,23 @@ ${steps.join("\n")}
           }
         })
       ]));
+      this.root.append(this.#section("Herramientas", [
+        el("div", { class: "btn-row" }, [
+          el("button", { class: "btn", text: "\u21E4", title: "Alinear a la izquierda de la p\xE1gina", onclick: () => this.store.alignSelection("left") }),
+          el("button", { class: "btn", text: "\u21F9", title: "Centrar horizontalmente", onclick: () => this.store.alignSelection("centerX") }),
+          el("button", { class: "btn", text: "\u21E5", title: "Alinear a la derecha", onclick: () => this.store.alignSelection("right") }),
+          el("button", { class: "btn", text: "\u2912", title: "Alinear arriba", onclick: () => this.store.alignSelection("top") }),
+          el("button", { class: "btn", text: "\u21D5", title: "Centrar verticalmente", onclick: () => this.store.alignSelection("centerY") })
+        ]),
+        el("div", { class: "btn-row" }, [
+          el("button", { class: "btn", text: "\u2B06 Al frente", title: "Traer encima de todo", onclick: () => this.store.bringToFront(node2.id) }),
+          el("button", { class: "btn", text: "\u2B07 Al fondo", title: "Enviar detr\xE1s de todo", onclick: () => this.store.sendToBack(node2.id) })
+        ]),
+        el("div", { class: "btn-row" }, [
+          el("button", { class: "btn", text: "\u2398 Copiar estilo", title: "Ctrl+Shift+C", onclick: () => this.store.copyStyle() }),
+          el("button", { class: "btn", text: "\u2397 Pegar estilo", title: "Ctrl+Shift+V", onclick: () => this.store.pasteStyle() })
+        ])
+      ]));
       this.root.append(el("div", { class: "btn-row" }, [
         el("button", { class: "btn", text: "\u29C9 Duplicar", onclick: () => this.store.duplicateNodes([node2.id]) }),
         el("button", { class: "btn", text: node2.locked ? "\u{1F512}" : "\u{1F513}", onclick: () => this.store.toggleFlag(node2.id, "locked") }),
@@ -2880,10 +3199,14 @@ ${steps.join("\n")}
           }));
         case "color": {
           const isHex = /^#[0-9a-f]{3,8}$/i.test(value || "");
-          return this.#field(field.label, el("div", { class: "color-field" }, [
+          const controls = [el("div", { class: "color-field" }, [
             el("input", { type: "color", value: isHex ? value : "#6366f1", oninput: (e) => commit(e.target.value) }),
             el("input", { class: "input", value: value ?? "", placeholder: "color / gradiente CSS", onchange: (e) => commit(e.target.value) })
-          ]));
+          ])];
+          if (/background/i.test(field.key)) {
+            controls.push(el("div", { class: "swatch-row" }, GRADIENT_SWATCHES.map((g) => el("button", { class: "swatch", title: g, style: { background: g }, onclick: () => commit(g) }))));
+          }
+          return this.#field(field.label, el("div", {}, controls));
         }
         case "select":
           return this.#field(field.label, this.#select(field.options, value, commit));
@@ -2993,7 +3316,7 @@ ${steps.join("\n")}
       this.assets = assets;
       this.view = view;
       this.canvas = view.drawLayer;
-      this.ctx = this.canvas.getContext("2d");
+      this.ctx = this.canvas.getContext("2d", { desynchronized: true, willReadFrequently: true });
       this.brush = { size: 8, color: "#f472b6", opacity: 1, eraser: false };
       this.strokes = [];
       this.drawing = false;
@@ -3174,7 +3497,7 @@ void main() {
     const speed = +opts.speed || 1;
     const size = (+opts.size || 2) * (window.devicePixelRatio || 1);
     const mode = opts.mode || "nebulosa";
-    const gl = canvas.getContext("webgl2", { alpha: true, antialias: false });
+    const gl = canvas.getContext("webgl2", { alpha: true, antialias: false, powerPreference: "high-performance" });
     if (!gl) {
       canvas.replaceWith(Object.assign(document.createElement("div"), { textContent: "WebGL2 no disponible" }));
       return () => {
@@ -3218,33 +3541,39 @@ void main() {
     const uRes = gl.getUniformLocation(program, "uRes");
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    let raf = 0, visible = true, disposed = false, t = 0;
-    function step() {
+    let raf = 0, visible = true, disposed = false, t = 0, last = 0;
+    function step(now) {
       if (disposed) return;
       raf = requestAnimationFrame(step);
-      if (!visible) return;
-      t += 0.016 * speed;
+      if (!visible) {
+        last = now;
+        return;
+      }
+      const dt = Math.min((now - last) / 1e3 || 0.016, 0.05);
+      last = now;
+      const k = dt * 60 * speed;
+      t += dt * speed;
       const cx = W2() / 2, cy = H() / 2;
       for (let i = 0; i < count; i++) {
         if (mode === "\xF3rbita") {
-          orbit[i * 2 + 1] += 4e-3 * speed * (1 + i % 5 * 0.15);
+          orbit[i * 2 + 1] += 0.24 * dt * speed * (1 + i % 5 * 0.15);
           pos[i * 2] = cx + Math.cos(orbit[i * 2 + 1]) * orbit[i * 2];
           pos[i * 2 + 1] = cy + Math.sin(orbit[i * 2 + 1]) * orbit[i * 2] * 0.6;
         } else if (mode === "lluvia") {
-          pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * speed * dpr;
+          pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * dpr;
           if (pos[i * 2 + 1] > H()) {
             pos[i * 2 + 1] = -4;
             pos[i * 2] = Math.random() * W2();
           }
         } else {
-          pos[i * 2] += vel[i * 2] * speed * dpr + Math.sin(t + i) * 0.1;
-          pos[i * 2 + 1] += vel[i * 2 + 1] * speed * dpr + Math.cos(t * 0.7 + i) * 0.1;
+          pos[i * 2] += vel[i * 2] * k * dpr + Math.sin(t + i) * 0.1 * k;
+          pos[i * 2 + 1] += vel[i * 2 + 1] * k * dpr + Math.cos(t * 0.7 + i) * 0.1 * k;
           if (pos[i * 2] < 0) pos[i * 2] = W2();
           else if (pos[i * 2] > W2()) pos[i * 2] = 0;
           if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H();
           else if (pos[i * 2 + 1] > H()) pos[i * 2 + 1] = 0;
         }
-        life[i] += 0.01;
+        life[i] += 0.01 * k;
         if (life[i] > 1) life[i] = 0;
       }
       gl.uniform2f(uRes, W2(), H());
@@ -3264,7 +3593,7 @@ void main() {
     io.observe(canvas);
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
-    step();
+    raf = requestAnimationFrame(step);
     return function dispose() {
       disposed = true;
       cancelAnimationFrame(raf);
@@ -3543,66 +3872,31 @@ void main() {
       this.store = store;
       this.assets = assets;
     }
-    async export() {
-      const project = this.store.project;
-      const zip = new ZipWriter();
-      const usedIds = /* @__PURE__ */ new Set();
-      for (const node2 of Object.values(project.nodes)) {
-        if (node2.props?.assetId) usedIds.add(node2.props.assetId);
-        for (const id of node2.props?.assetIds || []) usedIds.add(id);
-        for (const event of node2.events || []) if (event.action === "playSound" && event.target) usedIds.add(event.target);
+    /* ── Utilidades comunes ────────────────────────────── */
+    #usedAssetIds() {
+      const used = /* @__PURE__ */ new Set();
+      for (const node2 of Object.values(this.store.project.nodes)) {
+        if (node2.props?.assetId) used.add(node2.props.assetId);
+        for (const id of node2.props?.assetIds || []) used.add(id);
+        for (const event of node2.events || []) if (event.action === "playSound" && event.target) used.add(event.target);
       }
-      const assetPath = /* @__PURE__ */ new Map();
-      for (const id of usedIds) {
-        const asset2 = this.assets.get(id);
-        if (!asset2) continue;
-        const dot = asset2.name.lastIndexOf(".");
-        const ext = dot > 0 ? asset2.name.slice(dot + 1).toLowerCase() : "bin";
-        const base = slugify(dot > 0 ? asset2.name.slice(0, dot) : asset2.name);
-        const path = `assets/${ASSET_KINDS[asset2.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
-        assetPath.set(id, path);
-        zip.file(path, dataURLToBytes(asset2.data));
-      }
+      return used;
+    }
+    #slugs() {
       const slugs = /* @__PURE__ */ new Map();
-      project.pages.forEach((page, i) => {
+      this.store.project.pages.forEach((page, i) => {
         let slug = i === 0 ? "index" : slugify(page.slug || page.name);
         while ([...slugs.values()].includes(slug)) slug += "-2";
         slugs.set(page.id, slug);
       });
-      const has3D = Object.values(project.nodes).some((n) => ["model3d", "particles"].includes(n.type));
-      zip.file("css/style.css", this.#buildCSS(project));
-      zip.file("js/app.js", buildAppJS());
-      zip.file("js/animations.js", buildAnimationsJS());
-      if (has3D) zip.file("js/webgl.js", buildWebglJS());
-      for (const page of project.pages) {
-        const slug = slugs.get(page.id);
-        const isIndex = slug === "index";
-        const html = this.#buildPageHTML(page, { project, slugs, assetPath, depth: isIndex ? 0 : 1, has3D });
-        zip.file(isIndex ? "index.html" : `paginas/${slug}.html`, html);
-      }
-      zip.file("project.json", JSON.stringify(project, null, 2));
-      zip.file(
-        "LEEME.txt",
-        `Sitio generado con No-Code Website Builder
-Proyecto: ${project.meta.name}
-
-Abre index.html en un navegador o sube la carpeta completa a cualquier hosting est\xE1tico
-(Netlify, Vercel, GitHub Pages\u2026). project.json puede re-importarse en el editor.
-`
-      );
-      download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
+      return slugs;
     }
-    /* ── HTML de página ────────────────────────────────── */
-    #buildPageHTML(page, ctx) {
-      const { project, slugs, assetPath, depth, has3D } = ctx;
-      const prefix = depth ? "../" : "";
-      const pageHref = (target) => {
-        const slug = slugs.get(target.id);
-        if (slug === "index") return `${prefix}index.html`;
-        return depth ? `${slug}.html` : `paginas/${slug}.html`;
-      };
-      const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ""), pages: project.pages, pageHref };
-      const nodesHTML = page.nodes.map((id) => project.nodes[id]).filter((node2) => node2 && !node2.hidden).map((node2) => {
+    #has3D() {
+      return Object.values(this.store.project.nodes).some((n) => ["model3d", "particles"].includes(n.type));
+    }
+    #nodesHTML(page, renderCtx) {
+      const project = this.store.project;
+      return page.nodes.map((id) => project.nodes[id]).filter((node2) => node2 && !node2.hidden).map((node2) => {
         const anim = node2.animation;
         const hasAnim = anim && anim.preset !== "ninguna" && PRESETS[anim.preset];
         const attrs = [
@@ -3612,6 +3906,55 @@ Abre index.html en un navegador o sube la carpeta completa a cualquier hosting e
         ].filter(Boolean).join(" ");
         return `      <div ${attrs}>${contentHTML(node2, renderCtx)}</div>`;
       }).join("\n");
+    }
+    /* ══ 1) EXPORT ZIP (carpeta de proyecto) ═══════════════ */
+    async export() {
+      const project = this.store.project;
+      const zip = new ZipWriter();
+      const assetPath = /* @__PURE__ */ new Map();
+      for (const id of this.#usedAssetIds()) {
+        const asset2 = this.assets.get(id);
+        if (!asset2) continue;
+        const dot = asset2.name.lastIndexOf(".");
+        const ext = dot > 0 ? asset2.name.slice(dot + 1).toLowerCase() : "bin";
+        const base = slugify(dot > 0 ? asset2.name.slice(0, dot) : asset2.name);
+        const path = `assets/${ASSET_KINDS[asset2.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
+        assetPath.set(id, path);
+        zip.file(path, dataURLToBytes(asset2.data));
+      }
+      const slugs = this.#slugs();
+      const has3D = this.#has3D();
+      const cssText = this.#buildCSS(project, (page) => slugs.get(page.id));
+      for (const page of project.pages) {
+        const slug = slugs.get(page.id);
+        const isIndex = slug === "index";
+        const html = this.#buildPageHTML(page, { slugs, assetPath, depth: isIndex ? 0 : 1, has3D, cssText });
+        zip.file(isIndex ? "index.html" : `paginas/${slug}.html`, html);
+      }
+      zip.file("project.json", JSON.stringify({ ...project, assetsData: this.assets.exportData() }));
+      zip.file(
+        "LEEME.txt",
+        `Sitio generado con No-Code Website Builder
+Proyecto: ${project.meta.name}
+
+- Abre index.html en un navegador (estilos y scripts van incrustados en cada p\xE1gina).
+- Sube la carpeta completa a cualquier hosting est\xE1tico (Netlify, Vercel, GitHub Pages\u2026).
+- project.json puede re-importarse en el editor CON todos los assets incluidos.
+- \xBFUn solo archivo para compartir por el m\xF3vil? Usa "Exportar HTML (1 archivo)" en el editor.
+`
+      );
+      download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
+    }
+    #buildPageHTML(page, ctx) {
+      const { slugs, assetPath, depth, has3D, cssText } = ctx;
+      const project = this.store.project;
+      const prefix = depth ? "../" : "";
+      const pageHref = (target) => {
+        const slug = slugs.get(target.id);
+        if (slug === "index") return `${prefix}index.html`;
+        return depth ? `${slug}.html` : `paginas/${slug}.html`;
+      };
+      const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ""), pages: project.pages, pageHref };
       const soundPaths = {};
       for (const node2 of page.nodes.map((id) => project.nodes[id])) {
         for (const event of node2?.events || []) {
@@ -3624,25 +3967,81 @@ Abre index.html en un navegador o sube la carpeta completa a cualquier hosting e
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(page.name)} \u2014 ${esc(project.meta.name)}</title>
-  <link rel="stylesheet" href="${prefix}css/style.css">
   <link rel="icon" href="data:,">
+  <style>
+${cssText}
+  </style>
 </head>
 <body>
   <div class="wb-scale-wrap">
     <main class="wb-stage wb-enter-${page.transition || "fade"}" id="stage" data-page="${slugs.get(page.id)}"
       style="background:${page.background || "#0b1020"}">
-${nodesHTML}
+${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>
   <script>window.WB_SOUNDS=${JSON.stringify(soundPaths)};<\/script>
-  <script src="${prefix}js/app.js"><\/script>
-  <script src="${prefix}js/animations.js"><\/script>
-${has3D ? `  <script src="${prefix}js/webgl.js"><\/script>` : ""}
+  <script>
+${buildAppJS()}
+  <\/script>
+  <script>
+${buildAnimationsJS()}
+  <\/script>
+${has3D ? `  <script>
+${buildWebglJS()}
+  <\/script>` : ""}
 </body>
 </html>`;
     }
-    /* ── CSS del sitio ─────────────────────────────────── */
-    #buildCSS(project) {
+    /* ══ 2) EXPORT DE UN SOLO ARCHIVO HTML ═════════════════ */
+    async exportSingle() {
+      const project = this.store.project;
+      const has3D = this.#has3D();
+      const cssText = this.#buildCSS(project, (page) => page.id);
+      const renderCtx = {
+        editor: false,
+        resolve: (id) => this.assets.url(id),
+        pages: project.pages,
+        pageHref: () => "#"
+      };
+      const sounds = {};
+      for (const id of this.#usedAssetIds()) {
+        const asset2 = this.assets.get(id);
+        if (asset2?.kind === "audio") sounds[id] = asset2.data;
+      }
+      const sections = project.pages.map((page, i) => `  <div class="wb-scale-wrap"${i ? ' style="display:none"' : ""} data-wrap="${page.id}">
+    <main class="wb-stage wb-enter-${page.transition || "fade"}" data-page="${page.id}" data-enter="wb-enter-${page.transition || "fade"}"
+      style="background:${page.background || "#0b1020"}">
+${this.#nodesHTML(page, renderCtx)}
+    </main>
+  </div>`).join("\n");
+      const html = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${esc(project.meta.name)}</title>
+  <link rel="icon" href="data:,">
+  <!-- Sitio autocontenido generado con No-Code Website Builder.
+       Todas las p\xE1ginas, estilos, GIFs y v\xEDdeos van dentro de este archivo. -->
+  <style>
+${cssText}
+  </style>
+</head>
+<body>
+${sections}
+  <script>window.WB_SOUNDS=${JSON.stringify(sounds)};<\/script>
+  <script>
+${buildSingleRuntime()}
+  <\/script>
+${has3D ? `  <script>
+${buildWebglJS()}
+  <\/script>` : ""}
+</body>
+</html>`;
+      download(`${slugify(project.meta.name)}.html`, new Blob([html], { type: "text/html" }));
+    }
+    /* ── CSS del sitio (compartido por ambos formatos) ───── */
+    #buildCSS(project, keyFor) {
       const bps = project.settings.breakpoints;
       const usedPresets = /* @__PURE__ */ new Set();
       const rules = [];
@@ -3669,11 +4068,19 @@ ${has3D ? `  <script src="${prefix}js/webgl.js"><\/script>` : ""}
           }
         }
       }
-      const pageHeights = [`.wb-stage{width:${bps.desktop}px}`];
-      const perPage = project.pages.map((page, i) => {
-        const slug = i === 0 ? "index" : slugify(page.slug || page.name);
-        return `.wb-stage[data-page="${slug}"]{height:${page.height}px}`;
-      });
+      const perPage = project.pages.map((page) => `.wb-stage[data-page="${keyFor(page)}"]{height:${page.height}px}`);
+      const tabletBlock = tabletRules.length ? `
+/* \u2500\u2500 Breakpoint tablet (${bps.tablet}px de dise\xF1o) \u2500\u2500 */
+@media (max-width:${BP.tablet}px){
+.wb-stage{width:${bps.tablet}px}
+${tabletRules.join("\n")}
+}` : "";
+      const mobileBlock = mobileRules.length ? `
+/* \u2500\u2500 Breakpoint m\xF3vil (${bps.mobile}px de dise\xF1o) \u2500\u2500 */
+@media (max-width:${BP.mobile}px){
+.wb-stage{width:${bps.mobile}px}
+${mobileRules.join("\n")}
+}` : "";
       const keyframes = [...usedPresets].map(presetToKeyframesCSS).join("\n");
       const transitions = `
 @keyframes wb-page-fade{from{opacity:0}to{opacity:1}}
@@ -3688,9 +4095,9 @@ ${has3D ? `  <script src="${prefix}js/webgl.js"><\/script>` : ""}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
 .wb-scale-wrap{width:100%;overflow:hidden}
-.wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif}
+.wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
 .wb-node{position:absolute;display:block}
-.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit}
+.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit;line-height:inherit}
 .wb-btn{width:100%;height:100%;font:inherit;color:inherit;background:none;border:none;cursor:pointer;border-radius:inherit;background:inherit;text-align:inherit}
 .wb-icon{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:inherit}
 .wb-hidden{visibility:hidden!important}
@@ -3704,7 +4111,7 @@ html,body{background:#000}
 .wb-form button{padding:12px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer}
 .wb-menu{display:flex;width:100%;height:100%;align-items:center;justify-content:space-between;padding:0 28px;border-radius:inherit;background:inherit}
 .wb-menu-links{display:flex;gap:22px}
-.wb-menu a{color:inherit;text-decoration:none;opacity:.85}
+.wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
 .wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
 .wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
@@ -3714,23 +4121,13 @@ html,body{background:#000}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
 .wb-gallery img{border-radius:6px}
 
-${pageHeights.join("\n")}
 ${perPage.join("\n")}
 
 /* \u2500\u2500 Nodos \u2500\u2500 */
 ${rules.join("\n")}
 
-/* \u2500\u2500 Breakpoint tablet (${bps.tablet}px de dise\xF1o) \u2500\u2500 */
-@media (max-width:${BP.tablet}px){
-.wb-stage{width:${bps.tablet}px}
-${tabletRules.join("\n")}
-}
-
-/* \u2500\u2500 Breakpoint m\xF3vil (${bps.mobile}px de dise\xF1o) \u2500\u2500 */
-@media (max-width:${BP.mobile}px){
-.wb-stage{width:${bps.mobile}px}
-${mobileRules.join("\n")}
-}
+${tabletBlock}
+${mobileBlock}
 
 /* \u2500\u2500 Animaciones \u2500\u2500 */
 ${keyframes}
@@ -3749,12 +4146,10 @@ ${transitions}
   var wrap = document.querySelector('.wb-scale-wrap');
 
   /* Escala proporcional: el dise\xF1o mantiene sus coordenadas y se
-     ajusta a CUALQUIER viewport sin reflow (transform GPU).
-     Las media queries cambian el ancho de dise\xF1o (desktop/tablet/
-     m\xF3vil) y esta funci\xF3n cubre los tama\xF1os intermedios. */
+     ajusta a CUALQUIER viewport sin reflow (transform GPU). */
   function fit() {
     stage.style.transform = 'none';
-    var designW = stage.offsetWidth; // ancho de dise\xF1o seg\xFAn media query activa
+    var designW = stage.offsetWidth;
     var scale = Math.min(1, window.innerWidth / designW);
     if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
     wrap.style.height = (stage.offsetHeight * scale) + 'px';
@@ -3820,7 +4215,6 @@ ${transitions}
 (function () {
   'use strict';
 
-  /* Scroll: IntersectionObserver dispara la animaci\xF3n CSS una vez */
   var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
   if (scrollNodes.length && 'IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
@@ -3831,14 +4225,12 @@ ${transitions}
     scrollNodes.forEach(function (node) { io.observe(node); });
   }
 
-  /* Click: reinicia y ejecuta la animaci\xF3n en cada clic */
   document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
     node.addEventListener('click', function () {
       node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
     });
   });
 
-  /* Sliders autom\xE1ticos */
   document.querySelectorAll('.wb-slider').forEach(function (slider) {
     var slides = slider.querySelectorAll('.wb-slide');
     if (slides.length < 2) return;
@@ -3852,16 +4244,137 @@ ${transitions}
 })();
 `;
   }
+  function buildSingleRuntime() {
+    return `/* Runtime autocontenido \u2014 generado por No-Code Website Builder */
+(function () {
+  'use strict';
+
+  function activeWrap() {
+    var wraps = document.querySelectorAll('.wb-scale-wrap');
+    for (var i = 0; i < wraps.length; i++) if (wraps[i].style.display !== 'none') return wraps[i];
+    return wraps[0];
+  }
+
+  /* Escala proporcional del stage visible \u2192 se adapta a cualquier m\xF3vil */
+  function fit() {
+    var wrap = activeWrap();
+    if (!wrap) return;
+    var stage = wrap.querySelector('.wb-stage');
+    stage.style.transform = 'none';
+    var designW = stage.offsetWidth;
+    var scale = Math.min(1, window.innerWidth / designW);
+    if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (stage.offsetHeight * scale) + 'px';
+  }
+  var rafFit;
+  window.addEventListener('resize', function () { cancelAnimationFrame(rafFit); rafFit = requestAnimationFrame(fit); });
+
+  /* Navegaci\xF3n interna entre p\xE1ginas (SPA) */
+  function showPage(pageId) {
+    document.querySelectorAll('.wb-scale-wrap').forEach(function (wrap) {
+      wrap.style.display = wrap.getAttribute('data-wrap') === pageId ? '' : 'none';
+    });
+    var stage = document.querySelector('.wb-stage[data-page="' + pageId + '"]');
+    if (stage) { // re-dispara la transici\xF3n de entrada de la p\xE1gina
+      var cls = stage.getAttribute('data-enter');
+      stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls);
+    }
+    window.scrollTo(0, 0);
+    fit();
+  }
+  document.querySelectorAll('.wb-menu a[data-page]').forEach(function (link) {
+    link.addEventListener('click', function (e) { e.preventDefault(); showPage(link.getAttribute('data-page')); });
+  });
+
+  /* Eventos declarativos */
+  function runAction(ev) {
+    if (ev.action === 'goToPage' && ev.target) showPage(ev.target);
+    else if (ev.action === 'openUrl' && ev.target) window.open(ev.target, '_blank', 'noopener');
+    else if (ev.action === 'toggleNode' && ev.target) {
+      var node = document.querySelector('.el-' + ev.target);
+      if (node) node.classList.toggle('wb-hidden');
+    } else if (ev.action === 'playAnimation' && ev.target) {
+      var target = document.querySelector('.el-' + ev.target);
+      if (target) { target.classList.remove('wb-play'); void target.offsetWidth; target.classList.add('wb-play'); }
+    } else if (ev.action === 'playSound' && ev.target && window.WB_SOUNDS[ev.target]) {
+      new Audio(window.WB_SOUNDS[ev.target]).play().catch(function(){});
+    }
+  }
+  document.querySelectorAll('[data-events]').forEach(function (elem) {
+    var events;
+    try { events = JSON.parse(elem.getAttribute('data-events')); } catch (e) { return; }
+    events.forEach(function (ev) {
+      elem.addEventListener(ev.on === 'hover' ? 'mouseenter' : 'click', function () { runAction(ev); });
+    });
+    elem.style.cursor = 'pointer';
+  });
+
+  /* Animaciones por scroll */
+  var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
+  if (scrollNodes.length && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('wb-play'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.25 });
+    scrollNodes.forEach(function (node) { io.observe(node); });
+  }
+  document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
+    node.addEventListener('click', function () {
+      node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
+    });
+  });
+
+  /* Sliders */
+  document.querySelectorAll('.wb-slider').forEach(function (slider) {
+    var slides = slider.querySelectorAll('.wb-slide');
+    if (slides.length < 2) return;
+    var index = 0;
+    setInterval(function () {
+      slides[index].classList.remove('active');
+      index = (index + 1) % slides.length;
+      slides[index].classList.add('active');
+    }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
+  });
+
+  /* V\xEDdeos con reproducci\xF3n al hacer scroll */
+  var vids = document.querySelectorAll('video[data-scrollplay]');
+  if (vids.length && 'IntersectionObserver' in window) {
+    var vio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) entry.target.play().catch(function(){});
+        else entry.target.pause();
+      });
+    }, { threshold: 0.35 });
+    vids.forEach(function (v) { vio.observe(v); });
+  }
+
+  /* GIFs pausados \u2192 primer frame congelado */
+  document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
+    function freeze() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
+      img.replaceWith(canvas);
+    }
+    if (img.complete) freeze(); else img.addEventListener('load', freeze);
+  });
+
+  fit(); setTimeout(fit, 50);
+})();
+`;
+  }
   function buildWebglJS() {
     return `/* Motor WebGL \u2014 generado por No-Code Website Builder
- * Part\xEDculas: WebGL2 nativo. Modelos: Three.js (CDN, carga perezosa). */
-
-/* \u2500\u2500 Part\xEDculas WebGL2 \u2500\u2500 */
+ * Part\xEDculas: WebGL2 nativo con simulaci\xF3n basada en TIEMPO REAL:
+ * la velocidad es id\xE9ntica a 60, 90, 120, 144 o 165 Hz y el motor
+ * aprovecha la tasa de refresco nativa del dispositivo. */
 function mountParticles(canvas) {
   var opts = canvas.dataset;
   var count = Math.min(+opts.count || 400, 8000);
   var speed = +opts.speed || 1, mode = opts.mode || 'nebulosa';
-  var gl = canvas.getContext('webgl2', { alpha: true });
+  var gl = canvas.getContext('webgl2', { alpha: true, powerPreference: 'high-performance' });
   if (!gl) return;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
@@ -3890,28 +4403,31 @@ function mountParticles(canvas) {
   var aPos = gl.getAttribLocation(pr, 'aPos'), aLife = gl.getAttribLocation(pr, 'aLife');
   gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aLife);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-  var visible = true, t = 0;
+  var visible = true, t = 0, last = 0;
   new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(canvas);
-  (function step() {
+  function step(now) {
     requestAnimationFrame(step);
-    if (!visible) return;
-    t += .016 * speed;
+    if (!visible) { last = now; return; }
+    var dt = Math.min((now - last) / 1000 || 0.016, 0.05); // segundos reales
+    last = now;
+    var k = dt * 60 * speed; // misma velocidad en cualquier Hz
+    t += dt * speed;
     var cx = W / 2, cy = H / 2;
     for (var i = 0; i < count; i++) {
       if (mode === '\xF3rbita') {
-        orb[i * 2 + 1] += .004 * speed * (1 + (i % 5) * .15);
+        orb[i * 2 + 1] += .24 * dt * speed * (1 + (i % 5) * .15);
         pos[i * 2] = cx + Math.cos(orb[i * 2 + 1]) * orb[i * 2];
         pos[i * 2 + 1] = cy + Math.sin(orb[i * 2 + 1]) * orb[i * 2] * .6;
       } else if (mode === 'lluvia') {
-        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * speed * dpr;
+        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * dpr;
         if (pos[i * 2 + 1] > H) { pos[i * 2 + 1] = -4; pos[i * 2] = Math.random() * W; }
       } else {
-        pos[i * 2] += vel[i * 2] * speed * dpr + Math.sin(t + i) * .1;
-        pos[i * 2 + 1] += vel[i * 2 + 1] * speed * dpr + Math.cos(t * .7 + i) * .1;
+        pos[i * 2] += vel[i * 2] * k * dpr + Math.sin(t + i) * .1 * k;
+        pos[i * 2 + 1] += vel[i * 2 + 1] * k * dpr + Math.cos(t * .7 + i) * .1 * k;
         if (pos[i * 2] < 0) pos[i * 2] = W; else if (pos[i * 2] > W) pos[i * 2] = 0;
         if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H; else if (pos[i * 2 + 1] > H) pos[i * 2 + 1] = 0;
       }
-      life[i] += .01; if (life[i] > 1) life[i] = 0;
+      life[i] += .01 * k; if (life[i] > 1) life[i] = 0;
     }
     gl.uniform2f(uRes, W, H);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -3920,11 +4436,12 @@ function mountParticles(canvas) {
     gl.bindBuffer(gl.ARRAY_BUFFER, lb); gl.bufferData(gl.ARRAY_BUFFER, life, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(aLife, 1, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.POINTS, 0, count);
-  })();
+  }
+  requestAnimationFrame(step);
 }
 document.querySelectorAll('.wb-particles').forEach(mountParticles);
 
-/* \u2500\u2500 Modelos 3D con Three.js \u2500\u2500 */
+/* \u2500\u2500 Modelos 3D con Three.js (CDN, carga perezosa) \u2500\u2500 */
 var holders = document.querySelectorAll('.wb-3d');
 if (holders.length) {
   Promise.all([
@@ -4006,7 +4523,7 @@ function mountModel(elem, THREE, GLTFLoader) {
     const view = new CanvasView(store);
     const three = new ThreeManager(assets);
     new Interactions(store, view);
-    new Panels(store, assets, view);
+    const panels = new Panels(store, assets, view);
     new PropertiesPanel(store, assets, view);
     new DrawTool(store, assets, view);
     const exporter = new Exporter(store, assets);
@@ -4014,6 +4531,7 @@ function mountModel(elem, THREE, GLTFLoader) {
     store.on("change", repaint);
     store.on("page", () => view.fit());
     buildTopbar(store, view, exporter, assets, repaint);
+    buildMobileNav(store, panels, view);
     bindKeyboard(store, view);
     view.syncSize();
     repaint();
@@ -4094,7 +4612,23 @@ function mountModel(elem, THREE, GLTFLoader) {
       }),
       el("button", {
         class: "btn primary",
-        text: "\u2B07 Exportar sitio (.zip)",
+        text: "\u{1F4F1} HTML (1 archivo)",
+        title: "Todo el sitio en un \xFAnico archivo autocontenido: \xE1brelo directamente en el m\xF3vil",
+        onclick: async (e) => {
+          e.target.disabled = true;
+          try {
+            await exporter.exportSingle();
+          } catch (err) {
+            alert(`Error al exportar: ${err.message}`);
+            console.error(err);
+          }
+          e.target.disabled = false;
+        }
+      }),
+      el("button", {
+        class: "btn primary",
+        text: "\u2B07 Sitio (.zip)",
+        title: "Carpeta de proyecto completa para subir a un hosting",
         onclick: async (e) => {
           e.target.disabled = true;
           e.target.textContent = "Empaquetando\u2026";
@@ -4105,7 +4639,7 @@ function mountModel(elem, THREE, GLTFLoader) {
             console.error(err);
           }
           e.target.disabled = false;
-          e.target.textContent = "\u2B07 Exportar sitio (.zip)";
+          e.target.textContent = "\u2B07 Sitio (.zip)";
         }
       }),
       el("button", {
@@ -4119,6 +4653,49 @@ function mountModel(elem, THREE, GLTFLoader) {
         }
       })
     );
+  }
+  function buildMobileNav(store, panels, view) {
+    const left = document.getElementById("left-panel");
+    const right = document.getElementById("right-panel");
+    const closeAll = () => {
+      left.classList.remove("open");
+      right.classList.remove("open");
+      nav.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+    };
+    const item = (icon, label, open2) => el("button", {
+      onclick: (e) => {
+        const btn = e.currentTarget;
+        const wasActive = btn.classList.contains("active");
+        closeAll();
+        if (!wasActive) {
+          open2();
+          btn.classList.add("active");
+        }
+      }
+    }, [el("span", { class: "mn-icon", text: icon }), el("span", { class: "mn-label", text: label })]);
+    const nav = el("nav", { id: "mobile-nav" }, [
+      item("\u25A6", "Piezas", () => {
+        panels.openTab("componentes");
+        left.classList.add("open");
+      }),
+      item("\u{1F5BC}", "Assets", () => {
+        panels.openTab("assets");
+        left.classList.add("open");
+      }),
+      item("\u{1F4C4}", "P\xE1ginas", () => {
+        panels.openTab("paginas");
+        left.classList.add("open");
+      }),
+      item("\u2263", "Capas", () => {
+        panels.openTab("capas");
+        left.classList.add("open");
+      }),
+      item("\u2726", "Dise\xF1o", () => {
+        right.classList.add("open");
+      })
+    ]);
+    document.body.append(nav);
+    view.viewport.addEventListener("pointerdown", closeAll);
   }
   var previewCleanup = null;
   function togglePreview(store, view, repaint) {
@@ -4176,7 +4753,13 @@ function mountModel(elem, THREE, GLTFLoader) {
     window.addEventListener("keydown", (e) => {
       if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable) return;
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key === "z") {
+      if (mod && e.shiftKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        store.copyStyle();
+      } else if (mod && e.shiftKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        store.pasteStyle();
+      } else if (mod && e.key === "z") {
         e.preventDefault();
         e.shiftKey ? store.redo() : store.undo();
       } else if (mod && e.key === "y") {

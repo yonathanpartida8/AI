@@ -33,6 +33,12 @@ export class Panels {
     this.render();
   }
 
+  /** Abre una pestaña concreta (usado por la barra móvil). */
+  openTab(name) {
+    this.tab = name;
+    this.render();
+  }
+
   render() {
     this.root.innerHTML = '';
     const tabs = el('div', { class: 'panel-tabs' }, ['componentes', 'assets', 'paginas', 'capas'].map((name) =>

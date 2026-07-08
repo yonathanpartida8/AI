@@ -37,6 +37,7 @@ const TEXT_STYLE = [
   color('styles.color', 'Color de texto'),
   select('styles.textAlign', 'Alineación', ['left', 'center', 'right']),
   num('styles.letterSpacing', 'Espaciado letras', -5, 30, 0.5),
+  num('styles.lineHeight', 'Interlineado', 0.8, 3, 0.05),
 ];
 
 export const Components = {

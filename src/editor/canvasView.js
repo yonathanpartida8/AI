@@ -79,12 +79,16 @@ export class CanvasView {
     });
   }
 
+  /**
+   * Ajusta al ANCHO de la página (como Figma): en páginas largas se
+   * navega con scroll/pan, nunca se encoge todo a un sello de correos.
+   */
   fit() {
     const width = this.store.project.settings.breakpoints[this.store.device];
-    const height = this.store.page.height;
-    const vw = this.viewport.clientWidth, vh = this.viewport.clientHeight;
-    const zoom = clamp(Math.min(vw / (width + 120), vh / (height + 120)), 0.1, 1.5);
-    this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: Math.max(30, (vh - height * zoom) / 2) });
+    const vw = this.viewport.clientWidth || window.innerWidth;
+    const margin = vw < 700 ? 24 : 120;
+    const zoom = clamp((vw - margin) / width, 0.1, 1.5);
+    this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: 24 });
     this.syncSize();
   }
 

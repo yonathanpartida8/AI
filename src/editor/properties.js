@@ -13,6 +13,17 @@ import { el, getPath, setPath } from '../utils/helpers.js';
 import { componentDef } from '../components/registry.js';
 import { PRESET_NAMES, TRIGGERS, EASINGS, playAnimation } from '../animations/engine.js';
 
+/** Gradientes rápidos para cualquier campo de fondo. */
+const GRADIENT_SWATCHES = [
+  '#0b1020', '#ffffff', '#6366f1',
+  'linear-gradient(135deg,#7c3aed,#db2777)',
+  'linear-gradient(135deg,#0ea5e9,#6366f1)',
+  'linear-gradient(135deg,#f59e0b,#ef4444)',
+  'linear-gradient(135deg,#10b981,#0ea5e9)',
+  'linear-gradient(160deg,#0f0c29,#302b63,#24243e)',
+  'radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)',
+];
+
 const EVENT_ACTIONS = {
   goToPage: 'Ir a página',
   openUrl: 'Abrir URL',
@@ -144,6 +155,25 @@ export class PropertiesPanel {
       }),
     ]));
 
+    /* Herramientas rápidas */
+    this.root.append(this.#section('Herramientas', [
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn', text: '⇤', title: 'Alinear a la izquierda de la página', onclick: () => this.store.alignSelection('left') }),
+        el('button', { class: 'btn', text: '⇹', title: 'Centrar horizontalmente', onclick: () => this.store.alignSelection('centerX') }),
+        el('button', { class: 'btn', text: '⇥', title: 'Alinear a la derecha', onclick: () => this.store.alignSelection('right') }),
+        el('button', { class: 'btn', text: '⤒', title: 'Alinear arriba', onclick: () => this.store.alignSelection('top') }),
+        el('button', { class: 'btn', text: '⇕', title: 'Centrar verticalmente', onclick: () => this.store.alignSelection('centerY') }),
+      ]),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn', text: '⬆ Al frente', title: 'Traer encima de todo', onclick: () => this.store.bringToFront(node.id) }),
+        el('button', { class: 'btn', text: '⬇ Al fondo', title: 'Enviar detrás de todo', onclick: () => this.store.sendToBack(node.id) }),
+      ]),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn', text: '⎘ Copiar estilo', title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
+        el('button', { class: 'btn', text: '⎗ Pegar estilo', title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
+      ]),
+    ]));
+
     /* Acciones */
     this.root.append(el('div', { class: 'btn-row' }, [
       el('button', { class: 'btn', text: '⧉ Duplicar', onclick: () => this.store.duplicateNodes([node.id]) }),
@@ -179,10 +209,16 @@ export class PropertiesPanel {
         }));
       case 'color': {
         const isHex = /^#[0-9a-f]{3,8}$/i.test(value || '');
-        return this.#field(field.label, el('div', { class: 'color-field' }, [
+        const controls = [el('div', { class: 'color-field' }, [
           el('input', { type: 'color', value: isHex ? value : '#6366f1', oninput: (e) => commit(e.target.value) }),
           el('input', { class: 'input', value: value ?? '', placeholder: 'color / gradiente CSS', onchange: (e) => commit(e.target.value) }),
-        ]));
+        ])];
+        // Gradientes de un toque para los campos de fondo
+        if (/background/i.test(field.key)) {
+          controls.push(el('div', { class: 'swatch-row' }, GRADIENT_SWATCHES.map((g) =>
+            el('button', { class: 'swatch', title: g, style: { background: g }, onclick: () => commit(g) }))));
+        }
+        return this.#field(field.label, el('div', {}, controls));
       }
       case 'select':
         return this.#field(field.label, this.#select(field.options, value, commit));

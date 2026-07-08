@@ -67,6 +67,7 @@ export function styleCSS(node) {
   if (s.fontWeight) css['font-weight'] = s.fontWeight;
   if (s.textAlign) css['text-align'] = s.textAlign;
   if (s.letterSpacing) css['letter-spacing'] = `${s.letterSpacing}px`;
+  if (s.lineHeight) css['line-height'] = String(s.lineHeight);
   if (s.radius) css['border-radius'] = `${s.radius}px`;
   if (s.borderWidth) css.border = `${s.borderWidth}px solid ${s.borderColor || '#94a3b8'}`;
   if (s.shadow && s.shadow !== 'ninguna') css['box-shadow'] = SHADOWS[s.shadow] || 'none';
@@ -199,7 +200,7 @@ export function syncNodeEl(elem, node, store) {
   Object.assign(elem.style, frameCSS(frame));
   // Limpia estilos visuales previos y aplica los actuales
   for (const prop of ['background', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign',
-    'letterSpacing', 'borderRadius', 'border', 'boxShadow', 'backdropFilter', 'clipPath', 'visibility']) {
+    'letterSpacing', 'lineHeight', 'borderRadius', 'border', 'boxShadow', 'backdropFilter', 'clipPath', 'visibility']) {
     elem.style[prop] = '';
   }
   for (const [k, v] of Object.entries(styleCSS(node))) elem.style.setProperty(k, v);

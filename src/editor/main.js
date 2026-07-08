@@ -37,7 +37,7 @@ async function boot() {
   const view = new CanvasView(store);
   const three = new ThreeManager(assets);
   new Interactions(store, view);
-  new Panels(store, assets, view);
+  const panels = new Panels(store, assets, view);
   new PropertiesPanel(store, assets, view);
   new DrawTool(store, assets, view);
   const exporter = new Exporter(store, assets);
@@ -48,6 +48,7 @@ async function boot() {
   store.on('page', () => view.fit());
 
   buildTopbar(store, view, exporter, assets, repaint);
+  buildMobileNav(store, panels, view);
   bindKeyboard(store, view);
 
   view.syncSize();
@@ -128,12 +129,23 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
     el('button', {
-      class: 'btn primary', text: '⬇ Exportar sitio (.zip)',
+      class: 'btn primary', text: '📱 HTML (1 archivo)',
+      title: 'Todo el sitio en un único archivo autocontenido: ábrelo directamente en el móvil',
+      onclick: async (e) => {
+        e.target.disabled = true;
+        try { await exporter.exportSingle(); }
+        catch (err) { alert(`Error al exportar: ${err.message}`); console.error(err); }
+        e.target.disabled = false;
+      },
+    }),
+    el('button', {
+      class: 'btn primary', text: '⬇ Sitio (.zip)',
+      title: 'Carpeta de proyecto completa para subir a un hosting',
       onclick: async (e) => {
         e.target.disabled = true; e.target.textContent = 'Empaquetando…';
         try { await exporter.export(); }
         catch (err) { alert(`Error al exportar: ${err.message}`); console.error(err); }
-        e.target.disabled = false; e.target.textContent = '⬇ Exportar sitio (.zip)';
+        e.target.disabled = false; e.target.textContent = '⬇ Sitio (.zip)';
       },
     }),
     el('button', {
@@ -145,6 +157,46 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
   );
+}
+
+/* ── Barra de navegación móvil ───────────────────────── */
+
+/**
+ * En pantallas táctiles pequeñas los paneles laterales se convierten
+ * en HOJAS DESLIZANTES (bottom sheets) controladas por esta barra
+ * inferior — el lienzo ocupa toda la pantalla y el zoom es correcto.
+ * En escritorio la barra queda oculta por CSS.
+ */
+function buildMobileNav(store, panels, view) {
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
+
+  const closeAll = () => {
+    left.classList.remove('open');
+    right.classList.remove('open');
+    nav.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+  };
+
+  const item = (icon, label, open) => el('button', {
+    onclick: (e) => {
+      const btn = e.currentTarget;
+      const wasActive = btn.classList.contains('active');
+      closeAll();
+      if (!wasActive) { open(); btn.classList.add('active'); }
+    },
+  }, [el('span', { class: 'mn-icon', text: icon }), el('span', { class: 'mn-label', text: label })]);
+
+  const nav = el('nav', { id: 'mobile-nav' }, [
+    item('▦', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
+    item('🖼', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
+    item('📄', 'Páginas', () => { panels.openTab('paginas'); left.classList.add('open'); }),
+    item('≣', 'Capas', () => { panels.openTab('capas'); left.classList.add('open'); }),
+    item('✦', 'Diseño', () => { right.classList.add('open'); }),
+  ]);
+  document.body.append(nav);
+
+  // Tocar el lienzo cierra las hojas → edición sin estorbos
+  view.viewport.addEventListener('pointerdown', closeAll);
 }
 
 /* ── Vista previa dentro del editor ──────────────────── */
@@ -210,7 +262,9 @@ function bindKeyboard(store, view) {
     if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable) return;
     const mod = e.ctrlKey || e.metaKey;
 
-    if (mod && e.key === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); }
+    if (mod && e.shiftKey && e.key.toLowerCase() === 'c') { e.preventDefault(); store.copyStyle(); }
+    else if (mod && e.shiftKey && e.key.toLowerCase() === 'v') { e.preventDefault(); store.pasteStyle(); }
+    else if (mod && e.key === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); }
     else if (mod && e.key === 'y') { e.preventDefault(); store.redo(); }
     else if (mod && e.key === 'c') { store.copy(); }
     else if (mod && e.key === 'v') { store.paste(); }

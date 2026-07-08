@@ -1,27 +1,28 @@
 /* ============================================================
  * exporter/exporter.js — Exportador profesional
  *
- * Compila el JSON del proyecto a un sitio web ESTÁTICO y REAL:
+ * Dos formatos de salida:
  *
- *   MiProyecto/
- *   ├── index.html            (primera página)
- *   ├── paginas/*.html        (resto de páginas)
- *   ├── css/style.css         (posiciones + estilos + @keyframes)
- *   ├── js/app.js             (runtime: escala responsive, eventos)
- *   ├── js/animations.js      (triggers scroll/click/hover, sliders)
- *   ├── js/webgl.js           (partículas WebGL2 + visor Three.js)
- *   ├── assets/{images,gifs,videos,audio,models,fonts}/
- *   └── project.json          (re-importable en el editor)
+ * 1) export()        → ZIP con estructura de carpetas clásica.
+ *    CADA página lleva el CSS y el JS INCRUSTADOS (inline), de
+ *    modo que aunque se abra un HTML suelto —sin extraer todo—
+ *    conserva estilos, animaciones y eventos. Los archivos
+ *    multimedia van como ficheros reales en assets/{gifs,…}.
  *
- * Claves de diseño:
+ * 2) exportSingle()  → UN SOLO archivo .html autocontenido:
+ *    todas las páginas, estilos, scripts, GIFs, vídeos y audio
+ *    incrustados como dataURL. Se abre directamente en un móvil
+ *    (WhatsApp, correo, Archivos…) y se ve EXACTAMENTE como se
+ *    diseñó. La navegación entre páginas es interna (SPA).
+ *
+ * Claves:
  *  - El MISMO contentHTML() del renderer genera el markup → el
  *    export es idéntico a lo que se ve en el editor.
- *  - Animaciones de carga = CSS puro (@keyframes); los triggers
+ *  - Animaciones de carga = CSS puro (@keyframes); triggers
  *    scroll/click/hover añaden una clase — cero framework.
- *  - Responsive: media queries generadas por breakpoint + escala
+ *  - Responsive: media queries por breakpoint + escala
  *    proporcional del stage para cualquier viewport intermedio.
- *  - Empaquetado con Blob API + escritor ZIP propio (interfaz
- *    compatible con JSZip: .file(ruta, datos)).
+ *  - ZIP con Blob API + escritor propio (interfaz JSZip).
  * ============================================================ */
 
 import { ZipWriter } from '../utils/zip.js';
@@ -38,75 +39,35 @@ export class Exporter {
     this.assets = assets;
   }
 
-  async export() {
-    const project = this.store.project;
-    const zip = new ZipWriter();
+  /* ── Utilidades comunes ────────────────────────────── */
 
-    /* 1. Recolecta assets usados y asigna nombres de archivo */
-    const usedIds = new Set();
-    for (const node of Object.values(project.nodes)) {
-      if (node.props?.assetId) usedIds.add(node.props.assetId);
-      for (const id of node.props?.assetIds || []) usedIds.add(id);
-      for (const event of node.events || []) if (event.action === 'playSound' && event.target) usedIds.add(event.target);
+  #usedAssetIds() {
+    const used = new Set();
+    for (const node of Object.values(this.store.project.nodes)) {
+      if (node.props?.assetId) used.add(node.props.assetId);
+      for (const id of node.props?.assetIds || []) used.add(id);
+      for (const event of node.events || []) if (event.action === 'playSound' && event.target) used.add(event.target);
     }
-    const assetPath = new Map(); // id → assets/carpeta/archivo.ext
-    for (const id of usedIds) {
-      const asset = this.assets.get(id);
-      if (!asset) continue;
-      const dot = asset.name.lastIndexOf('.');
-      const ext = dot > 0 ? asset.name.slice(dot + 1).toLowerCase() : 'bin';
-      const base = slugify(dot > 0 ? asset.name.slice(0, dot) : asset.name);
-      const path = `assets/${ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
-      assetPath.set(id, path);
-      zip.file(path, dataURLToBytes(asset.data));
-    }
+    return used;
+  }
 
-    /* 2. Slugs de página (la primera siempre es index) */
+  #slugs() {
     const slugs = new Map();
-    project.pages.forEach((page, i) => {
+    this.store.project.pages.forEach((page, i) => {
       let slug = i === 0 ? 'index' : slugify(page.slug || page.name);
       while ([...slugs.values()].includes(slug)) slug += '-2';
       slugs.set(page.id, slug);
     });
-
-    const has3D = Object.values(project.nodes).some((n) => ['model3d', 'particles'].includes(n.type));
-
-    /* 3. Genera archivos */
-    zip.file('css/style.css', this.#buildCSS(project));
-    zip.file('js/app.js', buildAppJS());
-    zip.file('js/animations.js', buildAnimationsJS());
-    if (has3D) zip.file('js/webgl.js', buildWebglJS());
-
-    for (const page of project.pages) {
-      const slug = slugs.get(page.id);
-      const isIndex = slug === 'index';
-      const html = this.#buildPageHTML(page, { project, slugs, assetPath, depth: isIndex ? 0 : 1, has3D });
-      zip.file(isIndex ? 'index.html' : `paginas/${slug}.html`, html);
-    }
-
-    zip.file('project.json', JSON.stringify(project, null, 2));
-    zip.file('LEEME.txt',
-      `Sitio generado con No-Code Website Builder\n` +
-      `Proyecto: ${project.meta.name}\n\n` +
-      `Abre index.html en un navegador o sube la carpeta completa a cualquier hosting estático\n` +
-      `(Netlify, Vercel, GitHub Pages…). project.json puede re-importarse en el editor.\n`);
-
-    download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
+    return slugs;
   }
 
-  /* ── HTML de página ────────────────────────────────── */
+  #has3D() {
+    return Object.values(this.store.project.nodes).some((n) => ['model3d', 'particles'].includes(n.type));
+  }
 
-  #buildPageHTML(page, ctx) {
-    const { project, slugs, assetPath, depth, has3D } = ctx;
-    const prefix = depth ? '../' : '';
-    const pageHref = (target) => {
-      const slug = slugs.get(target.id);
-      if (slug === 'index') return `${prefix}index.html`;
-      return depth ? `${slug}.html` : `paginas/${slug}.html`;
-    };
-    const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ''), pages: project.pages, pageHref };
-
-    const nodesHTML = page.nodes
+  #nodesHTML(page, renderCtx) {
+    const project = this.store.project;
+    return page.nodes
       .map((id) => project.nodes[id])
       .filter((node) => node && !node.hidden)
       .map((node) => {
@@ -119,6 +80,61 @@ export class Exporter {
         ].filter(Boolean).join(' ');
         return `      <div ${attrs}>${contentHTML(node, renderCtx)}</div>`;
       }).join('\n');
+  }
+
+  /* ══ 1) EXPORT ZIP (carpeta de proyecto) ═══════════════ */
+
+  async export() {
+    const project = this.store.project;
+    const zip = new ZipWriter();
+
+    // Assets usados → archivos reales en assets/<carpeta>/
+    const assetPath = new Map();
+    for (const id of this.#usedAssetIds()) {
+      const asset = this.assets.get(id);
+      if (!asset) continue;
+      const dot = asset.name.lastIndexOf('.');
+      const ext = dot > 0 ? asset.name.slice(dot + 1).toLowerCase() : 'bin';
+      const base = slugify(dot > 0 ? asset.name.slice(0, dot) : asset.name);
+      const path = `assets/${ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`;
+      assetPath.set(id, path);
+      zip.file(path, dataURLToBytes(asset.data));
+    }
+
+    const slugs = this.#slugs();
+    const has3D = this.#has3D();
+    const cssText = this.#buildCSS(project, (page) => slugs.get(page.id));
+
+    for (const page of project.pages) {
+      const slug = slugs.get(page.id);
+      const isIndex = slug === 'index';
+      const html = this.#buildPageHTML(page, { slugs, assetPath, depth: isIndex ? 0 : 1, has3D, cssText });
+      zip.file(isIndex ? 'index.html' : `paginas/${slug}.html`, html);
+    }
+
+    // project.json CON assets incrustados → re-importable sin pérdidas
+    zip.file('project.json', JSON.stringify({ ...project, assetsData: this.assets.exportData() }));
+    zip.file('LEEME.txt',
+      `Sitio generado con No-Code Website Builder\n` +
+      `Proyecto: ${project.meta.name}\n\n` +
+      `- Abre index.html en un navegador (estilos y scripts van incrustados en cada página).\n` +
+      `- Sube la carpeta completa a cualquier hosting estático (Netlify, Vercel, GitHub Pages…).\n` +
+      `- project.json puede re-importarse en el editor CON todos los assets incluidos.\n` +
+      `- ¿Un solo archivo para compartir por el móvil? Usa "Exportar HTML (1 archivo)" en el editor.\n`);
+
+    download(`${slugify(project.meta.name)}.zip`, zip.toBlob());
+  }
+
+  #buildPageHTML(page, ctx) {
+    const { slugs, assetPath, depth, has3D, cssText } = ctx;
+    const project = this.store.project;
+    const prefix = depth ? '../' : '';
+    const pageHref = (target) => {
+      const slug = slugs.get(target.id);
+      if (slug === 'index') return `${prefix}index.html`;
+      return depth ? `${slug}.html` : `paginas/${slug}.html`;
+    };
+    const renderCtx = { editor: false, resolve: (id) => prefix + (assetPath.get(id) || ''), pages: project.pages, pageHref };
 
     const soundPaths = {};
     for (const node of page.nodes.map((id) => project.nodes[id])) {
@@ -133,27 +149,86 @@ export class Exporter {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(page.name)} — ${esc(project.meta.name)}</title>
-  <link rel="stylesheet" href="${prefix}css/style.css">
   <link rel="icon" href="data:,">
+  <style>
+${cssText}
+  </style>
 </head>
 <body>
   <div class="wb-scale-wrap">
     <main class="wb-stage wb-enter-${page.transition || 'fade'}" id="stage" data-page="${slugs.get(page.id)}"
       style="background:${page.background || '#0b1020'}">
-${nodesHTML}
+${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>
   <script>window.WB_SOUNDS=${JSON.stringify(soundPaths)};</script>
-  <script src="${prefix}js/app.js"></script>
-  <script src="${prefix}js/animations.js"></script>
-${has3D ? `  <script src="${prefix}js/webgl.js"></script>` : ''}
+  <script>
+${buildAppJS()}
+  </script>
+  <script>
+${buildAnimationsJS()}
+  </script>
+${has3D ? `  <script>\n${buildWebglJS()}\n  </script>` : ''}
 </body>
 </html>`;
   }
 
-  /* ── CSS del sitio ─────────────────────────────────── */
+  /* ══ 2) EXPORT DE UN SOLO ARCHIVO HTML ═════════════════ */
 
-  #buildCSS(project) {
+  async exportSingle() {
+    const project = this.store.project;
+    const has3D = this.#has3D();
+    const cssText = this.#buildCSS(project, (page) => page.id);
+
+    // Todos los assets como dataURL → autocontenido al 100 %
+    const renderCtx = {
+      editor: false,
+      resolve: (id) => this.assets.url(id),
+      pages: project.pages,
+      pageHref: () => '#',
+    };
+    const sounds = {};
+    for (const id of this.#usedAssetIds()) {
+      const asset = this.assets.get(id);
+      if (asset?.kind === 'audio') sounds[id] = asset.data;
+    }
+
+    const sections = project.pages.map((page, i) => `  <div class="wb-scale-wrap"${i ? ' style="display:none"' : ''} data-wrap="${page.id}">
+    <main class="wb-stage wb-enter-${page.transition || 'fade'}" data-page="${page.id}" data-enter="wb-enter-${page.transition || 'fade'}"
+      style="background:${page.background || '#0b1020'}">
+${this.#nodesHTML(page, renderCtx)}
+    </main>
+  </div>`).join('\n');
+
+    const html = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${esc(project.meta.name)}</title>
+  <link rel="icon" href="data:,">
+  <!-- Sitio autocontenido generado con No-Code Website Builder.
+       Todas las páginas, estilos, GIFs y vídeos van dentro de este archivo. -->
+  <style>
+${cssText}
+  </style>
+</head>
+<body>
+${sections}
+  <script>window.WB_SOUNDS=${JSON.stringify(sounds)};</script>
+  <script>
+${buildSingleRuntime()}
+  </script>
+${has3D ? `  <script>\n${buildWebglJS()}\n  </script>` : ''}
+</body>
+</html>`;
+
+    download(`${slugify(project.meta.name)}.html`, new Blob([html], { type: 'text/html' }));
+  }
+
+  /* ── CSS del sitio (compartido por ambos formatos) ───── */
+
+  #buildCSS(project, keyFor) {
     const bps = project.settings.breakpoints;
     const usedPresets = new Set();
     const rules = [];
@@ -180,7 +255,6 @@ ${has3D ? `  <script src="${prefix}js/webgl.js"></script>` : ''}
         const iter = anim.loop ? 'infinite' : '1';
         const selector = anim.trigger === 'hover' ? `.el-${node.id}:hover` : `.el-${node.id}.wb-play`;
         rules.push(`${selector}{animation:wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || 'ease-out'} ${anim.delay || 0}ms ${iter} both}`);
-        // Estado inicial de entradas: primer keyframe hasta que se dispare
         const first = PRESETS[anim.preset][0];
         if (['scroll', 'click'].includes(anim.trigger) && first.opacity === 0) {
           rules.push(`.el-${node.id}:not(.wb-play){opacity:0}`);
@@ -188,12 +262,27 @@ ${has3D ? `  <script src="${prefix}js/webgl.js"></script>` : ''}
       }
     }
 
-    // Ancho de diseño base + altura por página (hoja de estilos compartida)
-    const pageHeights = [`.wb-stage{width:${bps.desktop}px}`];
-    const perPage = project.pages.map((page, i) => {
-      const slug = i === 0 ? 'index' : slugify(page.slug || page.name);
-      return `.wb-stage[data-page="${slug}"]{height:${page.height}px}`;
-    });
+    const perPage = project.pages.map((page) =>
+      `.wb-stage[data-page="${keyFor(page)}"]{height:${page.height}px}`);
+
+    /*
+     * Breakpoints SOLO si el usuario diseñó overrides para ellos.
+     * Sin overrides, la página conserva su diseño de escritorio y se
+     * ESCALA proporcionalmente (runtime fit) → en el móvil se ve
+     * EXACTAMENTE como fue diseñada, nunca cortada ni descuadrada.
+     */
+    const tabletBlock = tabletRules.length ? `
+/* ── Breakpoint tablet (${bps.tablet}px de diseño) ── */
+@media (max-width:${BP.tablet}px){
+.wb-stage{width:${bps.tablet}px}
+${tabletRules.join('\n')}
+}` : '';
+    const mobileBlock = mobileRules.length ? `
+/* ── Breakpoint móvil (${bps.mobile}px de diseño) ── */
+@media (max-width:${BP.mobile}px){
+.wb-stage{width:${bps.mobile}px}
+${mobileRules.join('\n')}
+}` : '';
 
     const keyframes = [...usedPresets].map(presetToKeyframesCSS).join('\n');
     const transitions = `
@@ -210,9 +299,9 @@ ${has3D ? `  <script src="${prefix}js/webgl.js"></script>` : ''}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
 .wb-scale-wrap{width:100%;overflow:hidden}
-.wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif}
+.wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
 .wb-node{position:absolute;display:block}
-.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit}
+.wb-node .wb-text{width:100%;height:100%;font:inherit;color:inherit;text-align:inherit;line-height:inherit}
 .wb-btn{width:100%;height:100%;font:inherit;color:inherit;background:none;border:none;cursor:pointer;border-radius:inherit;background:inherit;text-align:inherit}
 .wb-icon{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:inherit}
 .wb-hidden{visibility:hidden!important}
@@ -226,7 +315,7 @@ html,body{background:#000}
 .wb-form button{padding:12px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer}
 .wb-menu{display:flex;width:100%;height:100%;align-items:center;justify-content:space-between;padding:0 28px;border-radius:inherit;background:inherit}
 .wb-menu-links{display:flex;gap:22px}
-.wb-menu a{color:inherit;text-decoration:none;opacity:.85}
+.wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
 .wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
 .wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
@@ -236,23 +325,13 @@ html,body{background:#000}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
 .wb-gallery img{border-radius:6px}
 
-${pageHeights.join('\n')}
 ${perPage.join('\n')}
 
 /* ── Nodos ── */
 ${rules.join('\n')}
 
-/* ── Breakpoint tablet (${bps.tablet}px de diseño) ── */
-@media (max-width:${BP.tablet}px){
-.wb-stage{width:${bps.tablet}px}
-${tabletRules.join('\n')}
-}
-
-/* ── Breakpoint móvil (${bps.mobile}px de diseño) ── */
-@media (max-width:${BP.mobile}px){
-.wb-stage{width:${bps.mobile}px}
-${mobileRules.join('\n')}
-}
+${tabletBlock}
+${mobileBlock}
 
 /* ── Animaciones ── */
 ${keyframes}
@@ -265,7 +344,7 @@ ${transitions}
 }
 
 /* ════════════════════════════════════════════════════════
- * Runtimes generados (se escriben tal cual dentro del ZIP)
+ * Runtimes generados (se incrustan tal cual en el HTML)
  * ════════════════════════════════════════════════════════ */
 
 function buildAppJS() {
@@ -276,12 +355,10 @@ function buildAppJS() {
   var wrap = document.querySelector('.wb-scale-wrap');
 
   /* Escala proporcional: el diseño mantiene sus coordenadas y se
-     ajusta a CUALQUIER viewport sin reflow (transform GPU).
-     Las media queries cambian el ancho de diseño (desktop/tablet/
-     móvil) y esta función cubre los tamaños intermedios. */
+     ajusta a CUALQUIER viewport sin reflow (transform GPU). */
   function fit() {
     stage.style.transform = 'none';
-    var designW = stage.offsetWidth; // ancho de diseño según media query activa
+    var designW = stage.offsetWidth;
     var scale = Math.min(1, window.innerWidth / designW);
     if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
     wrap.style.height = (stage.offsetHeight * scale) + 'px';
@@ -348,7 +425,6 @@ function buildAnimationsJS() {
 (function () {
   'use strict';
 
-  /* Scroll: IntersectionObserver dispara la animación CSS una vez */
   var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
   if (scrollNodes.length && 'IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
@@ -359,14 +435,12 @@ function buildAnimationsJS() {
     scrollNodes.forEach(function (node) { io.observe(node); });
   }
 
-  /* Click: reinicia y ejecuta la animación en cada clic */
   document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
     node.addEventListener('click', function () {
       node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
     });
   });
 
-  /* Sliders automáticos */
   document.querySelectorAll('.wb-slider').forEach(function (slider) {
     var slides = slider.querySelectorAll('.wb-slide');
     if (slides.length < 2) return;
@@ -381,16 +455,139 @@ function buildAnimationsJS() {
 `;
 }
 
+/** Runtime del export de UN SOLO ARCHIVO: navegación SPA entre páginas. */
+function buildSingleRuntime() {
+  return `/* Runtime autocontenido — generado por No-Code Website Builder */
+(function () {
+  'use strict';
+
+  function activeWrap() {
+    var wraps = document.querySelectorAll('.wb-scale-wrap');
+    for (var i = 0; i < wraps.length; i++) if (wraps[i].style.display !== 'none') return wraps[i];
+    return wraps[0];
+  }
+
+  /* Escala proporcional del stage visible → se adapta a cualquier móvil */
+  function fit() {
+    var wrap = activeWrap();
+    if (!wrap) return;
+    var stage = wrap.querySelector('.wb-stage');
+    stage.style.transform = 'none';
+    var designW = stage.offsetWidth;
+    var scale = Math.min(1, window.innerWidth / designW);
+    if (scale < 1) stage.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (stage.offsetHeight * scale) + 'px';
+  }
+  var rafFit;
+  window.addEventListener('resize', function () { cancelAnimationFrame(rafFit); rafFit = requestAnimationFrame(fit); });
+
+  /* Navegación interna entre páginas (SPA) */
+  function showPage(pageId) {
+    document.querySelectorAll('.wb-scale-wrap').forEach(function (wrap) {
+      wrap.style.display = wrap.getAttribute('data-wrap') === pageId ? '' : 'none';
+    });
+    var stage = document.querySelector('.wb-stage[data-page="' + pageId + '"]');
+    if (stage) { // re-dispara la transición de entrada de la página
+      var cls = stage.getAttribute('data-enter');
+      stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls);
+    }
+    window.scrollTo(0, 0);
+    fit();
+  }
+  document.querySelectorAll('.wb-menu a[data-page]').forEach(function (link) {
+    link.addEventListener('click', function (e) { e.preventDefault(); showPage(link.getAttribute('data-page')); });
+  });
+
+  /* Eventos declarativos */
+  function runAction(ev) {
+    if (ev.action === 'goToPage' && ev.target) showPage(ev.target);
+    else if (ev.action === 'openUrl' && ev.target) window.open(ev.target, '_blank', 'noopener');
+    else if (ev.action === 'toggleNode' && ev.target) {
+      var node = document.querySelector('.el-' + ev.target);
+      if (node) node.classList.toggle('wb-hidden');
+    } else if (ev.action === 'playAnimation' && ev.target) {
+      var target = document.querySelector('.el-' + ev.target);
+      if (target) { target.classList.remove('wb-play'); void target.offsetWidth; target.classList.add('wb-play'); }
+    } else if (ev.action === 'playSound' && ev.target && window.WB_SOUNDS[ev.target]) {
+      new Audio(window.WB_SOUNDS[ev.target]).play().catch(function(){});
+    }
+  }
+  document.querySelectorAll('[data-events]').forEach(function (elem) {
+    var events;
+    try { events = JSON.parse(elem.getAttribute('data-events')); } catch (e) { return; }
+    events.forEach(function (ev) {
+      elem.addEventListener(ev.on === 'hover' ? 'mouseenter' : 'click', function () { runAction(ev); });
+    });
+    elem.style.cursor = 'pointer';
+  });
+
+  /* Animaciones por scroll */
+  var scrollNodes = document.querySelectorAll('[data-trigger="scroll"]');
+  if (scrollNodes.length && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('wb-play'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.25 });
+    scrollNodes.forEach(function (node) { io.observe(node); });
+  }
+  document.querySelectorAll('[data-trigger="click"]').forEach(function (node) {
+    node.addEventListener('click', function () {
+      node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
+    });
+  });
+
+  /* Sliders */
+  document.querySelectorAll('.wb-slider').forEach(function (slider) {
+    var slides = slider.querySelectorAll('.wb-slide');
+    if (slides.length < 2) return;
+    var index = 0;
+    setInterval(function () {
+      slides[index].classList.remove('active');
+      index = (index + 1) % slides.length;
+      slides[index].classList.add('active');
+    }, parseInt(slider.getAttribute('data-interval'), 10) || 3000);
+  });
+
+  /* Vídeos con reproducción al hacer scroll */
+  var vids = document.querySelectorAll('video[data-scrollplay]');
+  if (vids.length && 'IntersectionObserver' in window) {
+    var vio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) entry.target.play().catch(function(){});
+        else entry.target.pause();
+      });
+    }, { threshold: 0.35 });
+    vids.forEach(function (v) { vio.observe(v); });
+  }
+
+  /* GIFs pausados → primer frame congelado */
+  document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img) {
+    function freeze() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
+      img.replaceWith(canvas);
+    }
+    if (img.complete) freeze(); else img.addEventListener('load', freeze);
+  });
+
+  fit(); setTimeout(fit, 50);
+})();
+`;
+}
+
 function buildWebglJS() {
   return `/* Motor WebGL — generado por No-Code Website Builder
- * Partículas: WebGL2 nativo. Modelos: Three.js (CDN, carga perezosa). */
-
-/* ── Partículas WebGL2 ── */
+ * Partículas: WebGL2 nativo con simulación basada en TIEMPO REAL:
+ * la velocidad es idéntica a 60, 90, 120, 144 o 165 Hz y el motor
+ * aprovecha la tasa de refresco nativa del dispositivo. */
 function mountParticles(canvas) {
   var opts = canvas.dataset;
   var count = Math.min(+opts.count || 400, 8000);
   var speed = +opts.speed || 1, mode = opts.mode || 'nebulosa';
-  var gl = canvas.getContext('webgl2', { alpha: true });
+  var gl = canvas.getContext('webgl2', { alpha: true, powerPreference: 'high-performance' });
   if (!gl) return;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
@@ -419,28 +616,31 @@ function mountParticles(canvas) {
   var aPos = gl.getAttribLocation(pr, 'aPos'), aLife = gl.getAttribLocation(pr, 'aLife');
   gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aLife);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-  var visible = true, t = 0;
+  var visible = true, t = 0, last = 0;
   new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(canvas);
-  (function step() {
+  function step(now) {
     requestAnimationFrame(step);
-    if (!visible) return;
-    t += .016 * speed;
+    if (!visible) { last = now; return; }
+    var dt = Math.min((now - last) / 1000 || 0.016, 0.05); // segundos reales
+    last = now;
+    var k = dt * 60 * speed; // misma velocidad en cualquier Hz
+    t += dt * speed;
     var cx = W / 2, cy = H / 2;
     for (var i = 0; i < count; i++) {
       if (mode === 'órbita') {
-        orb[i * 2 + 1] += .004 * speed * (1 + (i % 5) * .15);
+        orb[i * 2 + 1] += .24 * dt * speed * (1 + (i % 5) * .15);
         pos[i * 2] = cx + Math.cos(orb[i * 2 + 1]) * orb[i * 2];
         pos[i * 2 + 1] = cy + Math.sin(orb[i * 2 + 1]) * orb[i * 2] * .6;
       } else if (mode === 'lluvia') {
-        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * speed * dpr;
+        pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * dpr;
         if (pos[i * 2 + 1] > H) { pos[i * 2 + 1] = -4; pos[i * 2] = Math.random() * W; }
       } else {
-        pos[i * 2] += vel[i * 2] * speed * dpr + Math.sin(t + i) * .1;
-        pos[i * 2 + 1] += vel[i * 2 + 1] * speed * dpr + Math.cos(t * .7 + i) * .1;
+        pos[i * 2] += vel[i * 2] * k * dpr + Math.sin(t + i) * .1 * k;
+        pos[i * 2 + 1] += vel[i * 2 + 1] * k * dpr + Math.cos(t * .7 + i) * .1 * k;
         if (pos[i * 2] < 0) pos[i * 2] = W; else if (pos[i * 2] > W) pos[i * 2] = 0;
         if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H; else if (pos[i * 2 + 1] > H) pos[i * 2 + 1] = 0;
       }
-      life[i] += .01; if (life[i] > 1) life[i] = 0;
+      life[i] += .01 * k; if (life[i] > 1) life[i] = 0;
     }
     gl.uniform2f(uRes, W, H);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -449,11 +649,12 @@ function mountParticles(canvas) {
     gl.bindBuffer(gl.ARRAY_BUFFER, lb); gl.bufferData(gl.ARRAY_BUFFER, life, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(aLife, 1, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.POINTS, 0, count);
-  })();
+  }
+  requestAnimationFrame(step);
 }
 document.querySelectorAll('.wb-particles').forEach(mountParticles);
 
-/* ── Modelos 3D con Three.js ── */
+/* ── Modelos 3D con Three.js (CDN, carga perezosa) ── */
 var holders = document.querySelectorAll('.wb-3d');
 if (holders.length) {
   Promise.all([
