@@ -51,9 +51,25 @@ cambia el fondo, suena una canción y estallan corazones"*. Disparadores:
 tocar, doble toque, **mantener presionado**, pasar el cursor, **deslizar**,
 aparecer en pantalla. Acciones: ir a página, mostrar/ocultar, animar,
 reproducir/detener sonidos, cambiar texto/estilo/fondo, estallido de
-corazones, **vibración móvil**, abrir URL y **ejecutar JavaScript propio**.
+corazones, **mensajes flotantes estilo iOS**, **vibración móvil**, abrir URL
+y **ejecutar JavaScript propio**. Además, casi todo componente nace ya con
+una animación de entrada y micro-interacciones al tocar.
+
+Bloques con lógica precableada listos para usar: **La gran pregunta (Sí/No)**
+con celebración de corazones, **Cupones de amor** canjeables manteniendo
+presionado, y **Razones por las que te amo** con tarjetas 3D interactivas.
+
+### 📱 Táctil sin complicaciones (interfaz estilo iOS)
+Interfaz rediseñada con estética iPhone: cristal esmerilado, píldoras,
+control segmentado y barra de pestañas iOS. **Un dedo** sobre el lienzo
+vacío desplaza; sobre un elemento, lo mueve. **Dos dedos** siempre
+desplazan y hacen zoom (pinch), también en vista previa — y los toques
+llegan limpios a cartas, botones y secretos.
 
 ### 🧩 Extensión con tu propio código
+- Componente **"3D personalizado"**: pega código Three.js (recibe `THREE`,
+  `scene`, `camera`, `pivot`, `renderer`, `GLTFLoader`) y devuelve un
+  `update(dt)` opcional — tu escena corre en el editor y en el export.
 - Componente **"Código personalizado"**: HTML + CSS + JS dentro de un elemento.
 - **CSS/JS global** del proyecto y **por página** (nuevas animaciones, fondos,
   partículas, efectos Canvas/WebGL...).

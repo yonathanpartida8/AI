@@ -487,6 +487,150 @@ function contactBlock(y) {
   };
 }
 
+function reasonsBlock(y) {
+  const reasons = [
+    ['😊', 'Tu sonrisa'], ['🎧', 'Nuestras canciones'], ['�full', 'Cómo me cuidas'],
+    ['😂', 'Tus locuras'], ['🫶', 'Tu forma de amar'], ['∞', 'Todo lo que viene'],
+  ];
+  reasons[2][0] = '🌙';
+  const nodes = [
+    node('text', { x: 290, y: y + 60, w: 700, h: 60 }, {
+      name: 'Título razones', props: { text: 'Razones por las que te amo', tag: 'h2' },
+      styles: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+      animation: scroll('fadeInUp'),
+    }),
+  ];
+  reasons.forEach(([emoji, reason], i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const card = node('container', { x: 130 + col * 360, y: y + 160 + row * 175, w: 320, h: 145 }, {
+      name: `Razón ${i + 1}`,
+      styles: { background: 'rgba(244,114,182,.09)', radius: 20, borderWidth: 1, borderColor: 'rgba(244,114,182,.3)' },
+      animation: scroll('flipInY', i * 120),
+    });
+    card.effects = { parallax: 0, tilt: true };
+    card.events = [{ on: 'click', actions: [{ action: 'burstHearts', target: '', value: emoji, delay: 0 }] }];
+    nodes.push(
+      card,
+      node('icon', { x: 130 + col * 360 + 125, y: y + 175 + row * 175, w: 70, h: 60 }, {
+        name: `Emoji razón ${i + 1}`, props: { glyph: emoji }, styles: { fontSize: 38 },
+        animation: scroll('zoomIn', i * 120 + 100),
+      }),
+      node('text', { x: 130 + col * 360 + 15, y: y + 240 + row * 175, w: 290, h: 44 }, {
+        name: `Texto razón ${i + 1}`, props: { text: reason, tag: 'p' },
+        styles: { fontSize: 17, fontWeight: '600', textAlign: 'center', color: '#fbcfe8' },
+        animation: scroll('fadeIn', i * 120 + 150),
+      }),
+    );
+  });
+  return { height: 560, nodes };
+}
+
+function couponsBlock(y) {
+  const coupons = [
+    ['🎬', 'Vale por una noche de pelis', 'sin mirar el móvil'],
+    ['🍕', 'Vale por tu cena favorita', 'donde tú elijas'],
+    ['🤗', 'Vale por un abrazo infinito', 'canjeable a cualquier hora'],
+  ];
+  const nodes = [
+    node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
+      name: 'Título cupones', props: { text: 'Cupones de amor', tag: 'h2' },
+      styles: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+      animation: scroll('fadeInUp'),
+    }),
+    node('text', { x: 390, y: y + 125, w: 500, h: 30 }, {
+      name: 'Subtítulo cupones', props: { text: 'Mantén presionado un cupón para canjearlo', tag: 'p' },
+      styles: { fontSize: 14, color: 'rgba(249,168,212,.75)', textAlign: 'center' },
+      animation: scroll('fadeIn', 120),
+    }),
+  ];
+  coupons.forEach(([emoji, title, small], i) => {
+    const card = node('container', { x: 105 + i * 370, y: y + 185, w: 340, h: 170 }, {
+      name: `Cupón ${i + 1}`,
+      styles: { background: 'linear-gradient(135deg,rgba(255,55,95,.16),rgba(175,82,222,.12))', radius: 18, borderWidth: 2, borderColor: 'rgba(255,55,95,.45)' },
+      animation: scroll('slideInLeft', i * 150),
+    });
+    card.events = [{
+      on: 'hold',
+      actions: [
+        { action: 'burstHearts', target: '', value: emoji, delay: 0 },
+        { action: 'showMessage', target: '', value: `¡Cupón canjeado! ${emoji} ${title}`, delay: 200 },
+        { action: 'vibrate', target: '', value: '80', delay: 0 },
+      ],
+    }];
+    nodes.push(
+      card,
+      node('icon', { x: 105 + i * 370 + 135, y: y + 205, w: 70, h: 56 }, {
+        name: `Emoji cupón ${i + 1}`, props: { glyph: emoji }, styles: { fontSize: 36 },
+        animation: scroll('tada', i * 150 + 200),
+      }),
+      node('text', { x: 105 + i * 370 + 20, y: y + 268, w: 300, h: 46 }, {
+        name: `Título cupón ${i + 1}`, props: { text: title, tag: 'h3' },
+        styles: { fontSize: 17, fontWeight: '700', textAlign: 'center', color: '#fecdd3' },
+        animation: scroll('fadeIn', i * 150 + 250),
+      }),
+      node('text', { x: 105 + i * 370 + 20, y: y + 316, w: 300, h: 26 }, {
+        name: `Nota cupón ${i + 1}`, props: { text: small, tag: 'p' },
+        styles: { fontSize: 12, color: 'rgba(253,242,248,.6)', textAlign: 'center' },
+        animation: scroll('fadeIn', i * 150 + 300),
+      }),
+    );
+  });
+  return { height: 430, nodes };
+}
+
+function questionBlock(y) {
+  const yesBtn = node('heartButton', { x: 430, y: y + 260, w: 200, h: 60 }, {
+    name: 'Botón Sí',
+    props: { text: '¡Sí! 💖', emoji: '💖' },
+    styles: {
+      fontSize: 19, fontWeight: '800', textAlign: 'center', color: '#fff',
+      background: 'linear-gradient(90deg,#ff375f,#af52de)', radius: 30, shadow: 'neón',
+    },
+    animation: scroll('latido', 300, { loop: true, duration: 1500 }),
+  });
+  const noBtn = node('button', { x: 660, y: y + 260, w: 190, h: 60 }, {
+    name: 'Botón Piénsalo',
+    props: { text: 'Déjame pensarlo…' },
+    styles: { fontSize: 15, fontWeight: '600', textAlign: 'center', color: '#d8b4fe', background: 'rgba(148,163,184,.12)', radius: 30 },
+    animation: scroll('fadeIn', 400),
+  });
+  yesBtn.events = [{
+    on: 'click',
+    actions: [
+      { action: 'burstHearts', target: '', value: '💖', delay: 0 },
+      { action: 'burstHearts', target: '', value: '🎉', delay: 250 },
+      { action: 'showMessage', target: '', value: '¡Sabía que dirías que sí! Te amo 💘', delay: 300 },
+      { action: 'vibrate', target: '', value: '120', delay: 0 },
+      { action: 'hideNode', target: noBtn.id, value: '', delay: 400 },
+    ],
+  }];
+  noBtn.events = [{
+    on: 'click',
+    actions: [
+      { action: 'playAnimation', target: yesBtn.id, value: '', delay: 0 },
+      { action: 'showMessage', target: '', value: 'El otro botón te está esperando 😏', delay: 100 },
+    ],
+  }];
+  return {
+    height: 420,
+    nodes: [
+      node('particles', { x: 0, y, w: W, h: 420 }, {
+        name: 'Luciérnagas pregunta',
+        styles: { background: 'transparent', radius: 0 },
+        props: { count: 60, color: '#f9a8d4', speed: 0.6, size: 2.4, mode: 'luciérnagas' },
+      }),
+      node('text', { x: 240, y: y + 90, w: 800, h: 110 }, {
+        name: 'La gran pregunta',
+        props: { text: '¿Quieres seguir escribiendo\nesta historia conmigo?', tag: 'h2' },
+        styles: { fontSize: 40, fontWeight: '900', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia', textGlow: 'rosa' },
+        animation: scroll('blurIn', 0, { duration: 1200 }),
+      }),
+      yesBtn,
+      noBtn,
+    ],
+  };
+}
+
 /* ── API pública ─────────────────────────────────────── */
 
 export const BLOCKS = {
@@ -498,6 +642,9 @@ export const BLOCKS = {
   secret: { label: 'Mensaje secreto', icon: '🔮', build: secretBlock },
   chapter: { label: 'Capítulo de historia', icon: '📖', build: chapterBlock },
   music: { label: 'Nuestra canción', icon: '🎶', build: musicBlock },
+  reasons: { label: 'Razones por las que te amo', icon: '💝', build: reasonsBlock },
+  coupons: { label: 'Cupones de amor', icon: '🎟', build: couponsBlock },
+  question: { label: 'La gran pregunta (Sí/No)', icon: '💍', build: questionBlock },
   hero: { label: 'Héroe con partículas', icon: '✨', build: heroBlock },
   features: { label: 'Características (3 tarjetas)', icon: '🃏', build: featuresBlock },
   quote: { label: 'Cita destacada', icon: '❝', build: quoteBlock },
@@ -521,7 +668,7 @@ export function starterProject() {
   const pageId = uid('pg');
   const allNodes = [];
   let y = 0;
-  for (const key of ['romanticHero', 'letter', 'timelineB', 'countdownB', 'polaroids', 'secret', 'music', 'footer']) {
+  for (const key of ['romanticHero', 'letter', 'timelineB', 'countdownB', 'polaroids', 'reasons', 'secret', 'question', 'music', 'footer']) {
     const block = buildBlock(key, y);
     allNodes.push(...block.nodes);
     y += block.height;

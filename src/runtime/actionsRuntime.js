@@ -79,6 +79,15 @@ export function wbActions(root, ctx) {
       case 'burstHearts':
         if (root.wbBurst) root.wbBurst(target || sourceEl, a.value || '❤️');
         break;
+      case 'showMessage': {
+        var toast = document.createElement('div');
+        toast.className = 'wb-toast';
+        toast.textContent = a.value || '💌';
+        document.body.appendChild(toast);
+        timers.push(setTimeout(function () { toast.classList.add('out'); }, 2600));
+        timers.push(setTimeout(function () { toast.remove(); }, 3300));
+        break;
+      }
       case 'vibrate':
         if (navigator.vibrate) navigator.vibrate(+a.value || 40);
         break;

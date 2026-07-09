@@ -110,6 +110,26 @@ export const COMPONENT_CSS = `
 .wb-fx-arcoiris{animation:wb-fxrainbow 3.2s linear infinite;animation-delay:calc(var(--i)*-140ms)}
 @keyframes wb-fxrainbow{0%{color:#f472b6}20%{color:#fb923c}40%{color:#facc15}60%{color:#4ade80}80%{color:#38bdf8}100%{color:#f472b6}}
 
+/* ── Micro-interacciones: todo responde al tacto ── */
+.wb-btn,.wb-heartbtn,.wb-form button{transition:transform .18s cubic-bezier(.2,.8,.25,1),filter .18s}
+.wb-btn:hover,.wb-form button:hover{transform:scale(1.035);filter:brightness(1.1)}
+.wb-btn:active,.wb-form button:active{transform:scale(.94)}
+.wb-node img{transition:transform .35s cubic-bezier(.2,.8,.25,1)}
+.wb-gallery img:hover,.wb-slider:hover .wb-slide.active{transform:scale(1.04)}
+.wb-menu a{transition:opacity .15s,transform .15s}
+.wb-menu a:active{transform:scale(.93)}
+
+/* ── Mensaje flotante (acción showMessage) ── */
+.wb-toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(20px);z-index:9999;
+  max-width:82vw;padding:14px 24px;border-radius:22px;background:rgba(28,28,30,.86);color:#fff;
+  font:600 16px/1.4 -apple-system,system-ui,sans-serif;text-align:center;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.12);
+  animation:wb-toast-in .45s cubic-bezier(.2,.8,.25,1) both;pointer-events:none}
+.wb-toast.out{animation:wb-toast-out .6s ease both}
+@keyframes wb-toast-in{from{opacity:0;transform:translateX(-50%) translateY(26px) scale(.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes wb-toast-out{to{opacity:0;transform:translateX(-50%) translateY(14px) scale(.94)}}
+
 /* ── Placeholders (editor y export degradado) ── */
 .wb-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;border:2px dashed #334155;border-radius:inherit;color:#64748b;font-weight:600;text-align:center;padding:8px;font-size:14px}
 .wb-placeholder small{font-weight:400;font-size:11px}

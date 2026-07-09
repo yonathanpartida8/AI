@@ -205,6 +205,10 @@ export function contentHTML(node, ctx) {
       return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
     }
 
+    case 'custom3D':
+      // El código viaja en un <script> inerte; lo ejecuta el motor 3D
+      return `<div class="wb-3d" data-kind="custom" data-cameraz="${p.cameraZ ?? 4}"><script type="text/wb-3d">${String(p.code || '').replaceAll('</script', '<\\/script')}</script></div>`;
+
     case 'gradientBg': {
       const colors = String(p.colors || '#ec4899,#8b5cf6').split(',').map((c) => c.trim()).filter(Boolean);
       const gradient = `linear-gradient(270deg, ${colors.join(', ')})`;
@@ -241,8 +245,16 @@ export function contentHTML(node, ctx) {
         : `<span class="wb-typewriter" data-text="${esc(p.text)}" data-tspeed="${p.speed || 90}" data-tloop="${!!p.loop}"></span>`;
 
     case 'countdown': {
+      // Valores iniciales reales también en el editor (el runtime los actualiza)
+      const date = new Date(`${p.date || ''}T00:00:00`);
+      let diff = Number.isNaN(+date) ? 0 : (p.mode === 'hasta' ? +date - Date.now() : Date.now() - +date);
+      if (diff < 0) diff = 0;
+      const vals = {
+        d: Math.floor(diff / 86400000), h: Math.floor(diff / 3600000) % 24,
+        m: Math.floor(diff / 60000) % 60, s: Math.floor(diff / 1000) % 60,
+      };
       const tiles = [['d', 'días'], ['h', 'horas'], ['m', 'min'], ['s', 'seg']].map(([u, label]) =>
-        `<div class="wb-count-tile"><b data-u="${u}">0</b><small>${label}</small></div>`).join('');
+        `<div class="wb-count-tile"><b data-u="${u}">${vals[u]}</b><small>${label}</small></div>`).join('');
       return `<div class="wb-count" data-date="${esc(p.date || '')}" data-cmode="${p.mode || 'desde'}">
         <div class="wb-count-label">${esc(p.label || '')}</div>${tiles}</div>`;
     }

@@ -15,17 +15,21 @@
  * css/editor.css — Interfaz del editor (tema oscuro profesional)
  * ============================================================ */
 
+/* Estética iOS (modo oscuro): cristal esmerilado, tipografía SF,
+   azul sistema #0A84FF y rosa #FF375F como acento romántico. */
 :root {
-  --bg: #0a0e1a;
-  --panel: #0f1424;
-  --panel-2: #141a2e;
-  --border: #232b42;
-  --text: #dbe2f0;
-  --text-dim: #8b94ab;
-  --accent: #6366f1;
-  --accent-2: #818cf8;
-  --danger: #ef4444;
-  --radius: 8px;
+  --bg: #000000;
+  --panel: rgba(22, 22, 26, .88);
+  --panel-2: rgba(44, 44, 46, .85);
+  --border: rgba(84, 84, 88, .48);
+  --text: #f2f2f7;
+  --text-dim: #98989f;
+  --accent: #0a84ff;
+  --accent-2: #64b5ff;
+  --pink: #ff375f;
+  --danger: #ff453a;
+  --radius: 12px;
+  --blur: saturate(180%) blur(22px);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,8 +39,9 @@ html, body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font: 13px/1.45 system-ui, -apple-system, sans-serif;
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 body { display: flex; flex-direction: column; }
@@ -49,16 +54,18 @@ button { font: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 48px;
+  height: 50px;
   padding: 0 12px;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-bottom: .5px solid var(--border);
   flex: none;
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.brand { font-weight: 800; color: var(--accent-2); white-space: nowrap; }
+.brand { font-weight: 800; color: var(--pink); white-space: nowrap; letter-spacing: -.3px; }
 .sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; flex: none; }
 .spacer { flex: 1; }
 .zoom-label { min-width: 44px; text-align: center; color: var(--text-dim); font-variant-numeric: tabular-nums; }
@@ -67,39 +74,44 @@ button { font: inherit; color: inherit; }
 .saved-dot.flash { color: #34d399; }
 
 .btn {
-  padding: 6px 10px;
+  padding: 7px 12px;
   background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: .5px solid var(--border);
+  border-radius: 999px; /* píldoras iOS */
   cursor: pointer;
   white-space: nowrap;
-  transition: background .15s, border-color .15s;
+  font-weight: 500;
+  transition: background .15s, transform .12s cubic-bezier(.2,.8,.25,1), filter .15s;
 }
-.btn:hover { background: #1b2340; border-color: #33406b; }
-.btn.active, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn.primary:hover { background: #4f52e0; }
-.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
-.btn.block { display: block; width: 100%; margin: 8px 0; }
+.btn:hover { filter: brightness(1.25); }
+.btn:active { transform: scale(.94); }
+.btn.active, .btn.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.12); }
+.btn.danger:hover { background: var(--danger); border-color: transparent; color: #fff; }
+.btn.block { display: block; width: 100%; margin: 8px 0; border-radius: var(--radius); }
 .btn-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
 
-.seg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.seg-btn { padding: 6px 10px; background: none; border: none; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
-.seg-btn.active { background: var(--accent); color: #fff; }
+/* Control segmentado iOS */
+.seg { display: flex; background: rgba(118,118,128,.24); border: none; border-radius: 9px; overflow: hidden; padding: 2px; gap: 2px; }
+.seg-btn { padding: 5px 11px; background: none; border: none; cursor: pointer; color: var(--text-dim); white-space: nowrap; border-radius: 7px; transition: background .18s, color .18s; }
+.seg-btn.active { background: #636366; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
 
 /* ── Layout ─────────────────────────────────────────── */
 
 #workspace { display: flex; flex: 1; min-height: 0; }
 
 #left-panel, #right-panel {
-  width: 250px;
+  width: 252px;
   flex: none;
   background: var(--panel);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
-#left-panel { border-right: 1px solid var(--border); }
-#right-panel { border-left: 1px solid var(--border); padding: 12px; }
+#left-panel { border-right: .5px solid var(--border); }
+#right-panel { border-left: .5px solid var(--border); padding: 12px; }
 
 @media (max-width: 900px) {
   #left-panel, #right-panel { width: 200px; }
@@ -121,29 +133,30 @@ button { font: inherit; color: inherit; }
 .palette-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .palette-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 6px; background: var(--panel-2); border: 1px solid var(--border);
-  border-radius: var(--radius); cursor: grab; user-select: none; font-size: 12px;
-  transition: transform .12s, border-color .12s;
+  padding: 12px 6px; background: var(--panel-2); border: .5px solid var(--border);
+  border-radius: 14px; cursor: grab; user-select: none; font-size: 12px;
+  transition: transform .15s cubic-bezier(.2,.8,.25,1), border-color .15s;
 }
-.palette-item:hover { border-color: var(--accent); transform: translateY(-2px); }
-.palette-item:active { cursor: grabbing; }
-.palette-icon { font-size: 20px; color: var(--accent-2); }
+.palette-item:hover { border-color: var(--pink); transform: translateY(-2px) scale(1.02); }
+.palette-item:active { cursor: grabbing; transform: scale(.95); }
+.palette-icon { font-size: 20px; color: var(--pink); }
 
 .block-list { display: flex; flex-direction: column; gap: 6px; }
 .block-item {
   display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 10px 12px; background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(139,92,246,.06));
-  border: 1px solid var(--border); border-radius: var(--radius);
-  cursor: pointer; text-align: left; font-size: 12px;
-  transition: border-color .12s, transform .12s;
+  padding: 11px 12px; background: linear-gradient(135deg, rgba(255,55,95,.13), rgba(175,82,222,.07));
+  border: .5px solid var(--border); border-radius: 14px;
+  cursor: pointer; text-align: left; font-size: 12px; font-weight: 500;
+  transition: border-color .15s, transform .15s cubic-bezier(.2,.8,.25,1);
 }
-.block-item:hover { border-color: var(--accent); transform: translateX(3px); }
+.block-item:hover { border-color: var(--pink); transform: translateX(3px); }
+.block-item:active { transform: scale(.97); }
 
 /* ── Assets ─────────────────────────────────────────── */
 
 .input {
-  width: 100%; padding: 7px 9px; background: var(--panel-2);
-  border: 1px solid var(--border); border-radius: var(--radius); color: var(--text);
+  width: 100%; padding: 8px 10px; background: rgba(118,118,128,.18);
+  border: .5px solid transparent; border-radius: 10px; color: var(--text);
   font: inherit;
 }
 .input.block { margin: 8px 0; }
@@ -257,7 +270,8 @@ button { font: inherit; color: inherit; }
   position: relative; overflow: hidden; touch-action: none;
   grid-row: 2; grid-column: 2; /* posición explícita: no depende de las reglas */
   background:
-    radial-gradient(circle at 20% 10%, rgba(99,102,241,.06), transparent 45%),
+    radial-gradient(circle at 25% 8%, rgba(255,55,95,.07), transparent 42%),
+    radial-gradient(circle at 80% 90%, rgba(175,82,222,.06), transparent 45%),
     var(--bg);
   cursor: default;
 }
@@ -383,7 +397,10 @@ body.preview .wb-placeholder { opacity: .25; }
 #mobile-nav {
   display: none;
   position: fixed; left: 0; right: 0; bottom: 0; height: 58px;
-  background: var(--panel); border-top: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-top: .5px solid var(--border);
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
@@ -391,25 +408,30 @@ body.preview .wb-placeholder { opacity: .25; }
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; background: none; border: none; color: var(--text-dim); cursor: pointer;
 }
-#mobile-nav button.active { color: var(--accent-2); }
+#mobile-nav button.active { color: var(--accent); }
 #mobile-nav .mn-icon { font-size: 19px; line-height: 1; }
 #mobile-nav .mn-label { font-size: 10px; }
 
 /* ── Rediseño MÓVIL (Android / iOS) ─────────────────── */
 
 @media (max-width: 820px) {
-  /* Los paneles se convierten en hojas deslizantes inferiores:
+  /* Los paneles se convierten en hojas deslizantes estilo iOS:
      el lienzo ocupa TODA la pantalla y el zoom de ajuste es correcto. */
   #left-panel, #right-panel {
     position: fixed; left: 0; right: 0; bottom: 58px; top: auto;
     width: 100%; max-height: 56vh;
-    border: none; border-top: 1px solid var(--border);
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -14px 44px rgba(0, 0, 0, .55);
+    border: none; border-top: .5px solid var(--border);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -14px 44px rgba(0, 0, 0, .6);
     transform: translateY(115%);
-    transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+    transition: transform .32s cubic-bezier(.2, .9, .25, 1);
     z-index: 90;
     padding-bottom: 10px;
+  }
+  /* Asa de arrastre iOS */
+  #left-panel::before, #right-panel::before {
+    content: ''; display: block; width: 38px; height: 5px; border-radius: 3px;
+    background: rgba(152,152,159,.4); margin: 8px auto 2px; flex: none;
   }
   #left-panel.open, #right-panel.open { transform: none; }
 
@@ -1060,6 +1082,29 @@ body.preview .wb-placeholder { opacity: .25; }
       ]
     },
     /* ── Extensión con código propio ────────────────────── */
+    custom3D: {
+      label: "3D personalizado",
+      icon: "\u{1F9CA}",
+      cat: "Avanzados",
+      size: [420, 340],
+      defaults: {
+        props: {
+          code: `// Escena Three.js lista: THREE, scene, camera, pivot, renderer, GLTFLoader.
+// A\xF1ade objetos a "pivot" y devuelve una funci\xF3n update(dt) opcional.
+const geo = new THREE.IcosahedronGeometry(1.1, 0);
+const mat = new THREE.MeshStandardMaterial({ color: '#ff375f', metalness: .5, roughness: .2 });
+const mesh = new THREE.Mesh(geo, mat);
+pivot.add(mesh);
+return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
+          cameraZ: 4
+        },
+        styles: {}
+      },
+      schema: [
+        { key: "props.code", label: "C\xF3digo Three.js", type: "textarea" },
+        num("props.cameraZ", "Distancia de c\xE1mara", 1, 20, 0.1)
+      ]
+    },
     customHTML: {
       label: "C\xF3digo personalizado",
       icon: "</>",
@@ -1084,8 +1129,24 @@ body.preview .wb-placeholder { opacity: .25; }
   function componentDef(type) {
     return Components[type] || Components.shape;
   }
+  var NO_DEFAULT_ANIM = /* @__PURE__ */ new Set(["section", "container", "particles", "gradientBg", "floatingEmojis", "menu", "customHTML", "custom3D"]);
+  var DEFAULT_PRESET = {
+    image: "zoomIn",
+    gif: "zoomIn",
+    video: "zoomIn",
+    polaroid: "caida",
+    photo3d: "zoomIn",
+    heart3d: "zoomIn",
+    model3d: "zoomIn",
+    icon: "tada",
+    shape: "zoomIn",
+    heartButton: "latido",
+    button: "fadeInUp",
+    loveLetter: "zoomIn"
+  };
   function createNodeData(type, overrides = {}) {
     const def = componentDef(type);
+    const preset = NO_DEFAULT_ANIM.has(type) ? "ninguna" : DEFAULT_PRESET[type] || "fadeInUp";
     return {
       type,
       name: def.label,
@@ -1094,7 +1155,14 @@ body.preview .wb-placeholder { opacity: .25; }
       // { tablet:{x,y,w,h…}, mobile:{…} }
       styles: { ...def.defaults.styles || {} },
       props: JSON.parse(JSON.stringify(def.defaults.props || {})),
-      animation: { preset: "ninguna", trigger: "load", duration: 800, delay: 0, loop: false, easing: "ease-out" },
+      animation: {
+        preset,
+        trigger: "scroll",
+        duration: 900,
+        delay: 0,
+        loop: type === "heartButton",
+        easing: "ease-out"
+      },
       effects: { parallax: 0, tilt: false },
       // efectos de scroll y profundidad
       events: [],
@@ -1580,6 +1648,166 @@ body.preview .wb-placeholder { opacity: .25; }
       ]
     };
   }
+  function reasonsBlock(y) {
+    const reasons = [
+      ["\u{1F60A}", "Tu sonrisa"],
+      ["\u{1F3A7}", "Nuestras canciones"],
+      ["\uFFFDfull", "C\xF3mo me cuidas"],
+      ["\u{1F602}", "Tus locuras"],
+      ["\u{1FAF6}", "Tu forma de amar"],
+      ["\u221E", "Todo lo que viene"]
+    ];
+    reasons[2][0] = "\u{1F319}";
+    const nodes = [
+      node("text", { x: 290, y: y + 60, w: 700, h: 60 }, {
+        name: "T\xEDtulo razones",
+        props: { text: "Razones por las que te amo", tag: "h2" },
+        styles: { fontSize: 34, fontWeight: "800", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    reasons.forEach(([emoji, reason], i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const card = node("container", { x: 130 + col * 360, y: y + 160 + row * 175, w: 320, h: 145 }, {
+        name: `Raz\xF3n ${i + 1}`,
+        styles: { background: "rgba(244,114,182,.09)", radius: 20, borderWidth: 1, borderColor: "rgba(244,114,182,.3)" },
+        animation: scroll("flipInY", i * 120)
+      });
+      card.effects = { parallax: 0, tilt: true };
+      card.events = [{ on: "click", actions: [{ action: "burstHearts", target: "", value: emoji, delay: 0 }] }];
+      nodes.push(
+        card,
+        node("icon", { x: 130 + col * 360 + 125, y: y + 175 + row * 175, w: 70, h: 60 }, {
+          name: `Emoji raz\xF3n ${i + 1}`,
+          props: { glyph: emoji },
+          styles: { fontSize: 38 },
+          animation: scroll("zoomIn", i * 120 + 100)
+        }),
+        node("text", { x: 130 + col * 360 + 15, y: y + 240 + row * 175, w: 290, h: 44 }, {
+          name: `Texto raz\xF3n ${i + 1}`,
+          props: { text: reason, tag: "p" },
+          styles: { fontSize: 17, fontWeight: "600", textAlign: "center", color: "#fbcfe8" },
+          animation: scroll("fadeIn", i * 120 + 150)
+        })
+      );
+    });
+    return { height: 560, nodes };
+  }
+  function couponsBlock(y) {
+    const coupons = [
+      ["\u{1F3AC}", "Vale por una noche de pelis", "sin mirar el m\xF3vil"],
+      ["\u{1F355}", "Vale por tu cena favorita", "donde t\xFA elijas"],
+      ["\u{1F917}", "Vale por un abrazo infinito", "canjeable a cualquier hora"]
+    ];
+    const nodes = [
+      node("text", { x: 340, y: y + 60, w: 600, h: 60 }, {
+        name: "T\xEDtulo cupones",
+        props: { text: "Cupones de amor", tag: "h2" },
+        styles: { fontSize: 34, fontWeight: "800", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia" },
+        animation: scroll("fadeInUp")
+      }),
+      node("text", { x: 390, y: y + 125, w: 500, h: 30 }, {
+        name: "Subt\xEDtulo cupones",
+        props: { text: "Mant\xE9n presionado un cup\xF3n para canjearlo", tag: "p" },
+        styles: { fontSize: 14, color: "rgba(249,168,212,.75)", textAlign: "center" },
+        animation: scroll("fadeIn", 120)
+      })
+    ];
+    coupons.forEach(([emoji, title, small], i) => {
+      const card = node("container", { x: 105 + i * 370, y: y + 185, w: 340, h: 170 }, {
+        name: `Cup\xF3n ${i + 1}`,
+        styles: { background: "linear-gradient(135deg,rgba(255,55,95,.16),rgba(175,82,222,.12))", radius: 18, borderWidth: 2, borderColor: "rgba(255,55,95,.45)" },
+        animation: scroll("slideInLeft", i * 150)
+      });
+      card.events = [{
+        on: "hold",
+        actions: [
+          { action: "burstHearts", target: "", value: emoji, delay: 0 },
+          { action: "showMessage", target: "", value: `\xA1Cup\xF3n canjeado! ${emoji} ${title}`, delay: 200 },
+          { action: "vibrate", target: "", value: "80", delay: 0 }
+        ]
+      }];
+      nodes.push(
+        card,
+        node("icon", { x: 105 + i * 370 + 135, y: y + 205, w: 70, h: 56 }, {
+          name: `Emoji cup\xF3n ${i + 1}`,
+          props: { glyph: emoji },
+          styles: { fontSize: 36 },
+          animation: scroll("tada", i * 150 + 200)
+        }),
+        node("text", { x: 105 + i * 370 + 20, y: y + 268, w: 300, h: 46 }, {
+          name: `T\xEDtulo cup\xF3n ${i + 1}`,
+          props: { text: title, tag: "h3" },
+          styles: { fontSize: 17, fontWeight: "700", textAlign: "center", color: "#fecdd3" },
+          animation: scroll("fadeIn", i * 150 + 250)
+        }),
+        node("text", { x: 105 + i * 370 + 20, y: y + 316, w: 300, h: 26 }, {
+          name: `Nota cup\xF3n ${i + 1}`,
+          props: { text: small, tag: "p" },
+          styles: { fontSize: 12, color: "rgba(253,242,248,.6)", textAlign: "center" },
+          animation: scroll("fadeIn", i * 150 + 300)
+        })
+      );
+    });
+    return { height: 430, nodes };
+  }
+  function questionBlock(y) {
+    const yesBtn = node("heartButton", { x: 430, y: y + 260, w: 200, h: 60 }, {
+      name: "Bot\xF3n S\xED",
+      props: { text: "\xA1S\xED! \u{1F496}", emoji: "\u{1F496}" },
+      styles: {
+        fontSize: 19,
+        fontWeight: "800",
+        textAlign: "center",
+        color: "#fff",
+        background: "linear-gradient(90deg,#ff375f,#af52de)",
+        radius: 30,
+        shadow: "ne\xF3n"
+      },
+      animation: scroll("latido", 300, { loop: true, duration: 1500 })
+    });
+    const noBtn = node("button", { x: 660, y: y + 260, w: 190, h: 60 }, {
+      name: "Bot\xF3n Pi\xE9nsalo",
+      props: { text: "D\xE9jame pensarlo\u2026" },
+      styles: { fontSize: 15, fontWeight: "600", textAlign: "center", color: "#d8b4fe", background: "rgba(148,163,184,.12)", radius: 30 },
+      animation: scroll("fadeIn", 400)
+    });
+    yesBtn.events = [{
+      on: "click",
+      actions: [
+        { action: "burstHearts", target: "", value: "\u{1F496}", delay: 0 },
+        { action: "burstHearts", target: "", value: "\u{1F389}", delay: 250 },
+        { action: "showMessage", target: "", value: "\xA1Sab\xEDa que dir\xEDas que s\xED! Te amo \u{1F498}", delay: 300 },
+        { action: "vibrate", target: "", value: "120", delay: 0 },
+        { action: "hideNode", target: noBtn.id, value: "", delay: 400 }
+      ]
+    }];
+    noBtn.events = [{
+      on: "click",
+      actions: [
+        { action: "playAnimation", target: yesBtn.id, value: "", delay: 0 },
+        { action: "showMessage", target: "", value: "El otro bot\xF3n te est\xE1 esperando \u{1F60F}", delay: 100 }
+      ]
+    }];
+    return {
+      height: 420,
+      nodes: [
+        node("particles", { x: 0, y, w: W, h: 420 }, {
+          name: "Luci\xE9rnagas pregunta",
+          styles: { background: "transparent", radius: 0 },
+          props: { count: 60, color: "#f9a8d4", speed: 0.6, size: 2.4, mode: "luci\xE9rnagas" }
+        }),
+        node("text", { x: 240, y: y + 90, w: 800, h: 110 }, {
+          name: "La gran pregunta",
+          props: { text: "\xBFQuieres seguir escribiendo\nesta historia conmigo?", tag: "h2" },
+          styles: { fontSize: 40, fontWeight: "900", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia", textGlow: "rosa" },
+          animation: scroll("blurIn", 0, { duration: 1200 })
+        }),
+        yesBtn,
+        noBtn
+      ]
+    };
+  }
   var BLOCKS = {
     romanticHero: { label: "Portada rom\xE1ntica \u{1F498}", icon: "\u{1F498}", build: romanticHeroBlock },
     letter: { label: "Carta de amor", icon: "\u{1F48C}", build: letterBlock },
@@ -1589,6 +1817,9 @@ body.preview .wb-placeholder { opacity: .25; }
     secret: { label: "Mensaje secreto", icon: "\u{1F52E}", build: secretBlock },
     chapter: { label: "Cap\xEDtulo de historia", icon: "\u{1F4D6}", build: chapterBlock },
     music: { label: "Nuestra canci\xF3n", icon: "\u{1F3B6}", build: musicBlock },
+    reasons: { label: "Razones por las que te amo", icon: "\u{1F49D}", build: reasonsBlock },
+    coupons: { label: "Cupones de amor", icon: "\u{1F39F}", build: couponsBlock },
+    question: { label: "La gran pregunta (S\xED/No)", icon: "\u{1F48D}", build: questionBlock },
     hero: { label: "H\xE9roe con part\xEDculas", icon: "\u2728", build: heroBlock },
     features: { label: "Caracter\xEDsticas (3 tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
     quote: { label: "Cita destacada", icon: "\u275D", build: quoteBlock },
@@ -1605,7 +1836,7 @@ body.preview .wb-placeholder { opacity: .25; }
     const pageId = uid("pg");
     const allNodes = [];
     let y = 0;
-    for (const key of ["romanticHero", "letter", "timelineB", "countdownB", "polaroids", "secret", "music", "footer"]) {
+    for (const key of ["romanticHero", "letter", "timelineB", "countdownB", "polaroids", "reasons", "secret", "question", "music", "footer"]) {
       const block = buildBlock(key, y);
       allNodes.push(...block.nodes);
       y += block.height;
@@ -2437,6 +2668,8 @@ body.preview .wb-placeholder { opacity: .25; }
         if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Dise\xF1o</small></div>`;
         return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
       }
+      case "custom3D":
+        return `<div class="wb-3d" data-kind="custom" data-cameraz="${p.cameraZ ?? 4}"><script type="text/wb-3d">${String(p.code || "").replaceAll("<\/script", "<\\/script")}<\/script></div>`;
       case "gradientBg": {
         const colors = String(p.colors || "#ec4899,#8b5cf6").split(",").map((c) => c.trim()).filter(Boolean);
         const gradient = `linear-gradient(270deg, ${colors.join(", ")})`;
@@ -2463,7 +2696,16 @@ body.preview .wb-placeholder { opacity: .25; }
       case "typewriter":
         return ctx.editor ? `<span class="wb-typewriter-static wb-text" data-text="${esc(p.text)}" data-tspeed="${p.speed || 90}" data-tloop="${!!p.loop}">${esc(p.text)}</span>` : `<span class="wb-typewriter" data-text="${esc(p.text)}" data-tspeed="${p.speed || 90}" data-tloop="${!!p.loop}"></span>`;
       case "countdown": {
-        const tiles = [["d", "d\xEDas"], ["h", "horas"], ["m", "min"], ["s", "seg"]].map(([u, label]) => `<div class="wb-count-tile"><b data-u="${u}">0</b><small>${label}</small></div>`).join("");
+        const date = /* @__PURE__ */ new Date(`${p.date || ""}T00:00:00`);
+        let diff = Number.isNaN(+date) ? 0 : p.mode === "hasta" ? +date - Date.now() : Date.now() - +date;
+        if (diff < 0) diff = 0;
+        const vals = {
+          d: Math.floor(diff / 864e5),
+          h: Math.floor(diff / 36e5) % 24,
+          m: Math.floor(diff / 6e4) % 60,
+          s: Math.floor(diff / 1e3) % 60
+        };
+        const tiles = [["d", "d\xEDas"], ["h", "horas"], ["m", "min"], ["s", "seg"]].map(([u, label]) => `<div class="wb-count-tile"><b data-u="${u}">${vals[u]}</b><small>${label}</small></div>`).join("");
         return `<div class="wb-count" data-date="${esc(p.date || "")}" data-cmode="${p.mode || "desde"}">
         <div class="wb-count-label">${esc(p.label || "")}</div>${tiles}</div>`;
       }
@@ -2647,6 +2889,26 @@ body.preview .wb-placeholder { opacity: .25; }
 @keyframes wb-fxglow{0%,100%{text-shadow:0 0 4px rgba(255,255,255,.1);opacity:.8}50%{text-shadow:0 0 16px rgba(255,220,255,.95),0 0 34px rgba(244,114,182,.7);opacity:1}}
 .wb-fx-arcoiris{animation:wb-fxrainbow 3.2s linear infinite;animation-delay:calc(var(--i)*-140ms)}
 @keyframes wb-fxrainbow{0%{color:#f472b6}20%{color:#fb923c}40%{color:#facc15}60%{color:#4ade80}80%{color:#38bdf8}100%{color:#f472b6}}
+
+/* \u2500\u2500 Micro-interacciones: todo responde al tacto \u2500\u2500 */
+.wb-btn,.wb-heartbtn,.wb-form button{transition:transform .18s cubic-bezier(.2,.8,.25,1),filter .18s}
+.wb-btn:hover,.wb-form button:hover{transform:scale(1.035);filter:brightness(1.1)}
+.wb-btn:active,.wb-form button:active{transform:scale(.94)}
+.wb-node img{transition:transform .35s cubic-bezier(.2,.8,.25,1)}
+.wb-gallery img:hover,.wb-slider:hover .wb-slide.active{transform:scale(1.04)}
+.wb-menu a{transition:opacity .15s,transform .15s}
+.wb-menu a:active{transform:scale(.93)}
+
+/* \u2500\u2500 Mensaje flotante (acci\xF3n showMessage) \u2500\u2500 */
+.wb-toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(20px);z-index:9999;
+  max-width:82vw;padding:14px 24px;border-radius:22px;background:rgba(28,28,30,.86);color:#fff;
+  font:600 16px/1.4 -apple-system,system-ui,sans-serif;text-align:center;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.12);
+  animation:wb-toast-in .45s cubic-bezier(.2,.8,.25,1) both;pointer-events:none}
+.wb-toast.out{animation:wb-toast-out .6s ease both}
+@keyframes wb-toast-in{from{opacity:0;transform:translateX(-50%) translateY(26px) scale(.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes wb-toast-out{to{opacity:0;transform:translateX(-50%) translateY(14px) scale(.94)}}
 
 /* \u2500\u2500 Placeholders (editor y export degradado) \u2500\u2500 */
 .wb-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;border:2px dashed #334155;border-radius:inherit;color:#64748b;font-weight:600;text-align:center;padding:8px;font-size:14px}
@@ -3087,6 +3349,19 @@ ${steps.join("\n")}
         case "burstHearts":
           if (root.wbBurst) root.wbBurst(target || sourceEl, a.value || "\u2764\uFE0F");
           break;
+        case "showMessage": {
+          var toast = document.createElement("div");
+          toast.className = "wb-toast";
+          toast.textContent = a.value || "\u{1F48C}";
+          document.body.appendChild(toast);
+          timers.push(setTimeout(function() {
+            toast.classList.add("out");
+          }, 2600));
+          timers.push(setTimeout(function() {
+            toast.remove();
+          }, 3300));
+          break;
+        }
         case "vibrate":
           if (navigator.vibrate) navigator.vibrate(+a.value || 40);
           break;
@@ -3339,15 +3614,34 @@ ${steps.join("\n")}
     }
     /* ── Inicio de gesto ───────────────────────────────── */
     #onDown(e) {
-      if (document.body.classList.contains("preview")) return;
+      const preview = document.body.classList.contains("preview");
       if (this.store.tool === "draw") return;
-      this.view.viewport.setPointerCapture(e.pointerId);
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.pointers.size === 2) {
+        this.view.viewport.setPointerCapture(e.pointerId);
         const [a, b] = [...this.pointers.values()];
-        this.gesture = { kind: "pinch", startDist: Math.hypot(a.x - b.x, a.y - b.y), startZoom: this.store.zoom };
+        this.gesture = {
+          kind: "pinch",
+          startDist: Math.hypot(a.x - b.x, a.y - b.y),
+          startZoom: this.store.zoom,
+          lastCx: (a.x + b.x) / 2,
+          lastCy: (a.y + b.y) / 2
+        };
         return;
       }
+      if (preview) {
+        this.gesture = {
+          kind: "pan",
+          lazy: true,
+          captured: false,
+          pointerId: e.pointerId,
+          startX: e.clientX,
+          startY: e.clientY,
+          startPan: { ...this.store.pan }
+        };
+        return;
+      }
+      this.view.viewport.setPointerCapture(e.pointerId);
       if (this.spaceDown || e.button === 1 || this.store.tool === "pan") {
         this.gesture = { kind: "pan", startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
         return;
@@ -3373,8 +3667,12 @@ ${steps.join("\n")}
       }
       if (e.target.closest("#artboard") || e.target === this.view.viewport || e.target.closest("#world")) {
         if (!e.shiftKey) this.store.clearSelection();
-        const point = this.view.toArtboard(e.clientX, e.clientY);
-        this.gesture = { kind: "marquee", x0: point.x, y0: point.y, additive: e.shiftKey };
+        if (e.pointerType === "touch") {
+          this.gesture = { kind: "pan", startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
+        } else {
+          const point = this.view.toArtboard(e.clientX, e.clientY);
+          this.gesture = { kind: "marquee", x0: point.x, y0: point.y, additive: e.shiftKey };
+        }
       }
     }
     #startMove(e) {
@@ -3415,10 +3713,19 @@ ${steps.join("\n")}
       if (g.kind === "pinch" && this.pointers.size === 2) {
         const [a, b] = [...this.pointers.values()];
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        this.view.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, g.startZoom * (dist / g.startDist) / this.store.zoom);
+        const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+        this.store.setView(null, { x: this.store.pan.x + cx - g.lastCx, y: this.store.pan.y + cy - g.lastCy });
+        g.lastCx = cx;
+        g.lastCy = cy;
+        this.view.zoomAt(cx, cy, g.startZoom * (dist / g.startDist) / this.store.zoom);
         return;
       }
       if (g.kind === "pan") {
+        if (g.lazy && !g.captured) {
+          if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < 8) return;
+          g.captured = true;
+          this.view.viewport.setPointerCapture(g.pointerId);
+        }
         this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
         return;
       }
@@ -4027,6 +4334,7 @@ ${steps.join("\n")}
     setStyle: { label: "Cambiar estilo de\u2026", targetKind: "node", valueLabel: "CSS (ej: background:#f43f5e;opacity:.5)" },
     changeBackground: { label: "Cambiar fondo de p\xE1gina", targetKind: "none", valueLabel: "Color o gradiente CSS" },
     burstHearts: { label: "Estallido de corazones", targetKind: "none", valueLabel: "Emoji (ej: \u{1F496})" },
+    showMessage: { label: "Mostrar mensaje flotante", targetKind: "none", valueLabel: "Texto del mensaje \u{1F48C}" },
     vibrate: { label: "Vibrar (m\xF3vil)", targetKind: "none", valueLabel: "Milisegundos" },
     openUrl: { label: "Abrir URL", targetKind: "none", valueLabel: "https://\u2026" },
     runJS: { label: "Ejecutar JavaScript", targetKind: "none", valueLabel: "c\xF3digo JS (recibe `el`)" }
@@ -4895,6 +5203,7 @@ ${steps.join("\n")}
       const { THREE, GLTFLoader } = mod;
       elem.innerHTML = "";
       const kind = elem.dataset.kind || "model";
+      const customCode = kind === "custom" ? elem.querySelector('script[type="text/wb-3d"]')?.textContent || "" : "";
       const w = elem.clientWidth || 300, h = elem.clientHeight || 240;
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
@@ -4914,7 +5223,23 @@ ${steps.join("\n")}
       scene.add(pivot);
       let mixer = null;
       let interactive = true;
-      if (kind === "heart") {
+      let userUpdate = null;
+      if (kind === "custom") {
+        try {
+          userUpdate = new Function("THREE", "scene", "camera", "pivot", "renderer", "GLTFLoader", customCode)(
+            THREE,
+            scene,
+            camera,
+            pivot,
+            renderer,
+            GLTFLoader
+          );
+        } catch (e) {
+          console.warn("C\xF3digo 3D personalizado:", e);
+          elem.innerHTML = `<div class="wb-3d-loading">\u26A0<br><small>Error en tu c\xF3digo 3D:<br>${String(e.message).slice(0, 80)}</small></div>`;
+          return;
+        }
+      } else if (kind === "heart") {
         pivot.add(new THREE.Mesh(makeHeartGeometry(THREE), new THREE.MeshStandardMaterial({
           color: new THREE.Color(elem.dataset.color || "#e11d48"),
           metalness: parseFloat(elem.dataset.metal) || 0.35,
@@ -5001,8 +5326,14 @@ ${steps.join("\n")}
         raf = requestAnimationFrame(tick);
         if (!visible) return;
         const dt = clock.getDelta();
-        if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+        if (autoRotate && !dragging && kind !== "custom") pivot.rotation.y += dt * 0.6 * rotSpeed;
         if (kind === "heart") pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08;
+        if (typeof userUpdate === "function") {
+          try {
+            userUpdate(dt);
+          } catch {
+          }
+        }
         mixer?.update(dt);
         renderer.render(scene, camera);
       };
@@ -5172,7 +5503,7 @@ ${steps.join("\n")}
       return slugs;
     }
     #has3D() {
-      return Object.values(this.store.project.nodes).some((n) => ["model3d", "heart3d", "photo3d", "particles"].includes(n.type));
+      return Object.values(this.store.project.nodes).some((n) => ["model3d", "heart3d", "photo3d", "custom3D", "particles"].includes(n.type));
     }
     #soundsMap() {
       const sounds = {};
@@ -5582,8 +5913,15 @@ ${has3D ? build3DJS() : ""}`;
     var pivot = new THREE.Group(); scene.add(pivot);
     var mixer = null, clock = new THREE.Clock();
     var interactive = kind !== 'photo';
+    var userUpdate = null;
 
-    if (kind === 'heart') {
+    if (kind === 'custom') {
+      var codeEl = elem.querySelector('script[type="text/wb-3d"]');
+      try {
+        userUpdate = new Function('THREE', 'scene', 'camera', 'pivot', 'renderer', 'GLTFLoader', codeEl ? codeEl.textContent : '')(
+          THREE, scene, camera, pivot, renderer, GLTFLoader);
+      } catch (e) { console.warn('C\xF3digo 3D personalizado:', e); }
+    } else if (kind === 'heart') {
       pivot.add(new THREE.Mesh(heartGeometry(THREE), new THREE.MeshStandardMaterial({
         color: new THREE.Color(elem.getAttribute('data-color') || '#e11d48'),
         metalness: parseFloat(elem.getAttribute('data-metal')) || 0.35, roughness: 0.25,
@@ -5650,8 +5988,9 @@ ${has3D ? build3DJS() : ""}`;
       requestAnimationFrame(tick);
       if (!visible) return;
       var dt = clock.getDelta();
-      if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+      if (autoRotate && !dragging && kind !== 'custom') pivot.rotation.y += dt * 0.6 * rotSpeed;
       if (kind === 'heart') pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08;
+      if (typeof userUpdate === 'function') { try { userUpdate(dt); } catch (e) {} }
       if (mixer) mixer.update(dt);
       renderer.render(scene, camera);
     })();

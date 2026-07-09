@@ -79,6 +79,7 @@ export class ThreeManager {
     elem.innerHTML = '';
 
     const kind = elem.dataset.kind || 'model';
+    const customCode = kind === 'custom' ? (elem.querySelector('script[type="text/wb-3d"]')?.textContent || '') : '';
     const w = elem.clientWidth || 300, h = elem.clientHeight || 240;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
@@ -100,8 +101,20 @@ export class ThreeManager {
     scene.add(pivot);
     let mixer = null;
     let interactive = true;
+    let userUpdate = null;
 
-    if (kind === 'heart') {
+    if (kind === 'custom') {
+      // Zona 3D extensible: el usuario pega código Three.js y punto.
+      try {
+        userUpdate = new Function('THREE', 'scene', 'camera', 'pivot', 'renderer', 'GLTFLoader', customCode)(
+          THREE, scene, camera, pivot, renderer, GLTFLoader,
+        );
+      } catch (e) {
+        console.warn('Código 3D personalizado:', e);
+        elem.innerHTML = `<div class="wb-3d-loading">⚠<br><small>Error en tu código 3D:<br>${String(e.message).slice(0, 80)}</small></div>`;
+        return;
+      }
+    } else if (kind === 'heart') {
       pivot.add(new THREE.Mesh(makeHeartGeometry(THREE), new THREE.MeshStandardMaterial({
         color: new THREE.Color(elem.dataset.color || '#e11d48'),
         metalness: parseFloat(elem.dataset.metal) || 0.35,
@@ -181,8 +194,9 @@ export class ThreeManager {
       raf = requestAnimationFrame(tick);
       if (!visible) return;
       const dt = clock.getDelta();
-      if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+      if (autoRotate && !dragging && kind !== 'custom') pivot.rotation.y += dt * 0.6 * rotSpeed;
       if (kind === 'heart') pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08; // latido flotante
+      if (typeof userUpdate === 'function') { try { userUpdate(dt); } catch { /* código del usuario */ } }
       mixer?.update(dt);
       renderer.render(scene, camera);
     };

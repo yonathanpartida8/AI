@@ -51,19 +51,38 @@ export class Interactions {
   /* ── Inicio de gesto ───────────────────────────────── */
 
   #onDown(e) {
-    // En vista previa la página es interactiva: la edición se apaga por
-    // completo (el pointer capture robaría los clics a los componentes).
-    if (document.body.classList.contains('preview')) return;
+    const preview = document.body.classList.contains('preview');
     if (this.store.tool === 'draw') return; // lo gestiona DrawTool
-    this.view.viewport.setPointerCapture(e.pointerId);
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // Pinch: dos punteros activos → gesto de zoom táctil
+    // Dos dedos → zoom (pinch) + desplazamiento (pan) simultáneos,
+    // también en vista previa: el gesto de scroll SIEMPRE disponible.
     if (this.pointers.size === 2) {
+      this.view.viewport.setPointerCapture(e.pointerId);
       const [a, b] = [...this.pointers.values()];
-      this.gesture = { kind: 'pinch', startDist: Math.hypot(a.x - b.x, a.y - b.y), startZoom: this.store.zoom };
+      this.gesture = {
+        kind: 'pinch',
+        startDist: Math.hypot(a.x - b.x, a.y - b.y),
+        startZoom: this.store.zoom,
+        lastCx: (a.x + b.x) / 2, lastCy: (a.y + b.y) / 2,
+      };
       return;
     }
+
+    /*
+     * VISTA PREVIA: la página es interactiva. Un dedo desliza para hacer
+     * SCROLL (pan perezoso: solo captura el puntero tras superar un umbral
+     * de movimiento, así los toques llegan intactos a los componentes).
+     */
+    if (preview) {
+      this.gesture = {
+        kind: 'pan', lazy: true, captured: false, pointerId: e.pointerId,
+        startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan },
+      };
+      return;
+    }
+
+    this.view.viewport.setPointerCapture(e.pointerId);
 
     // Pan: espacio, botón medio o herramienta mano
     if (this.spaceDown || e.button === 1 || this.store.tool === 'pan') {
@@ -86,11 +105,15 @@ export class Interactions {
       return;
     }
 
-    // Lienzo vacío → marquee
+    // Lienzo vacío: con RATÓN → marquee; con DEDO/STYLUS → desplazar lienzo
     if (e.target.closest('#artboard') || e.target === this.view.viewport || e.target.closest('#world')) {
       if (!e.shiftKey) this.store.clearSelection();
-      const point = this.view.toArtboard(e.clientX, e.clientY);
-      this.gesture = { kind: 'marquee', x0: point.x, y0: point.y, additive: e.shiftKey };
+      if (e.pointerType === 'touch') {
+        this.gesture = { kind: 'pan', startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
+      } else {
+        const point = this.view.toArtboard(e.clientX, e.clientY);
+        this.gesture = { kind: 'marquee', x0: point.x, y0: point.y, additive: e.shiftKey };
+      }
     }
   }
 
@@ -134,11 +157,23 @@ export class Interactions {
     if (g.kind === 'pinch' && this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      this.view.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, (g.startZoom * (dist / g.startDist)) / this.store.zoom);
+      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      // Desplaza siguiendo el centro de los dos dedos…
+      this.store.setView(null, { x: this.store.pan.x + cx - g.lastCx, y: this.store.pan.y + cy - g.lastCy });
+      g.lastCx = cx; g.lastCy = cy;
+      // …y hace zoom hacia/desde ese centro
+      this.view.zoomAt(cx, cy, (g.startZoom * (dist / g.startDist)) / this.store.zoom);
       return;
     }
 
     if (g.kind === 'pan') {
+      // Pan perezoso (vista previa): captura el puntero solo tras moverse
+      // 8px — un toque limpio sigue llegando al componente de debajo.
+      if (g.lazy && !g.captured) {
+        if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < 8) return;
+        g.captured = true;
+        this.view.viewport.setPointerCapture(g.pointerId);
+      }
       this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
       return;
     }

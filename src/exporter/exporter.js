@@ -64,7 +64,7 @@ export class Exporter {
   }
 
   #has3D() {
-    return Object.values(this.store.project.nodes).some((n) => ['model3d', 'heart3d', 'photo3d', 'particles'].includes(n.type));
+    return Object.values(this.store.project.nodes).some((n) => ['model3d', 'heart3d', 'photo3d', 'custom3D', 'particles'].includes(n.type));
   }
 
   #soundsMap() {
@@ -507,8 +507,15 @@ function build3DJS() {
     var pivot = new THREE.Group(); scene.add(pivot);
     var mixer = null, clock = new THREE.Clock();
     var interactive = kind !== 'photo';
+    var userUpdate = null;
 
-    if (kind === 'heart') {
+    if (kind === 'custom') {
+      var codeEl = elem.querySelector('script[type="text/wb-3d"]');
+      try {
+        userUpdate = new Function('THREE', 'scene', 'camera', 'pivot', 'renderer', 'GLTFLoader', codeEl ? codeEl.textContent : '')(
+          THREE, scene, camera, pivot, renderer, GLTFLoader);
+      } catch (e) { console.warn('Código 3D personalizado:', e); }
+    } else if (kind === 'heart') {
       pivot.add(new THREE.Mesh(heartGeometry(THREE), new THREE.MeshStandardMaterial({
         color: new THREE.Color(elem.getAttribute('data-color') || '#e11d48'),
         metalness: parseFloat(elem.getAttribute('data-metal')) || 0.35, roughness: 0.25,
@@ -575,8 +582,9 @@ function build3DJS() {
       requestAnimationFrame(tick);
       if (!visible) return;
       var dt = clock.getDelta();
-      if (autoRotate && !dragging) pivot.rotation.y += dt * 0.6 * rotSpeed;
+      if (autoRotate && !dragging && kind !== 'custom') pivot.rotation.y += dt * 0.6 * rotSpeed;
       if (kind === 'heart') pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08;
+      if (typeof userUpdate === 'function') { try { userUpdate(dt); } catch (e) {} }
       if (mixer) mixer.update(dt);
       renderer.render(scene, camera);
     })();

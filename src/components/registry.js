@@ -396,6 +396,27 @@ export const Components = {
   },
 
   /* ── Extensión con código propio ────────────────────── */
+  custom3D: {
+    label: '3D personalizado', icon: '🧊', cat: 'Avanzados', size: [420, 340],
+    defaults: {
+      props: {
+        code: `// Escena Three.js lista: THREE, scene, camera, pivot, renderer, GLTFLoader.
+// Añade objetos a "pivot" y devuelve una función update(dt) opcional.
+const geo = new THREE.IcosahedronGeometry(1.1, 0);
+const mat = new THREE.MeshStandardMaterial({ color: '#ff375f', metalness: .5, roughness: .2 });
+const mesh = new THREE.Mesh(geo, mat);
+pivot.add(mesh);
+return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
+        cameraZ: 4,
+      },
+      styles: {},
+    },
+    schema: [
+      { key: 'props.code', label: 'Código Three.js', type: 'textarea' },
+      num('props.cameraZ', 'Distancia de cámara', 1, 20, 0.1),
+    ],
+  },
+
   customHTML: {
     label: 'Código personalizado', icon: '</>', cat: 'Avanzados', size: [420, 300],
     defaults: {
@@ -418,9 +439,20 @@ export const CATEGORIES = ['Románticos', 'Básicos', 'Avanzados'];
 
 export function componentDef(type) { return Components[type] || Components.shape; }
 
+/** Componentes de fondo/ambiente: sin animación de entrada por defecto. */
+const NO_DEFAULT_ANIM = new Set(['section', 'container', 'particles', 'gradientBg', 'floatingEmojis', 'menu', 'customHTML', 'custom3D']);
+
+/** Entradas por defecto según el tipo (todo nace con vida). */
+const DEFAULT_PRESET = {
+  image: 'zoomIn', gif: 'zoomIn', video: 'zoomIn', polaroid: 'caida', photo3d: 'zoomIn',
+  heart3d: 'zoomIn', model3d: 'zoomIn', icon: 'tada', shape: 'zoomIn',
+  heartButton: 'latido', button: 'fadeInUp', loveLetter: 'zoomIn',
+};
+
 /** Nodo JSON nuevo a partir de la definición del componente. */
 export function createNodeData(type, overrides = {}) {
   const def = componentDef(type);
+  const preset = NO_DEFAULT_ANIM.has(type) ? 'ninguna' : (DEFAULT_PRESET[type] || 'fadeInUp');
   return {
     type,
     name: def.label,
@@ -428,7 +460,10 @@ export function createNodeData(type, overrides = {}) {
     responsive: {},              // { tablet:{x,y,w,h…}, mobile:{…} }
     styles: { ...(def.defaults.styles || {}) },
     props: JSON.parse(JSON.stringify(def.defaults.props || {})),
-    animation: { preset: 'ninguna', trigger: 'load', duration: 800, delay: 0, loop: false, easing: 'ease-out' },
+    animation: {
+      preset, trigger: 'scroll', duration: 900, delay: 0,
+      loop: type === 'heartButton', easing: 'ease-out',
+    },
     effects: { parallax: 0, tilt: false }, // efectos de scroll y profundidad
     events: [],                  // [{ on:'click', actions:[{action,target,value,delay}] }]
     locked: false,

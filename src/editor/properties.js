@@ -47,6 +47,7 @@ const EVENT_ACTIONS = {
   setStyle: { label: 'Cambiar estilo de…', targetKind: 'node', valueLabel: 'CSS (ej: background:#f43f5e;opacity:.5)' },
   changeBackground: { label: 'Cambiar fondo de página', targetKind: 'none', valueLabel: 'Color o gradiente CSS' },
   burstHearts: { label: 'Estallido de corazones', targetKind: 'none', valueLabel: 'Emoji (ej: 💖)' },
+  showMessage: { label: 'Mostrar mensaje flotante', targetKind: 'none', valueLabel: 'Texto del mensaje 💌' },
   vibrate: { label: 'Vibrar (móvil)', targetKind: 'none', valueLabel: 'Milisegundos' },
   openUrl: { label: 'Abrir URL', targetKind: 'none', valueLabel: 'https://…' },
   runJS: { label: 'Ejecutar JavaScript', targetKind: 'none', valueLabel: 'código JS (recibe `el`)' },
