@@ -83,7 +83,10 @@ export class ProjectStore extends EventBus {
     }
     for (const node of Object.values(project.nodes)) {
       node.effects ||= { parallax: 0, tilt: false };
+      node.effects.press ||= 'ninguno';
+      node.effects.hoverFx ||= 'ninguno';
       node.animationOut ||= { preset: 'fadeOut', duration: 450, easing: 'ease-in' };
+      node.animation.custom ||= '';
       // Formato antiguo de eventos {on, action, target} → cadenas de acciones
       node.events = (node.events || []).map((ev) =>
         ev.actions ? ev : { on: ev.on || 'click', actions: [{ action: ev.action, target: ev.target || '', value: '', delay: 0 }] });

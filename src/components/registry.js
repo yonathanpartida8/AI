@@ -254,6 +254,24 @@ export const Components = {
     schema: [asset('props.assetId', 'Trazo exportado', 'image'), ...STYLE_COMMON],
   },
 
+  navButton: {
+    label: 'Botón de navegación', icon: '⇢', cat: 'Básicos', size: [210, 58],
+    defaults: {
+      props: { text: 'Siguiente', target: '__next', variant: 'píldora', showArrow: true },
+      styles: {
+        fontSize: 16, fontWeight: '700', textAlign: 'center', color: '#fff',
+        background: 'linear-gradient(90deg,#ff8fab,#b388eb)', radius: 29, shadow: 'suave',
+      },
+    },
+    schema: [
+      text('props.text', 'Texto'),
+      { key: 'props.target', label: 'Destino', type: 'navTarget' },
+      select('props.variant', 'Estilo', ['píldora', 'fantasma', 'neón', 'burbuja', 'flecha']),
+      check('props.showArrow', 'Mostrar flecha animada'),
+      ...TEXT_STYLE, ...STYLE_COMMON,
+    ],
+  },
+
   /* ── Componentes románticos ─────────────────────────── */
   loveLetter: {
     label: 'Carta interactiva', icon: '💌', cat: 'Románticos', size: [380, 300], accepts: ['image', 'audio'],
@@ -410,6 +428,16 @@ export const Components = {
   },
 
   /* ── Extensión con código propio ────────────────────── */
+  htmlEmbed: {
+    label: 'Página HTML importada', icon: '🌐', cat: 'Avanzados', size: [480, 360], accepts: ['html'],
+    defaults: { props: { assetId: null, interactive: true }, styles: { radius: 14, shadow: 'suave' } },
+    schema: [
+      asset('props.assetId', 'Archivo HTML (sube uno en Assets)', 'html'),
+      check('props.interactive', 'Interactivo en el sitio final'),
+      ...STYLE_COMMON,
+    ],
+  },
+
   custom3D: {
     label: '3D personalizado', icon: '🧊', cat: 'Avanzados', size: [420, 340],
     defaults: {
@@ -480,7 +508,8 @@ export function createNodeData(type, overrides = {}) {
     },
     // Salida elegante al ocultarse mediante acciones
     animationOut: { preset: 'fadeOut', duration: 450, easing: 'ease-in' },
-    effects: { parallax: 0, tilt: false }, // efectos de scroll y profundidad
+    // Efectos de interacción: presión al tocar, hover y scroll
+    effects: { parallax: 0, tilt: false, press: type === 'button' || type === 'heartButton' ? 'escala' : 'ninguno', hoverFx: 'ninguno' },
     events: [],                  // [{ on:'click', actions:[{action,target,value,delay}] }]
     locked: false,
     hidden: false,

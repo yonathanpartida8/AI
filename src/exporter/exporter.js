@@ -80,7 +80,7 @@ export class Exporter {
       .filter((node) => node && !node.hidden)
       .map((node) => {
         const anim = node.animation;
-        const hasAnim = anim && anim.preset !== 'ninguna' && PRESETS[anim.preset];
+        const hasAnim = anim && (anim.custom || (anim.preset !== 'ninguna' && PRESETS[anim.preset]));
         const animOut = node.animationOut;
         const hasExit = animOut && animOut.preset !== 'ninguna' && EXIT_PRESETS[animOut.preset];
         const attrs = [
@@ -89,6 +89,8 @@ export class Exporter {
           hasExit ? `data-outdur="${animOut.duration || 450}"` : '',
           node.effects?.tilt ? 'data-tilt="1"' : '',
           node.effects?.parallax ? `data-parallax="${node.effects.parallax}"` : '',
+          node.effects?.press && node.effects.press !== 'ninguno' ? `data-press="${node.effects.press}"` : '',
+          node.effects?.hoverFx && node.effects.hoverFx !== 'ninguno' ? `data-hover="${node.effects.hoverFx}"` : '',
           node.events?.length ? `data-events='${JSON.stringify(node.events).replaceAll("'", '&#39;')}'` : '',
         ].filter(Boolean).join(' ');
         return `      <div ${attrs}>${contentHTML(node, renderCtx)}</div>`;
@@ -144,7 +146,7 @@ export class Exporter {
 ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`,
-        boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_SINGLE=false;`,
+        boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_CURRENT=${JSON.stringify(page.id)};window.WB_SINGLE=false;`,
         pwa: isIndex,
         runtime: this.#buildRuntime({ single: false, has3D }),
         pageJS: `${project.custom?.js || ''}\n${page.custom?.js || ''}`,
@@ -272,7 +274,11 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
       if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet, ...mobile })}}`);
 
       const anim = node.animation;
-      if (anim && anim.preset !== 'ninguna' && PRESETS[anim.preset]) {
+      if (anim?.custom) {
+        // Animación CSS definida por el usuario (keyframes en su CSS global)
+        const selector = anim.trigger === 'hover' ? `.el-${node.id}:hover` : `.el-${node.id}.wb-play`;
+        rules.push(`${selector}{animation:${anim.custom}}`);
+      } else if (anim && anim.preset !== 'ninguna' && PRESETS[anim.preset]) {
         usedPresets.add(anim.preset);
         const iter = anim.loop ? 'infinite' : '1';
         const selector = anim.trigger === 'hover' ? `.el-${node.id}:hover` : `.el-${node.id}.wb-play`;
@@ -416,6 +422,16 @@ WB_ACTIONS(document, {
   goToPage: wbGoToPage,
   sounds: window.WB_SOUNDS || {},
   stage: function () { return wbActiveWrap().querySelector('.wb-stage'); },
+  pageOrder: function () {
+    if (window.WB_SINGLE) {
+      return Array.prototype.map.call(document.querySelectorAll('.wb-scale-wrap'), function (w) { return w.getAttribute('data-wrap'); });
+    }
+    return Object.keys(window.WB_PAGES || {});
+  },
+  currentPage: function () {
+    if (window.WB_SINGLE) return wbActiveWrap().getAttribute('data-wrap');
+    return window.WB_CURRENT;
+  },
 });
 
 /* Animaciones por scroll y clic */

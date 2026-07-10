@@ -113,6 +113,19 @@ export function contentHTML(node, ctx) {
     case 'button':
       return `<button class="wb-btn" type="button">${esc(p.text)}</button>`;
 
+    case 'navButton': {
+      const dir = p.target === '__prev' ? 'prev' : 'next';
+      const arrow = p.showArrow !== false ? `<span class="wb-nav-arrow">${dir === 'prev' ? '←' : '→'}</span>` : '';
+      const variantStyle = {
+        'fantasma': 'background:transparent;border:2px solid currentColor;box-shadow:none;',
+        'neón': 'box-shadow:0 0 18px rgba(255,143,171,.8),0 0 44px rgba(179,136,235,.5);',
+        'flecha': 'background:transparent;box-shadow:none;font-size:2.2em;',
+      }[p.variant] || '';
+      const cls = p.variant === 'burbuja' ? ' wb-nav-burbuja' : '';
+      const inner = p.variant === 'flecha' ? arrow || '→' : `${dir === 'prev' ? arrow : ''}<span>${esc(p.text)}</span>${dir === 'next' ? arrow : ''}`;
+      return `<button class="wb-nav${cls}" type="button" data-dir="${dir}" data-navto="${esc(p.target || '__next')}" style="${variantStyle}">${inner}</button>`;
+    }
+
     case 'image':
     case 'drawing':
       return media(node, ctx);
@@ -204,6 +217,17 @@ export function contentHTML(node, ctx) {
     case 'photo3d': {
       if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Diseño</small></div>`;
       return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
+    }
+
+    case 'htmlEmbed': {
+      if (!p.assetId) return `<div class="wb-placeholder">🌐 Página HTML<small>Sube un .html en Assets y elígelo en Diseño</small></div>`;
+      // El HTML importado vive en un iframe: conserva SUS estilos y scripts
+      // intactos, y se mueve/escala/anima como cualquier otro objeto.
+      const src = ctx.resolve(p.assetId);
+      const inert = ctx.editor || p.interactive === false;
+      return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden">
+        <iframe src="${src}" sandbox="allow-scripts allow-same-origin" loading="lazy"
+          style="width:100%;height:100%;border:0;border-radius:inherit;${inert && !ctx.editor ? 'pointer-events:none;' : ''}"></iframe></div>`;
     }
 
     case 'custom3D':
@@ -317,6 +341,8 @@ export function buildNodeEl(node, store, ctx) {
   // Metadatos que consumen los runtimes compartidos (vista previa = export)
   if (node.effects?.tilt) elem.dataset.tilt = '1';
   if (node.effects?.parallax) elem.dataset.parallax = String(node.effects.parallax);
+  if (node.effects?.press && node.effects.press !== 'ninguno') elem.dataset.press = node.effects.press;
+  if (node.effects?.hoverFx && node.effects.hoverFx !== 'ninguno') elem.dataset.hover = node.effects.hoverFx;
   if (node.events?.length) elem.dataset.events = JSON.stringify(node.events);
   elem.innerHTML = contentHTML(node, ctx);
   syncNodeEl(elem, node, store);

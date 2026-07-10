@@ -109,9 +109,16 @@ function buildTopbar(store, view, exporter, assets, repaint) {
         const text = await file.text();
         let data;
         if (/\.html?$/i.test(file.name)) {
-          // HTML todo-en-uno: recupera el proyecto incrustado y detecta
-          // el código personalizado añadido a mano por el usuario.
-          data = parseProjectFromHTML(text);
+          if (text.includes('id="wb-project"')) {
+            // HTML todo-en-uno del builder: recupera proyecto + código a mano
+            data = parseProjectFromHTML(text);
+          } else {
+            // HTML externo cualquiera → se importa como OBJETO del lienzo
+            const [asset] = await assets.importFiles([file]);
+            store.addNode('htmlEmbed', { x: 120, y: 120 }, { props: { assetId: asset.id, interactive: true } });
+            e.target.value = '';
+            return;
+          }
         } else {
           data = JSON.parse(text);
         }
@@ -232,6 +239,21 @@ function buildMobileNav(store, panels, view) {
     },
   }, [el('span', { class: 'mn-icon', text: icon }), el('span', { class: 'mn-label', text: label })]);
 
+  // FAB estilo One UI: añadir piezas con el pulgar, siempre a mano
+  const fab = el('button', {
+    id: 'fab-add', title: 'Añadir elemento',
+    onclick: () => {
+      const wasOpen = left.classList.contains('open');
+      closeAll();
+      if (!wasOpen) {
+        panels.openTab('componentes');
+        left.classList.add('open');
+        if (navigator.vibrate) navigator.vibrate(10);
+      }
+    },
+  }, ['＋']);
+  document.body.append(fab);
+
   const nav = el('nav', { id: 'mobile-nav' }, [
     item('▦', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
     item('🖼', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
@@ -244,6 +266,8 @@ function buildMobileNav(store, panels, view) {
 
   // Tocar el lienzo cierra las hojas → edición sin estorbos
   view.viewport.addEventListener('pointerdown', closeAll);
+  // Entrar en la libreta de dibujo también las cierra (lienzo despejado)
+  store.on('tool', () => { if (store.tool === 'draw') closeAll(); });
 }
 
 /* ── Vista previa dentro del editor ──────────────────── */
@@ -275,18 +299,27 @@ function togglePreview(store, view, repaint, assets) {
     const elem = artboard.querySelector(`[data-id="${node.id}"]`);
     if (!elem) continue;
     const anim = node.animation;
-    if (anim?.preset && anim.preset !== 'ninguna') {
-      if (anim.trigger === 'load') animations.push(playAnimation(elem, anim));
-      else if (anim.trigger === 'click') elem.addEventListener('click', () => playAnimation(elem, anim));
-      else if (anim.trigger === 'hover') elem.addEventListener('mouseenter', () => playAnimation(elem, anim));
+    // Dispara el preset (WAAPI) o la animación CSS propia del usuario
+    const fire = () => {
+      if (anim.custom) {
+        elem.style.animation = 'none'; void elem.offsetWidth;
+        elem.style.animation = anim.custom;
+      } else {
+        animations.push(playAnimation(elem, anim));
+      }
+    };
+    if (anim && (anim.custom || (anim.preset && anim.preset !== 'ninguna'))) {
+      if (anim.trigger === 'load') fire();
+      else if (anim.trigger === 'click') elem.addEventListener('click', fire);
+      else if (anim.trigger === 'hover') elem.addEventListener('mouseenter', fire);
       else if (anim.trigger === 'hold') {
         let holdTimer = null;
-        elem.addEventListener('pointerdown', () => { holdTimer = setTimeout(() => playAnimation(elem, anim), 550); });
+        elem.addEventListener('pointerdown', () => { holdTimer = setTimeout(fire, 550); });
         ['pointerup', 'pointerleave'].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
       }
       else if (anim.trigger === 'scroll') {
         const io = new IntersectionObserver(([entry]) => {
-          if (entry.isIntersecting) { playAnimation(elem, anim); io.disconnect(); }
+          if (entry.isIntersecting) { fire(); io.disconnect(); }
         }, { threshold: 0.25 });
         io.observe(elem);
       }
@@ -302,6 +335,8 @@ function togglePreview(store, view, repaint, assets) {
     sounds,
     stage: () => artboard,
     goToPage: (id) => store.setPage(id),
+    pageOrder: () => store.project.pages.map((p) => p.id),
+    currentPage: () => store.pageId,
     playAnim: (id, targetEl) => {
       const targetNode = store.node(id);
       if (targetEl && targetNode) playAnimation(targetEl, targetNode.animation);

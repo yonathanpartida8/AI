@@ -161,6 +161,21 @@ export function wbEffects(root, opts) {
     });
   });
 
+  /* ── Efectos de presión (biblioteca data-press) ── */
+  qa('[data-press]').forEach(function (el) {
+    var kind = el.getAttribute('data-press');
+    if (!kind || kind === 'ninguno') return;
+    on(el, 'pointerdown', function () {
+      el.classList.add('wb-pressing');
+      if (kind === 'chispas' && root.wbBurst) root.wbBurst(el, '✨', 7);
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+    var release = function () { later(function () { el.classList.remove('wb-pressing'); }, kind === 'rebote' || kind === 'latido' || kind === 'sacudida' ? 480 : 40); };
+    on(el, 'pointerup', release);
+    on(el, 'pointerleave', release);
+    on(el, 'pointercancel', release);
+  });
+
   /* ── Tilt 3D: el elemento sigue el dedo/cursor con profundidad ── */
   qa('[data-tilt]').forEach(function (el) {
     var target = el.firstElementChild || el;

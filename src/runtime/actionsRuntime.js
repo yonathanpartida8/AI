@@ -44,11 +44,29 @@ export function wbActions(root, ctx) {
     else done();
   }
 
+  /** Resuelve destinos especiales __next / __prev con orden circular. */
+  function resolveNav(value) {
+    if (!ctx.goToPage) return;
+    if (value === '__next' || value === '__prev') {
+      var order = ctx.pageOrder ? ctx.pageOrder() : [];
+      if (!order.length) return;
+      var current = ctx.currentPage ? ctx.currentPage() : order[0];
+      var i = order.indexOf(current);
+      var j = value === '__next' ? i + 1 : i - 1;
+      if (j >= order.length) j = 0;
+      if (j < 0) j = order.length - 1;
+      ctx.goToPage(order[j]);
+    } else if (value) {
+      ctx.goToPage(value);
+    }
+  }
+  root.wbNav = resolveNav;
+
   function run(a, sourceEl) {
     var target = a.target ? find(a.target) : sourceEl;
     switch (a.action) {
       case 'goToPage':
-        if (ctx.goToPage) ctx.goToPage(a.target);
+        resolveNav(a.target);
         break;
       case 'openUrl':
         if (a.value || a.target) window.open(a.value || a.target, '_blank', 'noopener');
@@ -162,6 +180,11 @@ export function wbActions(root, ctx) {
         observers.push(io);
       }
     });
+  });
+
+  /* Botones de navegación (componente navButton) */
+  Array.prototype.slice.call(root.querySelectorAll('[data-navto]')).forEach(function (btn) {
+    on(btn, 'click', function () { resolveNav(btn.getAttribute('data-navto')); });
   });
 
   return function dispose() {

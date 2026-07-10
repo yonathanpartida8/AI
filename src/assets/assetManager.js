@@ -24,6 +24,7 @@ export const ASSET_KINDS = {
   model: { label: 'Modelos 3D', folder: 'models', icon: '⬡' },
   font: { label: 'Fuentes', folder: 'fonts', icon: '🔤' },
   svg: { label: 'SVG', folder: 'images', icon: '✒' },
+  html: { label: 'Páginas HTML', folder: 'html', icon: '🌐' },
 };
 
 export function kindOfFile(file) {
@@ -35,12 +36,13 @@ export function kindOfFile(file) {
   if (file.type.startsWith('audio/')) return 'audio';
   if (/\.(glb|gltf)$/.test(name)) return 'model';
   if (/\.(woff2?|ttf|otf)$/.test(name)) return 'font';
+  if (file.type === 'text/html' || /\.html?$/.test(name)) return 'html';
   return 'image';
 }
 
 export const ACCEPT_ATTR = [
   'image/*', 'video/*', 'audio/*',
-  '.gif', '.svg', '.glb', '.gltf', '.woff', '.woff2', '.ttf', '.otf',
+  '.gif', '.svg', '.glb', '.gltf', '.woff', '.woff2', '.ttf', '.otf', '.html', '.htm',
 ].join(',');
 
 export class AssetManager extends EventBus {
@@ -175,6 +177,6 @@ export class AssetManager extends EventBus {
 
   /** Tipo de componente sugerido al soltar un asset en el lienzo. */
   componentForAsset(asset) {
-    return { image: 'image', svg: 'image', gif: 'gif', video: 'video', audio: 'musicPlayer', model: 'model3d', font: null }[asset.kind];
+    return { image: 'image', svg: 'image', gif: 'gif', video: 'video', audio: 'musicPlayer', model: 'model3d', font: null, html: 'htmlEmbed' }[asset.kind];
   }
 }

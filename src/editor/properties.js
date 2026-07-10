@@ -173,6 +173,11 @@ export class PropertiesPanel {
       this.#field('Delay (ms)', el('input', { class: 'input', type: 'number', value: anim.delay, min: 0, step: 50, onchange: (e) => this.#updateAnim(node, { delay: +e.target.value }) })),
       this.#field('Curva', this.#select(EASINGS, anim.easing, (v) => this.#updateAnim(node, { easing: v }))),
       this.#check('Repetir en bucle', anim.loop, (v) => this.#updateAnim(node, { loop: v })),
+      this.#field('Animación CSS propia (sobrescribe el preset)', el('input', {
+        class: 'input code', value: anim.custom || '', placeholder: 'miAnim 2s ease infinite',
+        title: 'Define @keyframes miAnim {...} en el CSS global y úsala aquí',
+        onchange: (e) => this.#updateAnim(node, { custom: e.target.value.trim() }),
+      })),
       el('button', {
         class: 'btn block', text: '▶ Previsualizar animación',
         onclick: () => {
@@ -203,15 +208,25 @@ export class PropertiesPanel {
       }),
     ]));
 
-    /* Efectos avanzados: parallax y profundidad 3D */
-    this.root.append(this.#section('Efectos avanzados', [
+    /* Efectos de interacción: presión, hover, parallax, tilt 3D */
+    this.root.append(this.#section('Efectos de interacción', [
+      this.#field('Al tocar / presionar', this.#select(
+        ['ninguno', 'escala', 'rebote', 'brillo', 'latido', 'sacudida', 'hundir', 'chispas'],
+        node.effects?.press || 'ninguno',
+        (v) => this.store.updateNode(node.id, 'effects', { press: v }),
+      )),
+      this.#field('Al pasar el cursor', this.#select(
+        ['ninguno', 'elevar', 'zoom', 'brillo', 'flotar', 'girar'],
+        node.effects?.hoverFx || 'ninguno',
+        (v) => this.store.updateNode(node.id, 'effects', { hoverFx: v }),
+      )),
       this.#field('Parallax al hacer scroll (-1 a 1)', el('input', {
         class: 'input', type: 'number', min: -1, max: 1, step: 0.05, value: node.effects?.parallax ?? 0,
         onchange: (e) => this.store.updateNode(node.id, 'effects', { parallax: +e.target.value }),
       })),
       this.#check('Tilt 3D (sigue el dedo/cursor con profundidad)', !!node.effects?.tilt,
         (v) => this.store.updateNode(node.id, 'effects', { tilt: v })),
-      el('p', { class: 'panel-hint', text: 'Los efectos se ven en Vista previa y en el sitio exportado.' }),
+      el('p', { class: 'panel-hint', text: 'Se ven en Vista previa y en el sitio exportado.' }),
     ]));
 
     /* Lógica visual: eventos con cadenas de acciones */
@@ -297,6 +312,12 @@ export class PropertiesPanel {
       }
       case 'select':
         return this.#field(field.label, this.#select(field.options, value, commit));
+      case 'navTarget': {
+        const opts = ['__next', '__prev', ...this.store.project.pages.map((p) => p.id)];
+        return this.#field(field.label, this.#select(opts, value || '__next', commit,
+          (id) => id === '__next' ? '→ Página siguiente' : id === '__prev' ? '← Página anterior'
+            : (this.store.project.pages.find((p) => p.id === id)?.name || id)));
+      }
       case 'font': {
         // Fuentes del sistema + fuentes subidas por el usuario (assets)
         const customFonts = this.assets.list({ kind: 'font' }).map((a) => this.assets.fontName(a));
@@ -343,9 +364,11 @@ export class PropertiesPanel {
           (k) => EVENT_ACTIONS[k].label),
       ];
       if (def.targetKind === 'page') {
-        controls.push(this.#select(this.store.project.pages.map((p) => p.id), action.target,
+        const pageOpts = ['__next', '__prev', ...this.store.project.pages.map((p) => p.id)];
+        controls.push(this.#select(pageOpts, action.target,
           (v) => { snap(); action.target = v; commit(); },
-          (id) => '→ ' + (this.store.project.pages.find((p) => p.id === id)?.name || id)));
+          (id) => id === '__next' ? '→ Página siguiente' : id === '__prev' ? '← Página anterior'
+            : '→ ' + (this.store.project.pages.find((p) => p.id === id)?.name || id)));
       } else if (def.targetKind === 'node') {
         const nodes = this.store.pageNodes().filter((n) => n.id !== node.id);
         controls.push(this.#select(['', ...nodes.map((n) => n.id)], action.target,

@@ -320,7 +320,8 @@ button { font: inherit; color: inherit; }
    con el export; #artboard da la especificidad para ganar aquí.) */
 #artboard .wb-node { user-select: none; }
 #artboard .wb-node .wb-text { outline: none; }
-#artboard .wb-btn, #artboard .wb-heartbtn { cursor: default; pointer-events: none; }
+#artboard .wb-btn, #artboard .wb-heartbtn, #artboard .wb-nav { cursor: default; pointer-events: none; }
+#artboard .wb-embed iframe { pointer-events: none; } /* editable como objeto */
 #artboard .wb-form input, #artboard .wb-form textarea, #artboard .wb-form button { pointer-events: none; }
 #artboard .wb-menu a { pointer-events: none; }
 #artboard .wb-letter, #artboard .wb-hiddenmsg { cursor: default; }
@@ -394,7 +395,9 @@ body.preview #ruler-v-wrap,
 body.preview #ruler-corner { display: none; }
 body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
 body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
-body.preview .wb-form textarea, body.preview .wb-form button { pointer-events: auto; cursor: pointer; }
+body.preview .wb-form textarea, body.preview .wb-form button,
+body.preview .wb-nav, body.preview .wb-heartbtn { pointer-events: auto; cursor: pointer; }
+body.preview .wb-embed iframe { pointer-events: auto; }
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
 
@@ -426,6 +429,20 @@ body.preview .wb-placeholder { opacity: .25; }
   border-radius: 7px; cursor: pointer; padding: 0;
 }
 .swatch:hover { border-color: #fff; transform: scale(1.12); }
+
+/* ── FAB One UI (añadir con el pulgar) ──────────────── */
+
+#fab-add {
+  display: none;
+  position: fixed; right: 16px; bottom: 130px; z-index: 95;
+  width: 58px; height: 58px; border: none; border-radius: 50%;
+  background: var(--grad); color: #fff; font-size: 28px; line-height: 1;
+  box-shadow: 0 10px 28px rgba(255, 143, 171, .5), 0 2px 8px rgba(0,0,0,.35);
+  cursor: pointer;
+  transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s;
+}
+#fab-add:active { transform: scale(.88) rotate(45deg); }
+body.preview #fab-add { display: none !important; }
 
 /* ── Barra de navegación móvil ──────────────────────── */
 
@@ -471,6 +488,13 @@ body.preview .wb-placeholder { opacity: .25; }
   #left-panel.open, #right-panel.open { transform: none; }
 
   #mobile-nav { display: flex; }
+  #fab-add { display: block; }
+
+  /* One UI: superficies más redondeadas y respirables en móvil */
+  :root { --radius: 18px; }
+  .props-section { border-radius: 18px; }
+  .palette-item, .block-item, .music-row { border-radius: 18px; }
+  .asset-card { border-radius: 16px; }
 
   /* Sin reglas en pantallas pequeñas: más lienzo */
   #stage-area { grid-template: 0 1fr / 0 1fr; }
@@ -947,6 +971,32 @@ body.preview .wb-placeholder { opacity: .25; }
       defaults: { props: { assetId: null, fit: "contain" }, styles: {} },
       schema: [asset("props.assetId", "Trazo exportado", "image"), ...STYLE_COMMON]
     },
+    navButton: {
+      label: "Bot\xF3n de navegaci\xF3n",
+      icon: "\u21E2",
+      cat: "B\xE1sicos",
+      size: [210, 58],
+      defaults: {
+        props: { text: "Siguiente", target: "__next", variant: "p\xEDldora", showArrow: true },
+        styles: {
+          fontSize: 16,
+          fontWeight: "700",
+          textAlign: "center",
+          color: "#fff",
+          background: "linear-gradient(90deg,#ff8fab,#b388eb)",
+          radius: 29,
+          shadow: "suave"
+        }
+      },
+      schema: [
+        text("props.text", "Texto"),
+        { key: "props.target", label: "Destino", type: "navTarget" },
+        select("props.variant", "Estilo", ["p\xEDldora", "fantasma", "ne\xF3n", "burbuja", "flecha"]),
+        check("props.showArrow", "Mostrar flecha animada"),
+        ...TEXT_STYLE,
+        ...STYLE_COMMON
+      ]
+    },
     /* ── Componentes románticos ─────────────────────────── */
     loveLetter: {
       label: "Carta interactiva",
@@ -1135,6 +1185,19 @@ body.preview .wb-placeholder { opacity: .25; }
       ]
     },
     /* ── Extensión con código propio ────────────────────── */
+    htmlEmbed: {
+      label: "P\xE1gina HTML importada",
+      icon: "\u{1F310}",
+      cat: "Avanzados",
+      size: [480, 360],
+      accepts: ["html"],
+      defaults: { props: { assetId: null, interactive: true }, styles: { radius: 14, shadow: "suave" } },
+      schema: [
+        asset("props.assetId", "Archivo HTML (sube uno en Assets)", "html"),
+        check("props.interactive", "Interactivo en el sitio final"),
+        ...STYLE_COMMON
+      ]
+    },
     custom3D: {
       label: "3D personalizado",
       icon: "\u{1F9CA}",
@@ -1218,8 +1281,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       },
       // Salida elegante al ocultarse mediante acciones
       animationOut: { preset: "fadeOut", duration: 450, easing: "ease-in" },
-      effects: { parallax: 0, tilt: false },
-      // efectos de scroll y profundidad
+      // Efectos de interacción: presión al tocar, hover y scroll
+      effects: { parallax: 0, tilt: false, press: type === "button" || type === "heartButton" ? "escala" : "ninguno", hoverFx: "ninguno" },
       events: [],
       // [{ on:'click', actions:[{action,target,value,delay}] }]
       locked: false,
@@ -2022,7 +2085,10 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       for (const node2 of Object.values(project.nodes)) {
         node2.effects ||= { parallax: 0, tilt: false };
+        node2.effects.press ||= "ninguno";
+        node2.effects.hoverFx ||= "ninguno";
         node2.animationOut ||= { preset: "fadeOut", duration: 450, easing: "ease-in" };
+        node2.animation.custom ||= "";
         node2.events = (node2.events || []).map((ev) => ev.actions ? ev : { on: ev.on || "click", actions: [{ action: ev.action, target: ev.target || "", value: "", delay: 0 }] });
       }
     }
@@ -2408,7 +2474,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     audio: { label: "Audio", folder: "audio", icon: "\u{1F3A7}" },
     model: { label: "Modelos 3D", folder: "models", icon: "\u2B21" },
     font: { label: "Fuentes", folder: "fonts", icon: "\u{1F524}" },
-    svg: { label: "SVG", folder: "images", icon: "\u2712" }
+    svg: { label: "SVG", folder: "images", icon: "\u2712" },
+    html: { label: "P\xE1ginas HTML", folder: "html", icon: "\u{1F310}" }
   };
   function kindOfFile(file) {
     const name = file.name.toLowerCase();
@@ -2419,6 +2486,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     if (file.type.startsWith("audio/")) return "audio";
     if (/\.(glb|gltf)$/.test(name)) return "model";
     if (/\.(woff2?|ttf|otf)$/.test(name)) return "font";
+    if (file.type === "text/html" || /\.html?$/.test(name)) return "html";
     return "image";
   }
   var ACCEPT_ATTR = [
@@ -2432,7 +2500,9 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     ".woff",
     ".woff2",
     ".ttf",
-    ".otf"
+    ".otf",
+    ".html",
+    ".htm"
   ].join(",");
   var AssetManager = class extends EventBus {
     #byId = /* @__PURE__ */ new Map();
@@ -2559,7 +2629,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     }
     /** Tipo de componente sugerido al soltar un asset en el lienzo. */
     componentForAsset(asset2) {
-      return { image: "image", svg: "image", gif: "gif", video: "video", audio: "musicPlayer", model: "model3d", font: null }[asset2.kind];
+      return { image: "image", svg: "image", gif: "gif", video: "video", audio: "musicPlayer", model: "model3d", font: null, html: "htmlEmbed" }[asset2.kind];
     }
   };
 
@@ -2647,6 +2717,18 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       case "button":
         return `<button class="wb-btn" type="button">${esc(p.text)}</button>`;
+      case "navButton": {
+        const dir = p.target === "__prev" ? "prev" : "next";
+        const arrow = p.showArrow !== false ? `<span class="wb-nav-arrow">${dir === "prev" ? "\u2190" : "\u2192"}</span>` : "";
+        const variantStyle = {
+          "fantasma": "background:transparent;border:2px solid currentColor;box-shadow:none;",
+          "ne\xF3n": "box-shadow:0 0 18px rgba(255,143,171,.8),0 0 44px rgba(179,136,235,.5);",
+          "flecha": "background:transparent;box-shadow:none;font-size:2.2em;"
+        }[p.variant] || "";
+        const cls = p.variant === "burbuja" ? " wb-nav-burbuja" : "";
+        const inner = p.variant === "flecha" ? arrow || "\u2192" : `${dir === "prev" ? arrow : ""}<span>${esc(p.text)}</span>${dir === "next" ? arrow : ""}`;
+        return `<button class="wb-nav${cls}" type="button" data-dir="${dir}" data-navto="${esc(p.target || "__next")}" style="${variantStyle}">${inner}</button>`;
+      }
       case "image":
       case "drawing":
         return media(node2, ctx);
@@ -2724,6 +2806,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       case "photo3d": {
         if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Dise\xF1o</small></div>`;
         return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
+      }
+      case "htmlEmbed": {
+        if (!p.assetId) return `<div class="wb-placeholder">\u{1F310} P\xE1gina HTML<small>Sube un .html en Assets y el\xEDgelo en Dise\xF1o</small></div>`;
+        const src = ctx.resolve(p.assetId);
+        const inert = ctx.editor || p.interactive === false;
+        return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden">
+        <iframe src="${src}" sandbox="allow-scripts allow-same-origin" loading="lazy"
+          style="width:100%;height:100%;border:0;border-radius:inherit;${inert && !ctx.editor ? "pointer-events:none;" : ""}"></iframe></div>`;
       }
       case "custom3D":
         return `<div class="wb-3d" data-kind="custom" data-cameraz="${p.cameraZ ?? 4}"><script type="text/wb-3d">${String(p.code || "").replaceAll("<\/script", "<\\/script")}<\/script></div>`;
@@ -2824,6 +2914,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     elem.dataset.type = node2.type;
     if (node2.effects?.tilt) elem.dataset.tilt = "1";
     if (node2.effects?.parallax) elem.dataset.parallax = String(node2.effects.parallax);
+    if (node2.effects?.press && node2.effects.press !== "ninguno") elem.dataset.press = node2.effects.press;
+    if (node2.effects?.hoverFx && node2.effects.hoverFx !== "ninguno") elem.dataset.hover = node2.effects.hoverFx;
     if (node2.events?.length) elem.dataset.events = JSON.stringify(node2.events);
     elem.innerHTML = contentHTML(node2, ctx);
     syncNodeEl(elem, node2, store);
@@ -2967,6 +3059,34 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 .wb-gallery img:hover,.wb-slider:hover .wb-slide.active{transform:scale(1.04)}
 .wb-menu a{transition:opacity .15s,transform .15s}
 .wb-menu a:active{transform:scale(.93)}
+
+/* \u2500\u2500 Biblioteca de efectos de PRESI\xD3N (data-press) \u2500\u2500 */
+[data-press]{transition:transform .16s cubic-bezier(.2,.8,.25,1),filter .16s,box-shadow .16s}
+[data-press="escala"].wb-pressing{transform:scale(.93)!important}
+[data-press="rebote"].wb-pressing{animation:wb-pressbounce .45s cubic-bezier(.3,1.8,.4,1)!important}
+@keyframes wb-pressbounce{0%{transform:scale(1)}35%{transform:scale(.85)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+[data-press="brillo"].wb-pressing{filter:brightness(1.5) drop-shadow(0 0 14px rgba(255,155,184,.9))!important}
+[data-press="latido"].wb-pressing{animation:wb-latido-fx .5s ease!important}
+@keyframes wb-latido-fx{0%,100%{transform:scale(1)}30%{transform:scale(1.12)}60%{transform:scale(.96)}}
+[data-press="sacudida"].wb-pressing{animation:wb-shake-fx .4s ease!important}
+@keyframes wb-shake-fx{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+[data-press="hundir"].wb-pressing{transform:scale(.96) translateY(3px)!important;filter:brightness(.85)}
+
+/* \u2500\u2500 Efectos al pasar el cursor (data-hover) \u2500\u2500 */
+[data-hover]{transition:transform .25s cubic-bezier(.2,.8,.25,1),filter .25s,box-shadow .25s}
+[data-hover="elevar"]:hover{transform:translateY(-6px);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+[data-hover="zoom"]:hover{transform:scale(1.05)}
+[data-hover="brillo"]:hover{filter:brightness(1.25) drop-shadow(0 0 16px rgba(255,155,184,.7))}
+[data-hover="flotar"]:hover{animation:wb-float 1.8s ease-in-out infinite}
+[data-hover="girar"]:hover{transform:rotate(3deg) scale(1.03)}
+
+/* \u2500\u2500 Bot\xF3n de navegaci\xF3n (variantes) \u2500\u2500 */
+.wb-nav{width:100%;height:100%;border:none;cursor:pointer;font:inherit;color:inherit;background:inherit;border-radius:inherit;display:flex;align-items:center;justify-content:center;gap:8px;text-shadow:inherit}
+.wb-nav .wb-nav-arrow{font-size:1.25em;line-height:1;animation:wb-navnudge 1.6s ease-in-out infinite}
+.wb-nav[data-dir="prev"] .wb-nav-arrow{animation-name:wb-navnudge-prev}
+@keyframes wb-navnudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes wb-navnudge-prev{0%,100%{transform:translateX(0)}50%{transform:translateX(-5px)}}
+.wb-nav-burbuja{border-radius:50%!important}
 
 /* \u2500\u2500 Mensaje flotante (acci\xF3n showMessage) \u2500\u2500 */
 .wb-toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(20px);z-index:9999;
@@ -3321,6 +3441,23 @@ ${steps.join("\n")}
         target.appendChild(s);
       });
     });
+    qa("[data-press]").forEach(function(el2) {
+      var kind = el2.getAttribute("data-press");
+      if (!kind || kind === "ninguno") return;
+      on(el2, "pointerdown", function() {
+        el2.classList.add("wb-pressing");
+        if (kind === "chispas" && root.wbBurst) root.wbBurst(el2, "\u2728", 7);
+        if (navigator.vibrate) navigator.vibrate(8);
+      });
+      var release = function() {
+        later(function() {
+          el2.classList.remove("wb-pressing");
+        }, kind === "rebote" || kind === "latido" || kind === "sacudida" ? 480 : 40);
+      };
+      on(el2, "pointerup", release);
+      on(el2, "pointerleave", release);
+      on(el2, "pointercancel", release);
+    });
     qa("[data-tilt]").forEach(function(el2) {
       var target = el2.firstElementChild || el2;
       target.style.transition = "transform .18s ease-out";
@@ -3428,11 +3565,27 @@ ${steps.join("\n")}
         timers.push(setTimeout(done, dur));
       } else done();
     }
+    function resolveNav(value) {
+      if (!ctx.goToPage) return;
+      if (value === "__next" || value === "__prev") {
+        var order = ctx.pageOrder ? ctx.pageOrder() : [];
+        if (!order.length) return;
+        var current = ctx.currentPage ? ctx.currentPage() : order[0];
+        var i = order.indexOf(current);
+        var j = value === "__next" ? i + 1 : i - 1;
+        if (j >= order.length) j = 0;
+        if (j < 0) j = order.length - 1;
+        ctx.goToPage(order[j]);
+      } else if (value) {
+        ctx.goToPage(value);
+      }
+    }
+    root.wbNav = resolveNav;
     function run(a, sourceEl) {
       var target = a.target ? find(a.target) : sourceEl;
       switch (a.action) {
         case "goToPage":
-          if (ctx.goToPage) ctx.goToPage(a.target);
+          resolveNav(a.target);
           break;
         case "openUrl":
           if (a.value || a.target) window.open(a.value || a.target, "_blank", "noopener");
@@ -3588,6 +3741,11 @@ ${steps.join("\n")}
           io.observe(el2);
           observers.push(io);
         }
+      });
+    });
+    Array.prototype.slice.call(root.querySelectorAll("[data-navto]")).forEach(function(btn) {
+      on(btn, "click", function() {
+        resolveNav(btn.getAttribute("data-navto"));
       });
     });
     return function dispose() {
@@ -3800,8 +3958,10 @@ ${steps.join("\n")}
       if (nodeEl) {
         const id = nodeEl.dataset.id;
         const node2 = this.store.node(id);
-        if (!this.store.selection.includes(id)) this.store.select(id, e.shiftKey);
-        else if (e.shiftKey) {
+        if (!this.store.selection.includes(id)) {
+          this.store.select(id, e.shiftKey);
+          if (e.pointerType === "touch" && navigator.vibrate) navigator.vibrate(8);
+        } else if (e.shiftKey) {
           this.store.select(this.store.selection.filter((s) => s !== id));
           return;
         }
@@ -3962,6 +4122,7 @@ ${steps.join("\n")}
         }, 0);
         if (bottom > this.store.page.height) this.store.page.height = Math.ceil(bottom + 160);
         this.store.commit();
+        if (e.pointerType === "touch" && navigator.vibrate) navigator.vibrate(12);
       }
     }
     #onWheel(e) {
@@ -4700,6 +4861,13 @@ ${steps.join("\n")}
         this.#field("Delay (ms)", el("input", { class: "input", type: "number", value: anim.delay, min: 0, step: 50, onchange: (e) => this.#updateAnim(node2, { delay: +e.target.value }) })),
         this.#field("Curva", this.#select(EASINGS, anim.easing, (v) => this.#updateAnim(node2, { easing: v }))),
         this.#check("Repetir en bucle", anim.loop, (v) => this.#updateAnim(node2, { loop: v })),
+        this.#field("Animaci\xF3n CSS propia (sobrescribe el preset)", el("input", {
+          class: "input code",
+          value: anim.custom || "",
+          placeholder: "miAnim 2s ease infinite",
+          title: "Define @keyframes miAnim {...} en el CSS global y \xFAsala aqu\xED",
+          onchange: (e) => this.#updateAnim(node2, { custom: e.target.value.trim() })
+        })),
         el("button", {
           class: "btn block",
           text: "\u25B6 Previsualizar animaci\xF3n",
@@ -4734,7 +4902,17 @@ ${steps.join("\n")}
           }
         })
       ]));
-      this.root.append(this.#section("Efectos avanzados", [
+      this.root.append(this.#section("Efectos de interacci\xF3n", [
+        this.#field("Al tocar / presionar", this.#select(
+          ["ninguno", "escala", "rebote", "brillo", "latido", "sacudida", "hundir", "chispas"],
+          node2.effects?.press || "ninguno",
+          (v) => this.store.updateNode(node2.id, "effects", { press: v })
+        )),
+        this.#field("Al pasar el cursor", this.#select(
+          ["ninguno", "elevar", "zoom", "brillo", "flotar", "girar"],
+          node2.effects?.hoverFx || "ninguno",
+          (v) => this.store.updateNode(node2.id, "effects", { hoverFx: v })
+        )),
         this.#field("Parallax al hacer scroll (-1 a 1)", el("input", {
           class: "input",
           type: "number",
@@ -4749,7 +4927,7 @@ ${steps.join("\n")}
           !!node2.effects?.tilt,
           (v) => this.store.updateNode(node2.id, "effects", { tilt: v })
         ),
-        el("p", { class: "panel-hint", text: "Los efectos se ven en Vista previa y en el sitio exportado." })
+        el("p", { class: "panel-hint", text: "Se ven en Vista previa y en el sitio exportado." })
       ]));
       const eventRows = (node2.events || []).map((event, i) => this.#renderEventRow(node2, event, i));
       this.root.append(this.#section("L\xF3gica e interacci\xF3n", [
@@ -4831,6 +5009,15 @@ ${steps.join("\n")}
         }
         case "select":
           return this.#field(field.label, this.#select(field.options, value, commit));
+        case "navTarget": {
+          const opts = ["__next", "__prev", ...this.store.project.pages.map((p) => p.id)];
+          return this.#field(field.label, this.#select(
+            opts,
+            value || "__next",
+            commit,
+            (id) => id === "__next" ? "\u2192 P\xE1gina siguiente" : id === "__prev" ? "\u2190 P\xE1gina anterior" : this.store.project.pages.find((p) => p.id === id)?.name || id
+          ));
+        }
         case "font": {
           const customFonts = this.assets.list({ kind: "font" }).map((a) => this.assets.fontName(a));
           return this.#field(field.label, this.#select([...FONTS, ...customFonts], value || "system-ui", commit));
@@ -4890,15 +5077,16 @@ ${steps.join("\n")}
           )
         ];
         if (def.targetKind === "page") {
+          const pageOpts = ["__next", "__prev", ...this.store.project.pages.map((p) => p.id)];
           controls.push(this.#select(
-            this.store.project.pages.map((p) => p.id),
+            pageOpts,
             action.target,
             (v) => {
               snap();
               action.target = v;
               commit();
             },
-            (id) => "\u2192 " + (this.store.project.pages.find((p) => p.id === id)?.name || id)
+            (id) => id === "__next" ? "\u2192 P\xE1gina siguiente" : id === "__prev" ? "\u2190 P\xE1gina anterior" : "\u2192 " + (this.store.project.pages.find((p) => p.id === id)?.name || id)
           ));
         } else if (def.targetKind === "node") {
           const nodes = this.store.pageNodes().filter((n) => n.id !== node2.id);
@@ -5048,11 +5236,12 @@ ${steps.join("\n")}
       this.assets = assets;
       this.view = view;
       this.canvas = view.drawLayer;
-      this.ctx = this.canvas.getContext("2d", { desynchronized: true, willReadFrequently: true });
+      this.ctx = this.canvas.getContext("2d", { willReadFrequently: true });
       this.brush = { size: 8, color: "#f472b6", opacity: 1, eraser: false, type: "pluma" };
       this.paper = "transparente";
       this.stampDist = 0;
       this.strokes = [];
+      this.redoStack = [];
       this.drawing = false;
       this.toolbar = this.#buildToolbar();
       document.getElementById("draw-toolbar-slot").append(this.toolbar);
@@ -5089,9 +5278,11 @@ ${steps.join("\n")}
     }
     #start(e) {
       if (this.store.tool !== "draw") return;
+      e.preventDefault();
       this.canvas.setPointerCapture(e.pointerId);
       this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
-      if (this.strokes.length > 20) this.strokes.shift();
+      if (this.strokes.length > 24) this.strokes.shift();
+      this.redoStack = [];
       this.drawing = true;
       this.last = this.#point(e);
       this.#segment(this.last, this.last);
@@ -5203,7 +5394,16 @@ ${steps.join("\n")}
     }
     undoStroke() {
       const prev = this.strokes.pop();
-      if (prev) this.ctx.putImageData(prev, 0, 0);
+      if (!prev) return;
+      this.redoStack.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+      if (this.redoStack.length > 24) this.redoStack.shift();
+      this.ctx.putImageData(prev, 0, 0);
+    }
+    redoStroke() {
+      const next = this.redoStack.pop();
+      if (!next) return;
+      this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+      this.ctx.putImageData(next, 0, 0);
     }
     clear() {
       this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
@@ -5285,7 +5485,8 @@ ${steps.join("\n")}
         } }),
         photoInput,
         el("button", { class: "btn", text: "\u{1F5BC} Foto", title: "A\xF1ade una fotograf\xEDa de tu galer\xEDa al dibujo", onclick: () => photoInput.click() }),
-        el("button", { class: "btn", text: "\u21B6 Trazo", title: "Deshacer \xFAltimo trazo", onclick: () => this.undoStroke() }),
+        el("button", { class: "btn", text: "\u21B6", title: "Deshacer trazo", onclick: () => this.undoStroke() }),
+        el("button", { class: "btn", text: "\u21B7", title: "Rehacer trazo", onclick: () => this.redoStroke() }),
         el("button", { class: "btn", text: "\u{1F5D1} Limpiar", onclick: () => this.clear() }),
         el("button", { class: "btn", text: "\u2B07 PNG", title: "Descargar la hoja", onclick: () => this.downloadPNG() }),
         el("button", { class: "btn primary", text: "\u2713 Convertir en componente", onclick: () => this.toComponent() }),
@@ -5885,7 +6086,7 @@ ${steps.join("\n")}
       const project = this.store.project;
       return page.nodes.map((id) => project.nodes[id]).filter((node2) => node2 && !node2.hidden).map((node2) => {
         const anim = node2.animation;
-        const hasAnim = anim && anim.preset !== "ninguna" && PRESETS[anim.preset];
+        const hasAnim = anim && (anim.custom || anim.preset !== "ninguna" && PRESETS[anim.preset]);
         const animOut = node2.animationOut;
         const hasExit = animOut && animOut.preset !== "ninguna" && EXIT_PRESETS[animOut.preset];
         const attrs = [
@@ -5894,6 +6095,8 @@ ${steps.join("\n")}
           hasExit ? `data-outdur="${animOut.duration || 450}"` : "",
           node2.effects?.tilt ? 'data-tilt="1"' : "",
           node2.effects?.parallax ? `data-parallax="${node2.effects.parallax}"` : "",
+          node2.effects?.press && node2.effects.press !== "ninguno" ? `data-press="${node2.effects.press}"` : "",
+          node2.effects?.hoverFx && node2.effects.hoverFx !== "ninguno" ? `data-hover="${node2.effects.hoverFx}"` : "",
           node2.events?.length ? `data-events='${JSON.stringify(node2.events).replaceAll("'", "&#39;")}'` : ""
         ].filter(Boolean).join(" ");
         return `      <div ${attrs}>${contentHTML(node2, renderCtx)}</div>`;
@@ -5941,7 +6144,7 @@ ${steps.join("\n")}
 ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`,
-          boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_SINGLE=false;`,
+          boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_CURRENT=${JSON.stringify(page.id)};window.WB_SINGLE=false;`,
           pwa: isIndex,
           runtime: this.#buildRuntime({ single: false, has3D }),
           pageJS: `${project.custom?.js || ""}
@@ -6062,7 +6265,10 @@ ${custom.replaceAll("<\/script", "<\\/script")}
         const mobile = node2.responsive?.mobile;
         if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node2.id}{${frameRule({ ...node2.base, ...tablet, ...mobile })}}`);
         const anim = node2.animation;
-        if (anim && anim.preset !== "ninguna" && PRESETS[anim.preset]) {
+        if (anim?.custom) {
+          const selector = anim.trigger === "hover" ? `.el-${node2.id}:hover` : `.el-${node2.id}.wb-play`;
+          rules.push(`${selector}{animation:${anim.custom}}`);
+        } else if (anim && anim.preset !== "ninguna" && PRESETS[anim.preset]) {
           usedPresets.add(anim.preset);
           const iter = anim.loop ? "infinite" : "1";
           const selector = anim.trigger === "hover" ? `.el-${node2.id}:hover` : `.el-${node2.id}.wb-play`;
@@ -6197,6 +6403,16 @@ WB_ACTIONS(document, {
   goToPage: wbGoToPage,
   sounds: window.WB_SOUNDS || {},
   stage: function () { return wbActiveWrap().querySelector('.wb-stage'); },
+  pageOrder: function () {
+    if (window.WB_SINGLE) {
+      return Array.prototype.map.call(document.querySelectorAll('.wb-scale-wrap'), function (w) { return w.getAttribute('data-wrap'); });
+    }
+    return Object.keys(window.WB_PAGES || {});
+  },
+  currentPage: function () {
+    if (window.WB_SINGLE) return wbActiveWrap().getAttribute('data-wrap');
+    return window.WB_CURRENT;
+  },
 });
 
 /* Animaciones por scroll y clic */
@@ -6510,7 +6726,14 @@ self.addEventListener('fetch', function (e) {
           const text2 = await file.text();
           let data;
           if (/\.html?$/i.test(file.name)) {
-            data = parseProjectFromHTML(text2);
+            if (text2.includes('id="wb-project"')) {
+              data = parseProjectFromHTML(text2);
+            } else {
+              const [asset2] = await assets.importFiles([file]);
+              store.addNode("htmlEmbed", { x: 120, y: 120 }, { props: { assetId: asset2.id, interactive: true } });
+              e.target.value = "";
+              return;
+            }
           } else {
             data = JSON.parse(text2);
           }
@@ -6636,6 +6859,20 @@ ${extraJS}`;
         }
       }
     }, [el("span", { class: "mn-icon", text: icon }), el("span", { class: "mn-label", text: label })]);
+    const fab = el("button", {
+      id: "fab-add",
+      title: "A\xF1adir elemento",
+      onclick: () => {
+        const wasOpen = left.classList.contains("open");
+        closeAll();
+        if (!wasOpen) {
+          panels.openTab("componentes");
+          left.classList.add("open");
+          if (navigator.vibrate) navigator.vibrate(10);
+        }
+      }
+    }, ["\uFF0B"]);
+    document.body.append(fab);
     const nav = el("nav", { id: "mobile-nav" }, [
       item("\u25A6", "Piezas", () => {
         panels.openTab("componentes");
@@ -6663,6 +6900,9 @@ ${extraJS}`;
     ]);
     document.body.append(nav);
     view.viewport.addEventListener("pointerdown", closeAll);
+    store.on("tool", () => {
+      if (store.tool === "draw") closeAll();
+    });
   }
   var previewCleanup = null;
   function togglePreview(store, view, repaint, assets) {
@@ -6683,20 +6923,29 @@ ${extraJS}`;
       const elem = artboard.querySelector(`[data-id="${node2.id}"]`);
       if (!elem) continue;
       const anim = node2.animation;
-      if (anim?.preset && anim.preset !== "ninguna") {
-        if (anim.trigger === "load") animations.push(playAnimation(elem, anim));
-        else if (anim.trigger === "click") elem.addEventListener("click", () => playAnimation(elem, anim));
-        else if (anim.trigger === "hover") elem.addEventListener("mouseenter", () => playAnimation(elem, anim));
+      const fire = () => {
+        if (anim.custom) {
+          elem.style.animation = "none";
+          void elem.offsetWidth;
+          elem.style.animation = anim.custom;
+        } else {
+          animations.push(playAnimation(elem, anim));
+        }
+      };
+      if (anim && (anim.custom || anim.preset && anim.preset !== "ninguna")) {
+        if (anim.trigger === "load") fire();
+        else if (anim.trigger === "click") elem.addEventListener("click", fire);
+        else if (anim.trigger === "hover") elem.addEventListener("mouseenter", fire);
         else if (anim.trigger === "hold") {
           let holdTimer = null;
           elem.addEventListener("pointerdown", () => {
-            holdTimer = setTimeout(() => playAnimation(elem, anim), 550);
+            holdTimer = setTimeout(fire, 550);
           });
           ["pointerup", "pointerleave"].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
         } else if (anim.trigger === "scroll") {
           const io = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
-              playAnimation(elem, anim);
+              fire();
               io.disconnect();
             }
           }, { threshold: 0.25 });
@@ -6712,6 +6961,8 @@ ${extraJS}`;
       sounds,
       stage: () => artboard,
       goToPage: (id) => store.setPage(id),
+      pageOrder: () => store.project.pages.map((p) => p.id),
+      currentPage: () => store.pageId,
       playAnim: (id, targetEl) => {
         const targetNode = store.node(id);
         if (targetEl && targetNode) playAnimation(targetEl, targetNode.animation);

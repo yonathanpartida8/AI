@@ -39,12 +39,15 @@ export class DrawTool {
     this.assets = assets;
     this.view = view;
     this.canvas = view.drawLayer;
-    // desynchronized: menor latencia de trazo con stylus en pantallas 90-165 Hz
-    this.ctx = this.canvas.getContext('2d', { desynchronized: true, willReadFrequently: true });
+    // NOTA: sin `desynchronized` — en Chrome/Android retrasa la presentación
+    // del trazo dentro de ancestros con transform (el dibujo "aparecía al
+    // soltar"). Con el contexto estándar el trazo se ve EN TIEMPO REAL.
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     this.brush = { size: 8, color: '#f472b6', opacity: 1, eraser: false, type: 'pluma' };
     this.paper = 'transparente';
     this.stampDist = 0; // acumulador para el pincel de corazones
-    this.strokes = []; // snapshots de ImageData → undo de trazos
+    this.strokes = []; // snapshots de ImageData → deshacer trazos
+    this.redoStack = []; // → rehacer trazos
     this.drawing = false;
 
     this.toolbar = this.#buildToolbar();
@@ -90,9 +93,11 @@ export class DrawTool {
 
   #start(e) {
     if (this.store.tool !== 'draw') return;
+    e.preventDefault(); // ni scroll ni gestos del navegador: solo tinta
     this.canvas.setPointerCapture(e.pointerId);
     this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
-    if (this.strokes.length > 20) this.strokes.shift();
+    if (this.strokes.length > 24) this.strokes.shift();
+    this.redoStack = []; // un trazo nuevo invalida los rehacer
     this.drawing = true;
     this.last = this.#point(e);
     this.#segment(this.last, this.last);
@@ -206,7 +211,17 @@ export class DrawTool {
 
   undoStroke() {
     const prev = this.strokes.pop();
-    if (prev) this.ctx.putImageData(prev, 0, 0);
+    if (!prev) return;
+    this.redoStack.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+    if (this.redoStack.length > 24) this.redoStack.shift();
+    this.ctx.putImageData(prev, 0, 0);
+  }
+
+  redoStroke() {
+    const next = this.redoStack.pop();
+    if (!next) return;
+    this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+    this.ctx.putImageData(next, 0, 0);
   }
 
   clear() {
@@ -265,7 +280,8 @@ export class DrawTool {
       el('button', { class: 'btn', text: '◫ Borrador', onclick: (e) => { this.brush.eraser = !this.brush.eraser; e.target.classList.toggle('active', this.brush.eraser); } }),
       photoInput,
       el('button', { class: 'btn', text: '🖼 Foto', title: 'Añade una fotografía de tu galería al dibujo', onclick: () => photoInput.click() }),
-      el('button', { class: 'btn', text: '↶ Trazo', title: 'Deshacer último trazo', onclick: () => this.undoStroke() }),
+      el('button', { class: 'btn', text: '↶', title: 'Deshacer trazo', onclick: () => this.undoStroke() }),
+      el('button', { class: 'btn', text: '↷', title: 'Rehacer trazo', onclick: () => this.redoStroke() }),
       el('button', { class: 'btn', text: '🗑 Limpiar', onclick: () => this.clear() }),
       el('button', { class: 'btn', text: '⬇ PNG', title: 'Descargar la hoja', onclick: () => this.downloadPNG() }),
       el('button', { class: 'btn primary', text: '✓ Convertir en componente', onclick: () => this.toComponent() }),

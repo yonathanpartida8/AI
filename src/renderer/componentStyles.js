@@ -128,6 +128,34 @@ export const COMPONENT_CSS = `
 .wb-menu a{transition:opacity .15s,transform .15s}
 .wb-menu a:active{transform:scale(.93)}
 
+/* ── Biblioteca de efectos de PRESIÓN (data-press) ── */
+[data-press]{transition:transform .16s cubic-bezier(.2,.8,.25,1),filter .16s,box-shadow .16s}
+[data-press="escala"].wb-pressing{transform:scale(.93)!important}
+[data-press="rebote"].wb-pressing{animation:wb-pressbounce .45s cubic-bezier(.3,1.8,.4,1)!important}
+@keyframes wb-pressbounce{0%{transform:scale(1)}35%{transform:scale(.85)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+[data-press="brillo"].wb-pressing{filter:brightness(1.5) drop-shadow(0 0 14px rgba(255,155,184,.9))!important}
+[data-press="latido"].wb-pressing{animation:wb-latido-fx .5s ease!important}
+@keyframes wb-latido-fx{0%,100%{transform:scale(1)}30%{transform:scale(1.12)}60%{transform:scale(.96)}}
+[data-press="sacudida"].wb-pressing{animation:wb-shake-fx .4s ease!important}
+@keyframes wb-shake-fx{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+[data-press="hundir"].wb-pressing{transform:scale(.96) translateY(3px)!important;filter:brightness(.85)}
+
+/* ── Efectos al pasar el cursor (data-hover) ── */
+[data-hover]{transition:transform .25s cubic-bezier(.2,.8,.25,1),filter .25s,box-shadow .25s}
+[data-hover="elevar"]:hover{transform:translateY(-6px);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+[data-hover="zoom"]:hover{transform:scale(1.05)}
+[data-hover="brillo"]:hover{filter:brightness(1.25) drop-shadow(0 0 16px rgba(255,155,184,.7))}
+[data-hover="flotar"]:hover{animation:wb-float 1.8s ease-in-out infinite}
+[data-hover="girar"]:hover{transform:rotate(3deg) scale(1.03)}
+
+/* ── Botón de navegación (variantes) ── */
+.wb-nav{width:100%;height:100%;border:none;cursor:pointer;font:inherit;color:inherit;background:inherit;border-radius:inherit;display:flex;align-items:center;justify-content:center;gap:8px;text-shadow:inherit}
+.wb-nav .wb-nav-arrow{font-size:1.25em;line-height:1;animation:wb-navnudge 1.6s ease-in-out infinite}
+.wb-nav[data-dir="prev"] .wb-nav-arrow{animation-name:wb-navnudge-prev}
+@keyframes wb-navnudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes wb-navnudge-prev{0%,100%{transform:translateX(0)}50%{transform:translateX(-5px)}}
+.wb-nav-burbuja{border-radius:50%!important}
+
 /* ── Mensaje flotante (acción showMessage) ── */
 .wb-toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(20px);z-index:9999;
   max-width:82vw;padding:14px 24px;border-radius:22px;background:rgba(28,28,30,.86);color:#fff;

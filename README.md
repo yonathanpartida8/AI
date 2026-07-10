@@ -89,12 +89,31 @@ usuario/repo) y los nombres (`musica1.mp3`, `musica2.mp3`…). La pestaña ♫
 te deja escucharlas y añadirlas con un toque. El reproductor tiene disco
 giratorio y **ecualizador animado** que solo se mueven mientras suena.
 
+### 👆 Efectos de interacción (biblioteca)
+Cada elemento elige su respuesta **al tocar** (escala, rebote, brillo,
+latido, sacudida, hundir, chispas ✨ con háptico) y **al pasar el cursor**
+(elevar con sombra, zoom, brillo, flotar, girar) — sin programar, desde
+el panel de Efectos.
+
+### ⇢ Botones de navegación personalizables
+Componente propio con destino **página siguiente / anterior** (circular) o
+una página concreta, 5 estilos (píldora, fantasma, neón, burbuja, flecha),
+flecha animada opcional y todos los estilos/animaciones/acciones de
+cualquier elemento. `__next` y `__prev` también están disponibles en la
+acción "Ir a página" de cualquier objeto.
+
+### 🌐 Importar HTML completo como objeto
+Sube cualquier página `.html` (pestaña Assets o botón Importar) y se
+convierte en un **objeto del lienzo** que conserva sus estilos, scripts e
+interacciones (iframe aislado): muévelo, escálalo, anímalo y combínalo con
+el resto de elementos. Funciona igual en el sitio exportado.
+
 ### 📓 Libreta digital romántica (módulo de dibujo)
-Dibuja con el dedo: 5 pinceles (pluma, lápiz, marcador, **neón**,
-**corazones** que estampan 💗), 8 texturas de papel (rayado, cuadriculado,
-puntos, pergamino, cielo nocturno…), inserta **fotografías de tu galería**
-dentro del dibujo, descarga la hoja en PNG o conviértela en un componente
-de la página.
+Dibuja con el dedo **viendo el trazo en tiempo real** (corregido el retraso
+de Android): 5 pinceles (pluma, lápiz, marcador, **neón**, **corazones** que
+estampan 💗), 8 texturas de papel, **deshacer y rehacer** por trazo, inserta
+**fotografías de tu galería** dentro del dibujo, descarga la hoja en PNG o
+conviértela en un componente reutilizable.
 
 ### 💌 Cartas personalizadas
 La carta interactiva ahora acepta **foto dentro**, **sonido al abrirse**,

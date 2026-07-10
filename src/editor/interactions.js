@@ -98,7 +98,10 @@ export class Interactions {
     if (nodeEl) {
       const id = nodeEl.dataset.id;
       const node = this.store.node(id);
-      if (!this.store.selection.includes(id)) this.store.select(id, e.shiftKey);
+      if (!this.store.selection.includes(id)) {
+        this.store.select(id, e.shiftKey);
+        if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(8); // háptico al seleccionar
+      }
       else if (e.shiftKey) { this.store.select(this.store.selection.filter((s) => s !== id)); return; }
       if (node.locked) return;
       this.#startMove(e);
@@ -267,6 +270,7 @@ export class Interactions {
       }, 0);
       if (bottom > this.store.page.height) this.store.page.height = Math.ceil(bottom + 160);
       this.store.commit();
+      if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(12); // háptico al soltar
     }
   }
 
