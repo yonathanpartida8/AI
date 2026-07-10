@@ -22,6 +22,7 @@ import { download, slugify, dataURLToBytes, esc } from '../utils/helpers.js';
 import { contentHTML, styleCSS } from '../renderer/renderer.js';
 import { PRESETS, EXIT_PRESETS, presetToKeyframesCSS, exitToKeyframesCSS } from '../animations/engine.js';
 import { COMPONENT_CSS } from '../renderer/componentStyles.js';
+import { MY_ANIMATIONS_CSS } from '../../contenido/animaciones/index.js';
 import { ASSET_KINDS } from '../assets/assetManager.js';
 import { wbParticles } from '../runtime/particlesRuntime.js';
 import { wbEffects } from '../runtime/effectsRuntime.js';
@@ -133,6 +134,7 @@ export class Exporter {
         editor: false,
         // Multimedia INCRUSTADA → la página funciona aunque se abra suelta
         resolve: (id) => this.assets.url(id),
+        htmlText: (id) => this.assets.text(id),
         pages: project.pages,
         pageHref: (target) => hrefFrom(depth, slugs.get(target.id)),
       };
@@ -186,6 +188,7 @@ ${this.#nodesHTML(page, renderCtx)}
     const renderCtx = {
       editor: false,
       resolve: (id) => this.assets.url(id),
+      htmlText: (id) => this.assets.text(id),
       pages: project.pages,
       pageHref: () => '#',
     };
@@ -323,6 +326,7 @@ html,body{background:#000}
 [data-trigger],[data-tilt],[data-parallax]{will-change:transform,opacity}
 ${fontFaces}
 ${COMPONENT_CSS}
+${MY_ANIMATIONS_CSS}
 ${perPage.join('\n')}
 
 /* ── Nodos ── */

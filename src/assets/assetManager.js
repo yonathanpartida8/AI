@@ -47,6 +47,7 @@ export const ACCEPT_ATTR = [
 
 export class AssetManager extends EventBus {
   #byId = new Map();
+  #textCache = new Map();
 
   constructor(store) {
     super();
@@ -75,6 +76,23 @@ export class AssetManager extends EventBus {
 
   /** URL utilizable en src/href dentro del editor. */
   url(id) { return this.#byId.get(id)?.data || ''; }
+
+  /** Contenido de texto de un asset (HTML importado), con caché. */
+  text(id) {
+    if (this.#textCache.has(id)) return this.#textCache.get(id);
+    const asset = this.#byId.get(id);
+    if (!asset?.data) return '';
+    let out = '';
+    try {
+      const base64 = asset.data.slice(asset.data.indexOf(',') + 1);
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      out = new TextDecoder('utf-8').decode(bytes);
+    } catch { out = ''; }
+    this.#textCache.set(id, out);
+    return out;
+  }
 
   folders() { return [...new Set([...this.#byId.values()].map((a) => a.folder))].sort(); }
 

@@ -55,10 +55,31 @@ export class ThreeManager {
 
   mountAll(root) {
     this.disposeAll();
-    root.querySelectorAll('.wb-particles').forEach((canvas) => {
-      this.#instances.set(canvas, wbParticles(canvas));
+    this.mountEl(root);
+  }
+
+  /** Monta los embeds contenidos en un elemento (render incremental). */
+  mountEl(el) {
+    const scan = (sel, fn) => {
+      if (el.matches?.(sel)) fn(el);
+      el.querySelectorAll(sel).forEach(fn);
+    };
+    scan('.wb-particles', (canvas) => {
+      if (!this.#instances.has(canvas)) this.#instances.set(canvas, wbParticles(canvas));
     });
-    root.querySelectorAll('.wb-3d').forEach((elem) => this.#mount3D(elem));
+    scan('.wb-3d', (elem) => {
+      if (!this.#instances.has(elem)) this.#mount3D(elem);
+    });
+  }
+
+  /** Libera SOLO los embeds que viven dentro de un elemento. */
+  disposeIn(el) {
+    for (const [key, dispose] of this.#instances) {
+      if (el === key || el.contains(key)) {
+        try { dispose(); } catch { /* noop */ }
+        this.#instances.delete(key);
+      }
+    }
   }
 
   disposeAll() {
@@ -67,6 +88,7 @@ export class ThreeManager {
   }
 
   async #mount3D(elem) {
+    this.#instances.set(elem, () => {}); // reserva: evita montajes dobles
     elem.innerHTML = '<div class="wb-3d-loading">Cargando motor 3D…</div>';
     let mod;
     try { mod = await loadThree(); }

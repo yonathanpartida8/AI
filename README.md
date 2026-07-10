@@ -1,4 +1,13 @@
-# ◆ Creador de Experiencias Románticas Digitales
+# ◆ Amor Builder — Creador de Experiencias Románticas
+
+**Interfaz Liquid Glass** en blancos y negros con tipografía bold, y
+**motor de render incremental**: edita proyectos con decenas de elementos,
+HTML importado, 3D y partículas sin tirones — solo se reconstruye lo que
+cambia, y los iframes/WebGL sobreviven intactos entre ediciones.
+
+**Carpetas de contenido propias** (`contenido/`): suelta tus escenas 3D,
+widgets HTML+CSS+JS, @keyframes y MP3 en sus carpetas y aparecen en el
+editor listos para arrastrar — sin tocar el núcleo.
 
 Un Website Builder visual avanzado enfocado en **experiencias románticas**:
 páginas de amor, regalos virtuales, cartas interactivas, recuerdos y momentos

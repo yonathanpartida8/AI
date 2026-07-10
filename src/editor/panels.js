@@ -15,6 +15,8 @@ import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
 import { MUSIC_TRACKS, MUSIC_REPO_BASE, trackURL } from '../config/musicLibrary.js';
+import { MY_3D } from '../../contenido/3d/index.js';
+import { MY_WIDGETS } from '../../contenido/widgets/index.js';
 
 export class Panels {
   constructor(store, assets, view) {
@@ -74,6 +76,34 @@ export class Panels {
       }, [el('span', { class: 'palette-icon', text: block.icon }), el('span', { text: block.label })]));
     }
     body.append(blockList);
+
+    /* Tus carpetas de contenido: 3D y widgets propios */
+    if (MY_3D.length) {
+      body.append(el('h4', { class: 'panel-heading', text: 'Mis 3D (contenido/3d)' }));
+      const grid3d = el('div', { class: 'palette-grid' });
+      for (const item of MY_3D) {
+        grid3d.append(el('div', {
+          class: 'palette-item', title: 'Escena 3D propia — arrastra o toca',
+          onclick: () => this.store.addNode('custom3D', { x: 200, y: 160 }, {
+            name: item.name, props: { code: item.code, cameraZ: 4 },
+          }),
+        }, [el('span', { class: 'palette-icon', text: item.icon || '🧊' }), el('span', { text: item.name })]));
+      }
+      body.append(grid3d);
+    }
+    if (MY_WIDGETS.length) {
+      body.append(el('h4', { class: 'panel-heading', text: 'Mis widgets (contenido/widgets)' }));
+      const gridw = el('div', { class: 'palette-grid' });
+      for (const widget of MY_WIDGETS) {
+        gridw.append(el('div', {
+          class: 'palette-item', title: 'Widget propio — arrastra o toca',
+          onclick: () => this.store.addNode('customHTML', {
+            x: 160, y: 160, w: widget.width || 340, h: widget.height || 220,
+          }, { name: widget.name, props: { html: widget.html || '', css: widget.css || '', js: widget.js || '' } }),
+        }, [el('span', { class: 'palette-icon', text: widget.icon || '🧩' }), el('span', { text: widget.name })]));
+      }
+      body.append(gridw);
+    }
 
     for (const cat of CATEGORIES) {
       body.append(el('h4', { class: 'panel-heading', text: cat }));
@@ -311,10 +341,19 @@ export class Panels {
         class: 'input', type: 'number', value: page.height, min: 200,
         onchange: (e) => this.store.updatePage(page.id, { height: Math.max(200, +e.target.value || 800) }),
       })),
-      this.#field('Fondo', el('input', {
+      this.#field('Fondo de la hoja', el('input', {
         class: 'input', type: 'text', value: page.background, placeholder: '#0b1020 o gradiente CSS',
         onchange: (e) => this.store.updatePage(page.id, { background: e.target.value }),
       })),
+      el('div', { class: 'swatch-row' }, [
+        '#0b1020', '#150a24', '#fdf2f8', '#ffffff', '#060607',
+        'linear-gradient(175deg,#1e0a2e,#3b0f3f)', 'linear-gradient(135deg,#fdf2f8,#fbcfe8)',
+        'linear-gradient(160deg,#0f0c29,#302b63)', 'linear-gradient(180deg,#fff7ed,#ffedd5)',
+        'radial-gradient(circle at 30% 20%,#312e81,#0b1020)',
+      ].map((g) => el('button', {
+        class: 'swatch', title: g, style: { background: g },
+        onclick: () => this.store.updatePage(page.id, { background: g }),
+      }))),
       this.#field('Transición de entrada', el('select', {
         class: 'input',
         onchange: (e) => this.store.updatePage(page.id, { transition: e.target.value }),

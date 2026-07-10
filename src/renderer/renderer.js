@@ -221,13 +221,17 @@ export function contentHTML(node, ctx) {
 
     case 'htmlEmbed': {
       if (!p.assetId) return `<div class="wb-placeholder">🌐 Página HTML<small>Sube un .html en Assets y elígelo en Diseño</small></div>`;
-      // El HTML importado vive en un iframe: conserva SUS estilos y scripts
-      // intactos, y se mueve/escala/anima como cualquier otro objeto.
-      const src = ctx.resolve(p.assetId);
-      const inert = ctx.editor || p.interactive === false;
+      // El HTML importado vive en un iframe con srcdoc (fiable y sin límites
+      // de longitud de URL). En el EDITOR va inerte (sin scripts) para que
+      // páginas pesadas no consuman recursos mientras diseñas; en vista
+      // previa y en el sitio final corre completo.
+      const html = (ctx.htmlText ? ctx.htmlText(p.assetId) : '') || '';
+      const doc = html.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+      const sandbox = ctx.editor ? 'allow-same-origin' : 'allow-scripts allow-same-origin';
+      const inert = !ctx.editor && p.interactive === false ? 'pointer-events:none;' : '';
       return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden">
-        <iframe src="${src}" sandbox="allow-scripts allow-same-origin" loading="lazy"
-          style="width:100%;height:100%;border:0;border-radius:inherit;${inert && !ctx.editor ? 'pointer-events:none;' : ''}"></iframe></div>`;
+        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy"
+          style="width:100%;height:100%;border:0;border-radius:inherit;${inert}"></iframe></div>`;
     }
 
     case 'custom3D':
@@ -349,19 +353,74 @@ export function buildNodeEl(node, store, ctx) {
   return elem;
 }
 
-/** Repinta la página activa completa dentro del artboard. */
-export function renderPage(artboard, store, assets, { mountEmbeds } = {}) {
+/**
+ * Firma de CONTENIDO de un nodo: si no cambia, el DOM interno se
+ * conserva tal cual (posición/estilos se sincronizan aparte, baratos).
+ */
+function contentSignature(node) {
+  return JSON.stringify([node.type, node.props, node.events, node.effects, node.hidden, node.locked]);
+}
+
+/**
+ * RENDER INCREMENTAL de la página activa.
+ *
+ * Antes: cada cambio reconstruía TODO el DOM, recreaba todos los
+ * contextos WebGL y recargaba todos los iframes → tirones y consumo
+ * brutal con proyectos grandes o HTML importado.
+ *
+ * Ahora: se comparan firmas por nodo y solo se reconstruye lo que
+ * cambió de verdad; mover/estilizar solo toca left/top/transform.
+ * Los embeds (WebGL/3D/iframes) sobreviven intactos entre ediciones.
+ */
+export function renderPage(artboard, store, assets, { mountEl, unmountEl } = {}) {
   const page = store.page;
   const ctx = {
     editor: true,
     resolve: (id) => assets.url(id),
+    htmlText: (id) => assets.text(id),
     pages: store.project.pages,
     pageHref: () => '#',
   };
-  artboard.innerHTML = '';
   artboard.style.background = page.background || '#0b1020';
   artboard.style.width = `${store.project.settings.breakpoints[store.device]}px`;
   artboard.style.height = `${page.height}px`;
-  for (const node of store.pageNodes()) artboard.append(buildNodeEl(node, store, ctx));
-  mountEmbeds?.(artboard); // monta WebGL/partículas tras insertar el DOM
+
+  const wanted = store.pageNodes();
+  const wantedIds = new Set(wanted.map((n) => n.id));
+  const existing = new Map();
+  for (const child of [...artboard.children]) {
+    if (!child.classList.contains('wb-node')) continue;
+    if (wantedIds.has(child.dataset.id)) existing.set(child.dataset.id, child);
+    else { unmountEl?.(child); child.remove(); } // nodo eliminado
+  }
+
+  let prev = null;
+  for (const node of wanted) {
+    let elem = existing.get(node.id);
+    const sig = contentSignature(node);
+    if (!elem) {
+      elem = buildNodeEl(node, store, ctx);
+      elem.dataset.sig = sig;
+      artboard.insertBefore(elem, prev ? prev.nextSibling : artboard.firstChild);
+      mountEl?.(elem);
+    } else {
+      if (elem.dataset.sig !== sig) {
+        // Contenido cambiado → reconstrucción SOLO de este nodo
+        unmountEl?.(elem);
+        const fresh = buildNodeEl(node, store, ctx);
+        fresh.dataset.sig = sig;
+        elem.replaceWith(fresh);
+        elem = fresh;
+        mountEl?.(elem);
+      } else {
+        syncNodeEl(elem, node, store); // solo marco + estilos visuales
+      }
+      // Mantiene el z-order sin reconstruir
+      const expectedPrev = prev;
+      if ((expectedPrev && elem.previousElementSibling !== expectedPrev) || (!expectedPrev && artboard.firstElementChild !== elem)) {
+        artboard.insertBefore(elem, expectedPrev ? expectedPrev.nextSibling : artboard.firstChild);
+      }
+    }
+    prev = elem;
+  }
 }

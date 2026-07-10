@@ -19,6 +19,7 @@ import { ProjectStore, DEVICES } from '../storage/projectStore.js';
 import { AssetManager } from '../assets/assetManager.js';
 import { renderPage } from '../renderer/renderer.js';
 import { COMPONENT_CSS } from '../renderer/componentStyles.js';
+import { MY_ANIMATIONS_CSS } from '../../contenido/animaciones/index.js';
 import { playAnimation, playExitAnimation } from '../animations/engine.js';
 import { wbEffects } from '../runtime/effectsRuntime.js';
 import { wbActions } from '../runtime/actionsRuntime.js';
@@ -34,7 +35,7 @@ async function boot() {
   // CSS compartido de componentes: la MISMA hoja que llevará el export
   const shared = document.createElement('style');
   shared.id = 'wb-component-css';
-  shared.textContent = COMPONENT_CSS;
+  shared.textContent = COMPONENT_CSS + '\n' + MY_ANIMATIONS_CSS; // + tus @keyframes de contenido/animaciones
   document.head.append(shared);
 
   const store = new ProjectStore();
@@ -61,10 +62,13 @@ async function boot() {
   new DrawTool(store, assets, view);
   const exporter = new Exporter(store, assets);
 
-  /* ── Render reactivo ───────────────────────────────── */
-  const repaint = () => renderPage(view.artboard, store, assets, { mountEmbeds: (root) => three.mountAll(root) });
+  /* ── Render reactivo INCREMENTAL ───────────────────── */
+  const repaint = () => renderPage(view.artboard, store, assets, {
+    mountEl: (el) => three.mountEl(el),
+    unmountEl: (el) => three.disposeIn(el),
+  });
   store.on('change', repaint);
-  store.on('page', () => view.fit());
+  store.on('page', () => { three.disposeAll(); view.fit(); });
 
   buildTopbar(store, view, exporter, assets, repaint);
   buildMobileNav(store, panels, view);
@@ -284,6 +288,11 @@ function togglePreview(store, view, repaint, assets) {
     body.classList.remove('preview');
     previewCleanup?.();
     previewCleanup = null;
+    // Los iframes vuelven a estado inerte (edición ligera)
+    document.querySelectorAll('#artboard .wb-embed iframe').forEach((frame) => {
+      frame.setAttribute('sandbox', 'allow-same-origin');
+      frame.srcdoc = frame.srcdoc;
+    });
     repaint();
     return;
   }
@@ -293,6 +302,13 @@ function togglePreview(store, view, repaint, assets) {
 
   const artboard = view.artboard;
   const animations = [];
+
+  // Los HTML importados despiertan sus scripts SOLO en vista previa
+  artboard.querySelectorAll('.wb-embed iframe').forEach((frame) => {
+    if (frame.getAttribute('sandbox')?.includes('allow-scripts')) return;
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+    frame.srcdoc = frame.srcdoc; // recarga con scripts activos
+  });
 
   // Animaciones por trigger (WAAPI, igual comportamiento que el CSS exportado)
   for (const node of store.pageNodes()) {

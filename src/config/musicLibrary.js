@@ -5,11 +5,11 @@
  * ║  ★★★  CAMBIA AQUÍ TU MÚSICA — ES EL ÚNICO SITIO  ★★★     ║
  * ╚══════════════════════════════════════════════════════════╝
  *
- * 1) Sube tus MP3 a un repositorio de GitHub (carpeta /musica).
- * 2) Escribe abajo tu usuario y repositorio en MUSIC_REPO_BASE.
- * 3) Cambia los nombres de archivo en la lista MUSIC_TRACKS
+ * 1) Copia tus MP3 en la carpeta  contenido/musica/  del proyecto
+ *    (o usa un repositorio remoto cambiando MUSIC_REPO_BASE).
+ * 2) Cambia los nombres de archivo en la lista MUSIC_TRACKS
  *    («file» debe coincidir EXACTAMENTE con el nombre del .mp3).
- * 4) Ejecuta `npm run build` para regenerar el editor.
+ * 3) Ejecuta `npm run build` para regenerar el editor.
  *
  * La pestaña «Música» del editor lee esta lista y te deja
  * escuchar cada pista y añadirla a la página con un toque.
@@ -17,7 +17,7 @@
 
 // ── Base del repositorio (usuario / repo / rama / carpeta) ──
 export const MUSIC_REPO_BASE =
-  'https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/musica/';
+  './contenido/musica/';
 
 // ── Tus canciones: cambia los nombres de archivo AQUÍ ──
 export const MUSIC_TRACKS = [

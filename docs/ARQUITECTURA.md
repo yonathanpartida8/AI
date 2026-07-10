@@ -338,6 +338,31 @@ desarrollo. Los assets del usuario se incrustan en el `.json` del proyecto
 (autocontenido) y se materializan como archivos reales en `assets/…` dentro
 del ZIP exportado.
 
+## Render incremental (v4)
+
+`renderPage()` ya no reconstruye la página: calcula una **firma de
+contenido** por nodo (`type+props+events+effects`) y solo reconstruye los
+nodos cuya firma cambió; mover/estilizar toca únicamente
+`left/top/transform`. Los embeds pesados (WebGL, Three.js, iframes de HTML
+importado) **sobreviven intactos** entre ediciones — antes se recreaban en
+cada commit, lo que causaba tirones y consumo excesivo. El ThreeManager
+monta/libera por elemento (`mountEl`/`disposeIn`) y los iframes de HTML
+importado van **inertes (sin scripts) durante la edición** y despiertan en
+vista previa/export.
+
+## Carpetas de contenido (extensión sin tocar el núcleo)
+
+```
+contenido/
+  3d/          tus escenas Three.js  → paleta "Mis 3D"
+  widgets/     tus widgets HTML+CSS+JS → paleta "Mis widgets"
+  animaciones/ tus @keyframes CSS → editor + export
+  musica/      tus MP3 locales (la pestaña ♫ apunta aquí por defecto)
+  imagenes/    recursos que quieras versionar
+```
+Cada carpeta tiene un `index.js` con instrucciones: crear un archivo,
+añadirlo a la lista y `npm run build`.
+
 ## Rendimiento (aplicado, no prometido)
 
 - `requestAnimationFrame` + throttle en overlay de selección y reglas.
