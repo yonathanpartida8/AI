@@ -2,21 +2,31 @@
  * css/editor.css — Interfaz del editor (tema oscuro profesional)
  * ============================================================ */
 
-/* Estética iOS (modo oscuro): cristal esmerilado, tipografía SF,
-   azul sistema #0A84FF y rosa #FF375F como acento romántico. */
+/* Estética premium iPhone en clave ROMÁNTICA: glassmorphism,
+   pasteles suaves (rosa/lila), profundidad y sombras delicadas. */
 :root {
-  --bg: #000000;
-  --panel: rgba(22, 22, 26, .88);
-  --panel-2: rgba(44, 44, 46, .85);
-  --border: rgba(84, 84, 88, .48);
-  --text: #f2f2f7;
-  --text-dim: #98989f;
-  --accent: #0a84ff;
-  --accent-2: #64b5ff;
-  --pink: #ff375f;
-  --danger: #ff453a;
-  --radius: 12px;
-  --blur: saturate(180%) blur(22px);
+  --bg: #16101e;
+  --panel: rgba(34, 24, 44, .78);
+  --panel-2: rgba(255, 255, 255, .07);
+  --border: rgba(255, 182, 215, .16);
+  --text: #f8f2fb;
+  --text-dim: #b7a5c7;
+  --accent: #ff85b3;          /* rosa pastel */
+  --accent-2: #cdb4f6;        /* lila pastel */
+  --pink: #ff8fab;
+  --danger: #ff6b81;
+  --radius: 14px;
+  --blur: saturate(170%) blur(24px);
+  --grad: linear-gradient(135deg, #ff9bb8, #b28ff0);
+}
+
+/* Fondo con degradado suave respirando */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(60% 50% at 18% 8%, rgba(255, 143, 171, .13), transparent 60%),
+    radial-gradient(55% 45% at 85% 92%, rgba(178, 143, 240, .12), transparent 60%),
+    var(--bg);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -72,7 +82,10 @@ button { font: inherit; color: inherit; }
 }
 .btn:hover { filter: brightness(1.25); }
 .btn:active { transform: scale(.94); }
-.btn.active, .btn.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+.btn.active, .btn.primary {
+  background: var(--grad); border-color: transparent; color: #fff; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(255, 143, 171, .35);
+}
 .btn.primary:hover { filter: brightness(1.12); }
 .btn.danger:hover { background: var(--danger); border-color: transparent; color: #fff; }
 .btn.block { display: block; width: 100%; margin: 8px 0; border-radius: var(--radius); }
@@ -81,7 +94,7 @@ button { font: inherit; color: inherit; }
 /* Control segmentado iOS */
 .seg { display: flex; background: rgba(118,118,128,.24); border: none; border-radius: 9px; overflow: hidden; padding: 2px; gap: 2px; }
 .seg-btn { padding: 5px 11px; background: none; border: none; cursor: pointer; color: var(--text-dim); white-space: nowrap; border-radius: 7px; transition: background .18s, color .18s; }
-.seg-btn.active { background: #636366; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.seg-btn.active { background: var(--grad); color: #fff; box-shadow: 0 2px 8px rgba(255,143,171,.4); }
 
 /* ── Layout ─────────────────────────────────────────── */
 
@@ -369,6 +382,26 @@ body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button { pointer-events: auto; cursor: pointer; }
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
+
+/* ── Pestaña de Música ──────────────────────────────── */
+
+.music-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.music-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px;
+  background: var(--panel-2); border: .5px solid var(--border); border-radius: 16px;
+}
+.music-play {
+  width: 40px; height: 40px; flex: none; border: none; border-radius: 50%;
+  background: var(--grad); color: #fff; font-size: 15px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255,143,171,.4);
+  transition: transform .15s;
+}
+.music-play:active { transform: scale(.9); }
+.music-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.music-meta strong { font-size: 13px; }
+.music-meta span { font-size: 11px; color: var(--text-dim); }
+.music-meta small { font-size: 10px; color: var(--text-dim); opacity: .7; font-family: monospace; }
+.mini-select { width: auto; min-height: 0; padding: 5px 8px; font-size: 12px; }
 
 /* ── Swatches de gradientes ─────────────────────────── */
 

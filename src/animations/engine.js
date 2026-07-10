@@ -14,7 +14,7 @@
  * ============================================================ */
 
 export const EASINGS = ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'cubic-bezier(.68,-0.55,.27,1.55)'];
-export const TRIGGERS = { load: 'Al cargar', scroll: 'Al hacer scroll', click: 'Al hacer clic', hover: 'Al pasar el ratón' };
+export const TRIGGERS = { load: 'Al cargar', scroll: 'Al hacer scroll', click: 'Al tocar / clic', hold: 'Al mantener presionado', hover: 'Al pasar el cursor' };
 
 /**
  * Cada preset: lista de keyframes compatible con WAAPI.
@@ -79,6 +79,45 @@ export const PRESETS = {
 };
 
 export const PRESET_NAMES = Object.keys(PRESETS);
+
+/** Animaciones de SALIDA: se reproducen antes de ocultar un elemento. */
+export const EXIT_PRESETS = {
+  ninguna: null,
+  fadeOut: [{ opacity: 1 }, { opacity: 0 }],
+  fadeOutDown: [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(40px)' }],
+  fadeOutUp: [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-40px)' }],
+  zoomOut: [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.4)' }],
+  slideOutLeft: [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-90px)' }],
+  slideOutRight: [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(90px)' }],
+  flipOut: [{ opacity: 1, transform: 'perspective(700px) rotateY(0)' }, { opacity: 0, transform: 'perspective(700px) rotateY(90deg)' }],
+  disolver: [{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(14px)' }],
+};
+export const EXIT_PRESET_NAMES = Object.keys(EXIT_PRESETS);
+
+/** Reproduce la animación de salida (editor/vista previa, WAAPI). */
+export function playExitAnimation(elem, animOut) {
+  if (!animOut || !EXIT_PRESETS[animOut.preset]) return null;
+  return elem.animate(EXIT_PRESETS[animOut.preset], {
+    duration: animOut.duration || 450,
+    easing: animOut.easing || 'ease-in',
+    fill: 'both',
+    composite: 'add',
+  });
+}
+
+/** @keyframes CSS de un preset de salida (para el export). */
+export function exitToKeyframesCSS(name) {
+  const frames = EXIT_PRESETS[name];
+  if (!frames) return '';
+  const steps = frames.map((frame, i) => {
+    const rules = [];
+    if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
+    if (frame.transform) rules.push(`transform:${frame.transform}`);
+    if (frame.filter) rules.push(`filter:${frame.filter}`);
+    return `  ${Math.round((i / (frames.length - 1)) * 100)}% { ${rules.join(';')} }`;
+  });
+  return `@keyframes wb-out-${name} {\n${steps.join('\n')}\n}`;
+}
 
 /**
  * Ejecuta la animación de un nodo en el editor (WAAPI).

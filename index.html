@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>No-Code Website Builder</title>
-  <link rel="icon" href="data:,">
+  <title>Amor Builder — Creador de experiencias románticas</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#16101e">
   <!-- ═══════════════════════════════════════════════════════════
        ARCHIVO GENERADO — no editar a mano.
        Código fuente en /src y /css. Regenerar con: npm run build
@@ -15,21 +17,31 @@
  * css/editor.css — Interfaz del editor (tema oscuro profesional)
  * ============================================================ */
 
-/* Estética iOS (modo oscuro): cristal esmerilado, tipografía SF,
-   azul sistema #0A84FF y rosa #FF375F como acento romántico. */
+/* Estética premium iPhone en clave ROMÁNTICA: glassmorphism,
+   pasteles suaves (rosa/lila), profundidad y sombras delicadas. */
 :root {
-  --bg: #000000;
-  --panel: rgba(22, 22, 26, .88);
-  --panel-2: rgba(44, 44, 46, .85);
-  --border: rgba(84, 84, 88, .48);
-  --text: #f2f2f7;
-  --text-dim: #98989f;
-  --accent: #0a84ff;
-  --accent-2: #64b5ff;
-  --pink: #ff375f;
-  --danger: #ff453a;
-  --radius: 12px;
-  --blur: saturate(180%) blur(22px);
+  --bg: #16101e;
+  --panel: rgba(34, 24, 44, .78);
+  --panel-2: rgba(255, 255, 255, .07);
+  --border: rgba(255, 182, 215, .16);
+  --text: #f8f2fb;
+  --text-dim: #b7a5c7;
+  --accent: #ff85b3;          /* rosa pastel */
+  --accent-2: #cdb4f6;        /* lila pastel */
+  --pink: #ff8fab;
+  --danger: #ff6b81;
+  --radius: 14px;
+  --blur: saturate(170%) blur(24px);
+  --grad: linear-gradient(135deg, #ff9bb8, #b28ff0);
+}
+
+/* Fondo con degradado suave respirando */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(60% 50% at 18% 8%, rgba(255, 143, 171, .13), transparent 60%),
+    radial-gradient(55% 45% at 85% 92%, rgba(178, 143, 240, .12), transparent 60%),
+    var(--bg);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,7 +97,10 @@ button { font: inherit; color: inherit; }
 }
 .btn:hover { filter: brightness(1.25); }
 .btn:active { transform: scale(.94); }
-.btn.active, .btn.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+.btn.active, .btn.primary {
+  background: var(--grad); border-color: transparent; color: #fff; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(255, 143, 171, .35);
+}
 .btn.primary:hover { filter: brightness(1.12); }
 .btn.danger:hover { background: var(--danger); border-color: transparent; color: #fff; }
 .btn.block { display: block; width: 100%; margin: 8px 0; border-radius: var(--radius); }
@@ -94,7 +109,7 @@ button { font: inherit; color: inherit; }
 /* Control segmentado iOS */
 .seg { display: flex; background: rgba(118,118,128,.24); border: none; border-radius: 9px; overflow: hidden; padding: 2px; gap: 2px; }
 .seg-btn { padding: 5px 11px; background: none; border: none; cursor: pointer; color: var(--text-dim); white-space: nowrap; border-radius: 7px; transition: background .18s, color .18s; }
-.seg-btn.active { background: #636366; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.seg-btn.active { background: var(--grad); color: #fff; box-shadow: 0 2px 8px rgba(255,143,171,.4); }
 
 /* ── Layout ─────────────────────────────────────────── */
 
@@ -382,6 +397,26 @@ body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button { pointer-events: auto; cursor: pointer; }
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
+
+/* ── Pestaña de Música ──────────────────────────────── */
+
+.music-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.music-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px;
+  background: var(--panel-2); border: .5px solid var(--border); border-radius: 16px;
+}
+.music-play {
+  width: 40px; height: 40px; flex: none; border: none; border-radius: 50%;
+  background: var(--grad); color: #fff; font-size: 15px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255,143,171,.4);
+  transition: transform .15s;
+}
+.music-play:active { transform: scale(.9); }
+.music-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.music-meta strong { font-size: 13px; }
+.music-meta span { font-size: 11px; color: var(--text-dim); }
+.music-meta small { font-size: 10px; color: var(--text-dim); opacity: .7; font-family: monospace; }
+.mini-select { width: auto; min-height: 0; padding: 5px 8px; font-size: 12px; }
 
 /* ── Swatches de gradientes ─────────────────────────── */
 
@@ -743,8 +778,8 @@ body.preview .wb-placeholder { opacity: .25; }
       cat: "B\xE1sicos",
       size: [320, 60],
       accepts: ["audio"],
-      defaults: { props: { assetId: null, autoplay: false, loop: false }, styles: { radius: 30, background: "#1e293b" } },
-      schema: [asset("props.assetId", "Archivo de audio", "audio"), check("props.autoplay", "Autoplay"), check("props.loop", "Loop")]
+      defaults: { props: { assetId: null, srcUrl: "", autoplay: false, loop: false }, styles: { radius: 30, background: "#1e293b" } },
+      schema: [asset("props.assetId", "Archivo de audio", "audio"), text("props.srcUrl", "o URL externa"), check("props.autoplay", "Autoplay"), check("props.loop", "Loop")]
     },
     icon: {
       label: "Icono",
@@ -844,10 +879,16 @@ body.preview .wb-placeholder { opacity: .25; }
       size: [360, 110],
       accepts: ["audio"],
       defaults: {
-        props: { assetId: null, title: "Mi canci\xF3n", artist: "Artista" },
-        styles: { background: "linear-gradient(135deg,#312e81,#6d28d9)", radius: 18, color: "#fff" }
+        props: { assetId: null, srcUrl: "", title: "Mi canci\xF3n", artist: "Artista" },
+        styles: { background: "linear-gradient(135deg,#4c1d95,#be185d)", radius: 18, color: "#fff" }
       },
-      schema: [asset("props.assetId", "Pista de audio", "audio"), text("props.title", "T\xEDtulo"), text("props.artist", "Artista"), ...STYLE_COMMON]
+      schema: [
+        asset("props.assetId", "Pista de audio (asset)", "audio"),
+        text("props.srcUrl", "o URL externa (GitHub, etc.)"),
+        text("props.title", "T\xEDtulo"),
+        text("props.artist", "Artista"),
+        ...STYLE_COMMON
+      ]
     },
     model3d: {
       label: "Modelo 3D",
@@ -912,11 +953,17 @@ body.preview .wb-placeholder { opacity: .25; }
       icon: "\u{1F48C}",
       cat: "Rom\xE1nticos",
       size: [380, 300],
+      accepts: ["image", "audio"],
       defaults: {
         props: {
           cover: "Toca para abrir",
           message: "Cada d\xEDa a tu lado es mi lugar favorito del mundo.\n\nGracias por existir.",
-          signature: "Con amor, para ti"
+          signature: "Con amor, para ti",
+          photoId: null,
+          soundId: null,
+          burst: true,
+          envelope: "linear-gradient(160deg,#be123c,#881337)",
+          paper: "#fff7ed"
         },
         styles: { fontSize: 16, fontFamily: "system-ui", color: "#7c2d12" }
       },
@@ -924,7 +971,13 @@ body.preview .wb-placeholder { opacity: .25; }
         text("props.cover", "Texto del sobre"),
         { key: "props.message", label: "Mensaje de la carta", type: "textarea" },
         text("props.signature", "Firma"),
-        num("styles.fontSize", "Tama\xF1o de letra", 10, 40)
+        asset("props.photoId", "Foto dentro de la carta", "image"),
+        asset("props.soundId", "Sonido al abrir", "audio"),
+        check("props.burst", "Estallido de corazones al abrir"),
+        color("props.envelope", "Sobre (color / gradiente)"),
+        color("props.paper", "Papel de la carta"),
+        num("styles.fontSize", "Tama\xF1o de letra", 10, 40),
+        color("styles.color", "Color de la tinta")
       ]
     },
     timeline: {
@@ -1163,6 +1216,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         loop: type === "heartButton",
         easing: "ease-out"
       },
+      // Salida elegante al ocultarse mediante acciones
+      animationOut: { preset: "fadeOut", duration: 450, easing: "ease-in" },
       effects: { parallax: 0, tilt: false },
       // efectos de scroll y profundidad
       events: [],
@@ -1967,6 +2022,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       for (const node2 of Object.values(project.nodes)) {
         node2.effects ||= { parallax: 0, tilt: false };
+        node2.animationOut ||= { preset: "fadeOut", duration: 450, easing: "ease-in" };
         node2.events = (node2.events || []).map((ev) => ev.actions ? ev : { on: ev.on || "click", actions: [{ action: ev.action, target: ev.target || "", value: "", delay: 0 }] });
       }
     }
@@ -2614,7 +2670,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         return `<video src="${src}" ${attrs} style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></video>`;
       }
       case "audio": {
-        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        const src = p.assetId ? ctx.resolve(p.assetId) : p.srcUrl || "";
         if (!src) return `<div class="wb-placeholder">Audio<small>Arrastra un audio aqu\xED</small></div>`;
         return `<audio src="${src}" controls ${p.autoplay ? "autoplay" : ""} ${p.loop ? "loop" : ""} style="width:100%"></audio>`;
       }
@@ -2649,11 +2705,12 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         return `<nav class="wb-menu"><strong>${esc(p.brand || "")}</strong><div class="wb-menu-links">${links}</div></nav>`;
       }
       case "musicPlayer": {
-        const src = p.assetId ? ctx.resolve(p.assetId) : "";
+        const src = p.assetId ? ctx.resolve(p.assetId) : p.srcUrl || "";
         return `<div class="wb-player">
         <div class="wb-player-disc">\u266B</div>
         <div class="wb-player-info"><strong>${esc(p.title || "")}</strong><span>${esc(p.artist || "")}</span>
-        ${src ? `<audio src="${src}" controls style="width:100%;height:28px"></audio>` : "<small>Sin pista de audio</small>"}</div></div>`;
+        ${src ? `<audio src="${esc(src)}" controls style="width:100%;height:28px"></audio>` : "<small>Sin pista: elige un asset o pega una URL</small>"}</div>
+        <div class="wb-eq"><i></i><i></i><i></i><i></i></div></div>`;
       }
       case "model3d":
         return `<div class="wb-3d" data-kind="model" data-model="${p.assetId ? ctx.resolve(p.assetId) : ""}"
@@ -2675,10 +2732,13 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         const gradient = `linear-gradient(270deg, ${colors.join(", ")})`;
         return `<div class="wb-gradbg" style="background:${gradient};--gspeed:${p.speed || 8}s"></div>`;
       }
-      case "loveLetter":
-        return `<div class="wb-letter">
-        <div class="wb-letter-paper"><p>${esc(p.message)}</p><span>${esc(p.signature || "")}</span></div>
-        <div class="wb-letter-front">${esc(p.cover || "Toca para abrir")}</div></div>`;
+      case "loveLetter": {
+        const photo = p.photoId ? `<img class="wb-letter-photo" src="${ctx.resolve(p.photoId)}" alt="" draggable="false">` : "";
+        const sound = p.soundId ? ` data-sound="${ctx.resolve(p.soundId)}"` : "";
+        return `<div class="wb-letter"${sound}${p.burst !== false ? ' data-burst="\u{1F497}"' : ""}>
+        <div class="wb-letter-paper" style="background:${p.paper || "#fff7ed"}">${photo}<p>${esc(p.message)}</p><span>${esc(p.signature || "")}</span></div>
+        <div class="wb-letter-front" style="background:${p.envelope || "linear-gradient(160deg,#be123c,#881337)"}">${esc(p.cover || "Toca para abrir")}</div></div>`;
+      }
       case "timeline": {
         const items = String(p.items || "").split(";").map((row) => row.trim()).filter(Boolean);
         const lis = items.map((row, i) => {
@@ -2806,8 +2866,16 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 .wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
 .wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
-.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
+.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite;animation-play-state:paused;transition:box-shadow .4s}
+.wb-player.playing .wb-player-disc{animation-play-state:running;box-shadow:0 0 22px rgba(255,143,171,.65)}
 @keyframes wb-spin{to{transform:rotate(360deg)}}
+.wb-eq{display:flex;align-items:flex-end;gap:3px;height:34px;flex:none;padding-right:4px}
+.wb-eq i{width:4px;height:8px;border-radius:2px;background:rgba(255,255,255,.75);transition:height .3s}
+.wb-player.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
+.wb-player.playing .wb-eq i:nth-child(2){animation-delay:.18s}
+.wb-player.playing .wb-eq i:nth-child(3){animation-delay:.36s}
+.wb-player.playing .wb-eq i:nth-child(4){animation-delay:.54s}
+@keyframes wb-eqbar{0%,100%{height:8px}50%{height:30px}}
 .wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .wb-player-info span,.wb-player-info small{opacity:.75;font-size:13px}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
@@ -2824,6 +2892,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 .wb-letter-front::before{content:'\u{1F48C}';font-size:44px;animation:wb-float 3s ease-in-out infinite}
 .wb-letter-paper{position:absolute;inset:4%;background:#fff7ed;border-radius:10px;padding:7% 8%;color:#7c2d12;display:flex;flex-direction:column;justify-content:center;gap:12px;opacity:0;transform:rotateX(-70deg);transform-origin:top;transition:transform .8s .3s cubic-bezier(.2,.8,.25,1),opacity .5s .3s;box-shadow:0 12px 34px rgba(0,0,0,.3);overflow:auto}
 .wb-letter-paper p{font-family:Georgia,serif;font-size:1.05em;line-height:1.7;white-space:pre-line}
+.wb-letter-photo{width:62%;max-height:44%;object-fit:cover;align-self:center;border:5px solid #fff;border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.25);transform:rotate(-2deg);flex:none}
 .wb-letter-paper span{align-self:flex-end;font-family:Georgia,serif;font-style:italic;opacity:.85}
 .wb-letter.open .wb-letter-front{opacity:0;transform:translateY(-14%) scale(.92);pointer-events:none}
 .wb-letter.open .wb-letter-paper{opacity:1;transform:rotateX(0)}
@@ -2937,7 +3006,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 
   // src/animations/engine.js
   var EASINGS = ["linear", "ease", "ease-in", "ease-out", "ease-in-out", "cubic-bezier(.68,-0.55,.27,1.55)"];
-  var TRIGGERS = { load: "Al cargar", scroll: "Al hacer scroll", click: "Al hacer clic", hover: "Al pasar el rat\xF3n" };
+  var TRIGGERS = { load: "Al cargar", scroll: "Al hacer scroll", click: "Al tocar / clic", hold: "Al mantener presionado", hover: "Al pasar el cursor" };
   var PRESETS = {
     ninguna: null,
     fadeIn: [{ opacity: 0 }, { opacity: 1 }],
@@ -3013,6 +3082,41 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     respirar: [{ transform: "scale(1)", opacity: 0.9 }, { transform: "scale(1.045)", opacity: 1, offset: 0.5 }, { transform: "scale(1)", opacity: 0.9 }]
   };
   var PRESET_NAMES = Object.keys(PRESETS);
+  var EXIT_PRESETS = {
+    ninguna: null,
+    fadeOut: [{ opacity: 1 }, { opacity: 0 }],
+    fadeOutDown: [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(40px)" }],
+    fadeOutUp: [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(-40px)" }],
+    zoomOut: [{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(.4)" }],
+    slideOutLeft: [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(-90px)" }],
+    slideOutRight: [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(90px)" }],
+    flipOut: [{ opacity: 1, transform: "perspective(700px) rotateY(0)" }, { opacity: 0, transform: "perspective(700px) rotateY(90deg)" }],
+    disolver: [{ opacity: 1, filter: "blur(0)" }, { opacity: 0, filter: "blur(14px)" }]
+  };
+  var EXIT_PRESET_NAMES = Object.keys(EXIT_PRESETS);
+  function playExitAnimation(elem, animOut) {
+    if (!animOut || !EXIT_PRESETS[animOut.preset]) return null;
+    return elem.animate(EXIT_PRESETS[animOut.preset], {
+      duration: animOut.duration || 450,
+      easing: animOut.easing || "ease-in",
+      fill: "both",
+      composite: "add"
+    });
+  }
+  function exitToKeyframesCSS(name) {
+    const frames = EXIT_PRESETS[name];
+    if (!frames) return "";
+    const steps = frames.map((frame, i) => {
+      const rules = [];
+      if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
+      if (frame.transform) rules.push(`transform:${frame.transform}`);
+      if (frame.filter) rules.push(`filter:${frame.filter}`);
+      return `  ${Math.round(i / (frames.length - 1) * 100)}% { ${rules.join(";")} }`;
+    });
+    return `@keyframes wb-out-${name} {
+${steps.join("\n")}
+}`;
+  }
   function playAnimation(elem, anim) {
     if (!anim || !PRESETS[anim.preset]) return null;
     return elem.animate(PRESETS[anim.preset], {
@@ -3109,8 +3213,29 @@ ${steps.join("\n")}
     });
     qa(".wb-letter").forEach(function(el2) {
       on(el2, "click", function() {
+        var opening = !el2.classList.contains("open");
         el2.classList.toggle("open");
         if (navigator.vibrate) navigator.vibrate(15);
+        if (opening) {
+          var sound = el2.getAttribute("data-sound");
+          if (sound) new Audio(sound).play().catch(function() {
+          });
+          var burstEmoji = el2.getAttribute("data-burst");
+          if (burstEmoji && root.wbBurst) root.wbBurst(el2, burstEmoji, 16);
+        }
+      });
+    });
+    qa(".wb-player audio").forEach(function(audio) {
+      var player = audio.closest(".wb-player");
+      if (!player) return;
+      on(audio, "play", function() {
+        player.classList.add("playing");
+      });
+      on(audio, "pause", function() {
+        player.classList.remove("playing");
+      });
+      on(audio, "ended", function() {
+        player.classList.remove("playing");
       });
     });
     qa(".wb-hiddenmsg").forEach(function(el2) {
@@ -3290,6 +3415,19 @@ ${steps.join("\n")}
       void el2.offsetWidth;
       el2.classList.add("wb-play");
     }
+    function hideWithExit(el2) {
+      if (el2.classList.contains("wb-hidden")) return;
+      var done = function() {
+        el2.classList.add("wb-hidden");
+        el2.classList.remove("wb-out");
+      };
+      if (ctx.playExit && ctx.playExit(el2, done)) return;
+      var dur = +el2.getAttribute("data-outdur") || 0;
+      if (dur > 0) {
+        el2.classList.add("wb-out");
+        timers.push(setTimeout(done, dur));
+      } else done();
+    }
     function run(a, sourceEl) {
       var target = a.target ? find(a.target) : sourceEl;
       switch (a.action) {
@@ -3301,15 +3439,21 @@ ${steps.join("\n")}
           break;
         case "showNode":
           if (target) {
-            target.classList.remove("wb-hidden");
+            target.classList.remove("wb-hidden", "wb-out");
             target.style.visibility = "";
+            replayCSS(target);
           }
           break;
         case "hideNode":
-          if (target) target.classList.add("wb-hidden");
+          if (target) hideWithExit(target);
           break;
         case "toggleNode":
-          if (target) target.classList.toggle("wb-hidden");
+          if (target) {
+            if (target.classList.contains("wb-hidden")) {
+              target.classList.remove("wb-hidden", "wb-out");
+              replayCSS(target);
+            } else hideWithExit(target);
+          }
           break;
         case "playAnimation":
           if (ctx.playAnim) ctx.playAnim(a.target, target);
@@ -3946,6 +4090,17 @@ ${steps.join("\n")}
     }
   };
 
+  // src/config/musicLibrary.js
+  var MUSIC_REPO_BASE = "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/musica/";
+  var MUSIC_TRACKS = [
+    { file: "musica1.mp3", title: "Nuestra canci\xF3n", artist: "La que nos define" },
+    { file: "musica2.mp3", title: "La del primer baile", artist: "Inolvidable" },
+    { file: "musica3.mp3", title: "Para dedicarte", artist: "Con todo mi amor" }
+  ];
+  function trackURL(track) {
+    return MUSIC_REPO_BASE + encodeURIComponent(track.file);
+  }
+
   // src/editor/panels.js
   var Panels = class {
     constructor(store, assets, view) {
@@ -3975,9 +4130,10 @@ ${steps.join("\n")}
     }
     render() {
       this.root.innerHTML = "";
-      const tabs = el("div", { class: "panel-tabs" }, ["componentes", "assets", "paginas", "capas"].map((name) => el("button", {
+      const tabs = el("div", { class: "panel-tabs" }, ["componentes", "assets", "musica", "paginas", "capas"].map((name) => el("button", {
         class: `tab-btn${this.tab === name ? " active" : ""}`,
-        text: { componentes: "Piezas", assets: "Assets", paginas: "P\xE1ginas", capas: "Capas" }[name],
+        text: { componentes: "Piezas", assets: "Assets", musica: "\u266B", paginas: "P\xE1ginas", capas: "Capas" }[name],
+        title: name === "musica" ? "M\xFAsica" : null,
         onclick: () => {
           this.tab = name;
           this.render();
@@ -3989,6 +4145,7 @@ ${steps.join("\n")}
       ({
         componentes: () => this.#renderComponents(body),
         assets: () => this.#renderAssets(body),
+        musica: () => this.#renderMusic(body),
         paginas: () => this.#renderPages(body),
         capas: () => this.#renderLayers(body)
       })[this.tab]();
@@ -4124,6 +4281,73 @@ ${steps.join("\n")}
       if (!type) return;
       const width = this.store.project.settings.breakpoints[this.store.device];
       this.store.addNode(type, at || { x: Math.round(width / 2 - 160), y: 120 }, { props: { ...Components[type].defaults.props, assetId: asset2.id } });
+    }
+    /* ── Pestaña de Música (repositorio de GitHub) ─────── */
+    #renderMusic(body) {
+      body.append(
+        el("h4", { class: "panel-heading", text: "\u266B Tu m\xFAsica desde GitHub" }),
+        el("p", { class: "panel-hint", html: "Estas pistas se leen de <b>src/config/musicLibrary.js</b> \u2014 cambia ah\xED los nombres de archivo (musica1.mp3, musica2.mp3\u2026) y tu repositorio." })
+      );
+      this.previewAudio ||= new Audio();
+      const list = el("div", { class: "music-list" });
+      MUSIC_TRACKS.forEach((track) => {
+        const url = trackURL(track);
+        const playBtn = el("button", {
+          class: "music-play",
+          text: "\u25B6",
+          onclick: () => {
+            if (this.previewAudio.src === url && !this.previewAudio.paused) {
+              this.previewAudio.pause();
+              playBtn.textContent = "\u25B6";
+            } else {
+              this.previewAudio.src = url;
+              this.previewAudio.play().catch(() => alert("No se pudo cargar la pista.\nRevisa tu repositorio en src/config/musicLibrary.js"));
+              list.querySelectorAll(".music-play").forEach((b) => {
+                b.textContent = "\u25B6";
+              });
+              playBtn.textContent = "\u275A\u275A";
+            }
+          }
+        });
+        this.previewAudio.addEventListener("ended", () => {
+          playBtn.textContent = "\u25B6";
+        });
+        list.append(el("div", { class: "music-row" }, [
+          playBtn,
+          el("div", { class: "music-meta" }, [
+            el("strong", { text: track.title }),
+            el("span", { text: track.artist }),
+            el("small", { text: track.file })
+          ]),
+          el("button", {
+            class: "btn primary",
+            text: "\uFF0B",
+            title: "A\xF1adir reproductor a la p\xE1gina",
+            onclick: () => {
+              const width = this.store.project.settings.breakpoints[this.store.device];
+              this.store.addNode("musicPlayer", { x: Math.round(width / 2 - 180), y: 140 }, {
+                props: { assetId: null, srcUrl: url, title: track.title, artist: track.artist }
+              });
+            }
+          })
+        ]));
+      });
+      body.append(list);
+      const urlInput = el("input", { class: "input", placeholder: "https://\u2026/cancion.mp3" });
+      body.append(
+        el("h4", { class: "panel-heading", text: "O pega una URL directa" }),
+        urlInput,
+        el("button", {
+          class: "btn block",
+          text: "\uFF0B A\xF1adir reproductor con esa URL",
+          onclick: () => {
+            if (!urlInput.value.trim()) return;
+            this.store.addNode("musicPlayer", { x: 200, y: 140 }, {
+              props: { assetId: null, srcUrl: urlInput.value.trim(), title: "Mi canci\xF3n", artist: "\u2661" }
+            });
+          }
+        })
+      );
     }
     /* ── Drop sobre el lienzo (componentes, assets, archivos del SO) ── */
     #setupCanvasDrop() {
@@ -4485,6 +4709,31 @@ ${steps.join("\n")}
           }
         })
       ]));
+      const animOut = node2.animationOut || { preset: "fadeOut", duration: 450, easing: "ease-in" };
+      this.root.append(this.#section("Animaci\xF3n de salida", [
+        el("p", { class: "panel-hint", text: "Se reproduce cuando otra acci\xF3n oculta este elemento." }),
+        this.#field("Preset", this.#select(EXIT_PRESET_NAMES, animOut.preset, (v) => this.store.updateNode(node2.id, "animationOut", { preset: v }))),
+        this.#field("Duraci\xF3n (ms)", el("input", {
+          class: "input",
+          type: "number",
+          value: animOut.duration,
+          min: 100,
+          step: 50,
+          onchange: (e) => this.store.updateNode(node2.id, "animationOut", { duration: +e.target.value })
+        })),
+        el("button", {
+          class: "btn block",
+          text: "\u25B6 Previsualizar salida",
+          onclick: () => {
+            const elem = this.view.artboard.querySelector(`[data-id="${node2.id}"]`);
+            if (elem) {
+              const anim2 = playExitAnimation(elem, node2.animationOut);
+              anim2?.finished.then(() => anim2.cancel()).catch(() => {
+              });
+            }
+          }
+        })
+      ]));
       this.root.append(this.#section("Efectos avanzados", [
         this.#field("Parallax al hacer scroll (-1 a 1)", el("input", {
           class: "input",
@@ -4776,6 +5025,23 @@ ${steps.join("\n")}
   };
 
   // src/editor/drawTool.js
+  var PAPERS = {
+    transparente: { label: "Transparente", css: "transparent" },
+    blanco: { label: "Papel blanco", css: "#fdfbf7" },
+    rosa: { label: "Papel rosa", css: "linear-gradient(180deg,#fff1f5,#ffe4ee)" },
+    rayado: { label: "Rayado", css: "repeating-linear-gradient(180deg,#fdfbf7 0 27px,#f3c6d3 27px 28px)" },
+    cuadriculado: { label: "Cuadriculado", css: "repeating-linear-gradient(0deg,transparent 0 23px,#e8d5f2 23px 24px), repeating-linear-gradient(90deg,#fdfbf7 0 23px,#e8d5f2 23px 24px)" },
+    puntos: { label: "Puntos", css: "radial-gradient(circle, #d8b4c8 1.2px, transparent 1.4px) 0 0/22px 22px, #fdfbf7" },
+    pergamino: { label: "Pergamino", css: "radial-gradient(ellipse at 30% 20%, #f6e7c8, #ecd9ae 70%, #dfc48f)" },
+    noche: { label: "Cielo nocturno", css: "linear-gradient(180deg,#1e1035,#0d0620)" }
+  };
+  var BRUSHES = {
+    pluma: "Pluma",
+    lapiz: "L\xE1piz",
+    marcador: "Marcador",
+    neon: "Ne\xF3n \u2728",
+    corazones: "Corazones \u{1F497}"
+  };
   var DrawTool = class {
     constructor(store, assets, view) {
       this.store = store;
@@ -4783,7 +5049,9 @@ ${steps.join("\n")}
       this.view = view;
       this.canvas = view.drawLayer;
       this.ctx = this.canvas.getContext("2d", { desynchronized: true, willReadFrequently: true });
-      this.brush = { size: 8, color: "#f472b6", opacity: 1, eraser: false };
+      this.brush = { size: 8, color: "#f472b6", opacity: 1, eraser: false, type: "pluma" };
+      this.paper = "transparente";
+      this.stampDist = 0;
       this.strokes = [];
       this.drawing = false;
       this.toolbar = this.#buildToolbar();
@@ -4799,6 +5067,7 @@ ${steps.join("\n")}
       const active = this.store.tool === "draw";
       this.canvas.classList.toggle("active", active);
       this.toolbar.style.display = active ? "flex" : "none";
+      this.canvas.style.background = active ? PAPERS[this.paper]?.css || "transparent" : "transparent";
       if (active) this.#resize();
     }
     #resize() {
@@ -4838,6 +5107,7 @@ ${steps.join("\n")}
     }
     #segment(a, b) {
       const ctx = this.ctx;
+      const type = this.brush.eraser ? "borrador" : this.brush.type;
       ctx.save();
       ctx.globalAlpha = this.brush.opacity;
       ctx.globalCompositeOperation = this.brush.eraser ? "destination-out" : "source-over";
@@ -4845,12 +5115,88 @@ ${steps.join("\n")}
       ctx.lineWidth = this.brush.size * (0.5 + (a.pressure + b.pressure) / 2);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      if (type === "lapiz") {
+        ctx.globalAlpha = this.brush.opacity * 0.35;
+        ctx.lineWidth = Math.max(1, this.brush.size * 0.35);
+        for (let pass = 0; pass < 3; pass++) {
+          const jx = (Math.random() - 0.5) * 2, jy = (Math.random() - 0.5) * 2;
+          ctx.beginPath();
+          ctx.moveTo(a.x + jx, a.y + jy);
+          ctx.lineTo(b.x + jx, b.y + jy);
+          ctx.stroke();
+        }
+        ctx.restore();
+        return;
+      }
+      if (type === "marcador") {
+        ctx.globalAlpha = this.brush.opacity * 0.35;
+        ctx.lineWidth = this.brush.size * 2.2;
+        ctx.lineCap = "square";
+      } else if (type === "neon") {
+        ctx.shadowColor = this.brush.color;
+        ctx.shadowBlur = this.brush.size * 1.6;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(2, this.brush.size * 0.55);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.save();
+        ctx.strokeStyle = this.brush.color;
+        ctx.lineWidth = this.brush.size * 1.3;
+        ctx.stroke();
+        ctx.restore();
+      } else if (type === "corazones") {
+        this.stampDist += Math.hypot(b.x - a.x, b.y - a.y);
+        const gap = this.brush.size * 2.2;
+        if (this.stampDist >= gap) {
+          this.stampDist = 0;
+          ctx.font = `${this.brush.size * 2.4}px serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.translate(b.x, b.y);
+          ctx.rotate((Math.random() - 0.5) * 0.7);
+          ctx.fillText(["\u{1F497}", "\u{1F496}", "\u{1F498}", "\u{1FA77}"][Math.floor(Math.random() * 4)], 0, 0);
+        }
+        ctx.restore();
+        return;
+      }
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
       ctx.restore();
+    }
+    /** Cambia la textura de papel (fondo visual de la hoja). */
+    setPaper(key) {
+      this.paper = key;
+      this.canvas.style.background = PAPERS[key]?.css || "transparent";
+    }
+    /** Inserta una fotografía dentro del dibujo (galería del móvil). */
+    async addPhoto(file) {
+      const dataURL = await fileToDataURL(file);
+      const img = new Image();
+      await new Promise((resolve) => {
+        img.onload = resolve;
+        img.src = dataURL;
+      });
+      this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+      const scale = Math.min(this.canvas.width * 0.7 / img.width, this.canvas.height * 0.7 / img.height, 1);
+      const w = img.width * scale, h = img.height * scale;
+      this.ctx.drawImage(img, (this.canvas.width - w) / 2, (this.canvas.height - h) / 2, w, h);
+    }
+    /** Descarga la hoja como PNG (con el papel de fondo si lo hay). */
+    downloadPNG() {
+      const out = document.createElement("canvas");
+      out.width = this.canvas.width;
+      out.height = this.canvas.height;
+      const octx = out.getContext("2d");
+      if (this.paper !== "transparente") {
+        octx.fillStyle = this.paper === "noche" ? "#150a26" : this.paper === "pergamino" ? "#efdcb4" : this.paper === "rosa" ? "#ffe9f1" : "#fdfbf7";
+        octx.fillRect(0, 0, out.width, out.height);
+      }
+      octx.drawImage(this.canvas, 0, 0);
+      out.toBlob((blob) => download(`libreta-${Date.now().toString(36)}.png`, blob));
     }
     #end() {
       this.drawing = false;
@@ -4899,8 +5245,30 @@ ${steps.join("\n")}
       this.store.setTool("select");
     }
     #buildToolbar() {
+      const photoInput = el("input", {
+        type: "file",
+        accept: "image/*",
+        style: { display: "none" },
+        onchange: async (e) => {
+          if (e.target.files[0]) await this.addPhoto(e.target.files[0]);
+          e.target.value = "";
+        }
+      });
       const bar = el("div", { class: "draw-toolbar", style: { display: "none" } }, [
-        el("span", { text: "\u270E Dibujo:" }),
+        el("span", { text: "\u{1F4D3} Libreta:" }),
+        el("select", {
+          class: "input mini-select",
+          title: "Estilo de pincel",
+          onchange: (e) => {
+            this.brush.type = e.target.value;
+            this.brush.eraser = false;
+          }
+        }, Object.entries(BRUSHES).map(([key, label]) => el("option", { value: key, text: label }))),
+        el("select", {
+          class: "input mini-select",
+          title: "Textura de papel",
+          onchange: (e) => this.setPaper(e.target.value)
+        }, Object.entries(PAPERS).map(([key, paper]) => el("option", { value: key, text: `Papel: ${paper.label}` }))),
         el("input", { type: "color", value: this.brush.color, title: "Color", oninput: (e) => {
           this.brush.color = e.target.value;
           this.brush.eraser = false;
@@ -4915,8 +5283,11 @@ ${steps.join("\n")}
           this.brush.eraser = !this.brush.eraser;
           e.target.classList.toggle("active", this.brush.eraser);
         } }),
+        photoInput,
+        el("button", { class: "btn", text: "\u{1F5BC} Foto", title: "A\xF1ade una fotograf\xEDa de tu galer\xEDa al dibujo", onclick: () => photoInput.click() }),
         el("button", { class: "btn", text: "\u21B6 Trazo", title: "Deshacer \xFAltimo trazo", onclick: () => this.undoStroke() }),
         el("button", { class: "btn", text: "\u{1F5D1} Limpiar", onclick: () => this.clear() }),
+        el("button", { class: "btn", text: "\u2B07 PNG", title: "Descargar la hoja", onclick: () => this.downloadPNG() }),
         el("button", { class: "btn primary", text: "\u2713 Convertir en componente", onclick: () => this.toComponent() }),
         el("button", { class: "btn", text: "\xD7 Salir", onclick: () => this.store.setTool("select") })
       ]);
@@ -5515,9 +5886,12 @@ ${steps.join("\n")}
       return page.nodes.map((id) => project.nodes[id]).filter((node2) => node2 && !node2.hidden).map((node2) => {
         const anim = node2.animation;
         const hasAnim = anim && anim.preset !== "ninguna" && PRESETS[anim.preset];
+        const animOut = node2.animationOut;
+        const hasExit = animOut && animOut.preset !== "ninguna" && EXIT_PRESETS[animOut.preset];
         const attrs = [
           `class="wb-node el-${node2.id}${hasAnim && anim.trigger === "load" ? " wb-play" : ""}"`,
           hasAnim ? `data-trigger="${anim.trigger}"` : "",
+          hasExit ? `data-outdur="${animOut.duration || 450}"` : "",
           node2.effects?.tilt ? 'data-tilt="1"' : "",
           node2.effects?.parallax ? `data-parallax="${node2.effects.parallax}"` : "",
           node2.events?.length ? `data-events='${JSON.stringify(node2.events).replaceAll("'", "&#39;")}'` : ""
@@ -5568,12 +5942,25 @@ ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`,
           boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_SINGLE=false;`,
+          pwa: isIndex,
           runtime: this.#buildRuntime({ single: false, has3D }),
           pageJS: `${project.custom?.js || ""}
 ${page.custom?.js || ""}`
         });
         zip.file(isIndex ? "index.html" : `paginas/${slug}.html`, html);
       }
+      const pageFiles = project.pages.map((p, i) => i === 0 ? "./index.html" : `./paginas/${slugs.get(p.id)}.html`);
+      zip.file("manifest.json", JSON.stringify({
+        name: project.meta.name,
+        short_name: project.meta.name.slice(0, 12),
+        display: "standalone",
+        start_url: "./index.html",
+        background_color: "#150a24",
+        theme_color: "#150a24",
+        icons: [{ src: "./icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }]
+      }, null, 2));
+      zip.file("icon.svg", HEART_ICON_SVG);
+      zip.file("sw.js", buildServiceWorker(pageFiles));
       zip.file("project.json", JSON.stringify({ ...project, assetsData: this.assets.exportData() }));
       zip.file(
         "LEEME.txt",
@@ -5624,8 +6011,11 @@ ${pagesJS}`,
       download(`${slugify(project.meta.name)}.html`, new Blob([html], { type: "text/html" }));
     }
     /* ── Documento HTML común ──────────────────────────── */
-    #pageDocument({ title, cssText, body, boot: boot2, runtime, pageJS, extraHead = "" }) {
+    #pageDocument({ title, cssText, body, boot: boot2, runtime, pageJS, extraHead = "", pwa = false }) {
       const custom = (pageJS || "").trim();
+      const pwaHead = pwa ? `<link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#150a24">` : "";
+      const pwaReg = pwa ? `<script>if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){navigator.serviceWorker.register('./sw.js').catch(function(){})}<\/script>` : "";
       return `<!doctype html>
 <html lang="es">
 <head>
@@ -5633,6 +6023,7 @@ ${pagesJS}`,
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(title)}</title>
   <link rel="icon" href="data:,">
+  ${pwaHead}
   ${extraHead}
   <style>
 ${cssText}
@@ -5649,6 +6040,7 @@ try{
 ${custom.replaceAll("<\/script", "<\\/script")}
 }catch(e){console.warn('JS personalizado:',e)}
   <\/script>` : ""}
+  ${pwaReg}
 </body>
 </html>`;
     }
@@ -5656,6 +6048,7 @@ ${custom.replaceAll("<\/script", "<\\/script")}
     #buildCSS(project, keyFor) {
       const bps = project.settings.breakpoints;
       const usedPresets = /* @__PURE__ */ new Set();
+      const usedExits = /* @__PURE__ */ new Set();
       const rules = [];
       const tabletRules = [];
       const mobileRules = [];
@@ -5675,9 +6068,14 @@ ${custom.replaceAll("<\/script", "<\\/script")}
           const selector = anim.trigger === "hover" ? `.el-${node2.id}:hover` : `.el-${node2.id}.wb-play`;
           rules.push(`${selector}{animation:wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || "ease-out"} ${anim.delay || 0}ms ${iter} both}`);
           const first = PRESETS[anim.preset][0];
-          if (["scroll", "click"].includes(anim.trigger) && first.opacity === 0) {
+          if (["scroll", "click", "hold"].includes(anim.trigger) && first.opacity === 0) {
             rules.push(`.el-${node2.id}:not(.wb-play){opacity:0}`);
           }
+        }
+        const animOut = node2.animationOut;
+        if (animOut && animOut.preset !== "ninguna" && EXIT_PRESETS[animOut.preset]) {
+          usedExits.add(animOut.preset);
+          rules.push(`.el-${node2.id}.wb-out{animation:wb-out-${animOut.preset} ${animOut.duration || 450}ms ${animOut.easing || "ease-in"} both!important}`);
         }
       }
       const perPage = project.pages.map((page) => `.wb-stage[data-page="${keyFor(page)}"]{height:${page.height}px}`);
@@ -5691,7 +6089,7 @@ ${tabletRules.join("\n")}
 .wb-stage{width:${bps.mobile}px}
 ${mobileRules.join("\n")}
 }` : "";
-      const keyframes = [...usedPresets].map(presetToKeyframesCSS).join("\n");
+      const keyframes = [...usedPresets].map(presetToKeyframesCSS).join("\n") + "\n" + [...usedExits].map(exitToKeyframesCSS).join("\n");
       const fontFaces = this.assets.fontFaceCSS();
       const pagesCSS = project.pages.map((p) => p.custom?.css || "").join("\n");
       return `/* Generado por No-Code Website Builder */
@@ -5817,6 +6215,18 @@ WB_ACTIONS(document, {
       node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
     });
   });
+  document.querySelectorAll('[data-trigger="hold"]').forEach(function (node) {
+    var holdTimer = null;
+    node.addEventListener('pointerdown', function () {
+      holdTimer = setTimeout(function () {
+        node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
+        if (navigator.vibrate) navigator.vibrate(25);
+      }, 550);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) {
+      node.addEventListener(ev, function () { clearTimeout(holdTimer); });
+    });
+  });
 })();
 
 /* Sliders autom\xE1ticos */
@@ -5869,6 +6279,39 @@ wbFit(); setTimeout(wbFit, 60);
 ${has3D ? build3DJS() : ""}`;
     }
   };
+  var HEART_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#ff8fab"/><stop offset="1" stop-color="#b388eb"/></linearGradient></defs>
+<rect width="100" height="100" rx="22" fill="#1c1024"/>
+<path d="M50 78 C20 58 14 38 27 28 C36 21 46 25 50 33 C54 25 64 21 73 28 C86 38 80 58 50 78Z" fill="url(#g)"/>
+</svg>`;
+  function buildServiceWorker(pageFiles) {
+    return `/* Service worker \u2014 generado por No-Code Website Builder.
+ * Cachea el sitio completo: funciona sin conexi\xF3n y es instalable. */
+var CACHE = 'amor-v1';
+var CORE = ${JSON.stringify(["./", ...pageFiles, "./manifest.json", "./icon.svg"])};
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
+});
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
+});
+self.addEventListener('fetch', function (e) {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(caches.match(e.request).then(function (hit) {
+    return hit || fetch(e.request).then(function (res) {
+      if (res.ok && e.request.url.indexOf(self.location.origin) === 0) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      }
+      return res;
+    });
+  }));
+});
+`;
+  }
   function build3DJS() {
     return `
 /* \u2500\u2500 Three.js: modelos GLB, coraz\xF3n 3D y fotos con profundidad \u2500\u2500 */
@@ -6202,6 +6645,10 @@ ${extraJS}`;
         panels.openTab("assets");
         left.classList.add("open");
       }),
+      item("\u266B", "M\xFAsica", () => {
+        panels.openTab("musica");
+        left.classList.add("open");
+      }),
       item("\u{1F4C4}", "P\xE1ginas", () => {
         panels.openTab("paginas");
         left.classList.add("open");
@@ -6240,7 +6687,13 @@ ${extraJS}`;
         if (anim.trigger === "load") animations.push(playAnimation(elem, anim));
         else if (anim.trigger === "click") elem.addEventListener("click", () => playAnimation(elem, anim));
         else if (anim.trigger === "hover") elem.addEventListener("mouseenter", () => playAnimation(elem, anim));
-        else if (anim.trigger === "scroll") {
+        else if (anim.trigger === "hold") {
+          let holdTimer = null;
+          elem.addEventListener("pointerdown", () => {
+            holdTimer = setTimeout(() => playAnimation(elem, anim), 550);
+          });
+          ["pointerup", "pointerleave"].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
+        } else if (anim.trigger === "scroll") {
           const io = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
               playAnimation(elem, anim);
@@ -6262,6 +6715,17 @@ ${extraJS}`;
       playAnim: (id, targetEl) => {
         const targetNode = store.node(id);
         if (targetEl && targetNode) playAnimation(targetEl, targetNode.animation);
+      },
+      // Salida animada en vista previa (WAAPI, mismos presets que el export)
+      playExit: (targetEl, done) => {
+        const targetNode = store.node(targetEl.dataset.id);
+        const anim = targetNode && playExitAnimation(targetEl, targetNode.animationOut);
+        if (!anim) return false;
+        anim.finished.then(() => {
+          done();
+          anim.cancel();
+        }).catch(done);
+        return true;
       }
     });
     try {
@@ -6329,6 +6793,12 @@ ${err.stack}</pre>`;
   });
 })();
 
+  </script>
+  <script>
+  // PWA: instalable cuando se sirve por http(s); en file:// se omite
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
   </script>
 </body>
 </html>

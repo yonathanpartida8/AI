@@ -137,7 +137,7 @@ export function contentHTML(node, ctx) {
     }
 
     case 'audio': {
-      const src = p.assetId ? ctx.resolve(p.assetId) : '';
+      const src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
       if (!src) return `<div class="wb-placeholder">Audio<small>Arrastra un audio aquí</small></div>`;
       return `<audio src="${src}" controls ${p.autoplay ? 'autoplay' : ''} ${p.loop ? 'loop' : ''} style="width:100%"></audio>`;
     }
@@ -182,11 +182,12 @@ export function contentHTML(node, ctx) {
     }
 
     case 'musicPlayer': {
-      const src = p.assetId ? ctx.resolve(p.assetId) : '';
+      const src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
       return `<div class="wb-player">
         <div class="wb-player-disc">♫</div>
         <div class="wb-player-info"><strong>${esc(p.title || '')}</strong><span>${esc(p.artist || '')}</span>
-        ${src ? `<audio src="${src}" controls style="width:100%;height:28px"></audio>` : '<small>Sin pista de audio</small>'}</div></div>`;
+        ${src ? `<audio src="${esc(src)}" controls style="width:100%;height:28px"></audio>` : '<small>Sin pista: elige un asset o pega una URL</small>'}</div>
+        <div class="wb-eq"><i></i><i></i><i></i><i></i></div></div>`;
     }
 
     case 'model3d':
@@ -215,10 +216,13 @@ export function contentHTML(node, ctx) {
       return `<div class="wb-gradbg" style="background:${gradient};--gspeed:${p.speed || 8}s"></div>`;
     }
 
-    case 'loveLetter':
-      return `<div class="wb-letter">
-        <div class="wb-letter-paper"><p>${esc(p.message)}</p><span>${esc(p.signature || '')}</span></div>
-        <div class="wb-letter-front">${esc(p.cover || 'Toca para abrir')}</div></div>`;
+    case 'loveLetter': {
+      const photo = p.photoId ? `<img class="wb-letter-photo" src="${ctx.resolve(p.photoId)}" alt="" draggable="false">` : '';
+      const sound = p.soundId ? ` data-sound="${ctx.resolve(p.soundId)}"` : '';
+      return `<div class="wb-letter"${sound}${p.burst !== false ? ' data-burst="💗"' : ''}>
+        <div class="wb-letter-paper" style="background:${p.paper || '#fff7ed'}">${photo}<p>${esc(p.message)}</p><span>${esc(p.signature || '')}</span></div>
+        <div class="wb-letter-front" style="background:${p.envelope || 'linear-gradient(160deg,#be123c,#881337)'}">${esc(p.cover || 'Toca para abrir')}</div></div>`;
+    }
 
     case 'timeline': {
       const items = String(p.items || '').split(';').map((row) => row.trim()).filter(Boolean);

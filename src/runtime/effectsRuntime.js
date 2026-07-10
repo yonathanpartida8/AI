@@ -61,12 +61,28 @@ export function wbEffects(root, opts) {
     every(tick, 1000);
   });
 
-  /* ── Carta interactiva ── */
+  /* ── Carta interactiva: sonido + estallido al abrir ── */
   qa('.wb-letter').forEach(function (el) {
     on(el, 'click', function () {
+      var opening = !el.classList.contains('open');
       el.classList.toggle('open');
       if (navigator.vibrate) navigator.vibrate(15);
+      if (opening) {
+        var sound = el.getAttribute('data-sound');
+        if (sound) new Audio(sound).play().catch(function () {});
+        var burstEmoji = el.getAttribute('data-burst');
+        if (burstEmoji && root.wbBurst) root.wbBurst(el, burstEmoji, 16);
+      }
     });
+  });
+
+  /* ── Reproductor: disco y ecualizador solo cuando suena ── */
+  qa('.wb-player audio').forEach(function (audio) {
+    var player = audio.closest('.wb-player');
+    if (!player) return;
+    on(audio, 'play', function () { player.classList.add('playing'); });
+    on(audio, 'pause', function () { player.classList.remove('playing'); });
+    on(audio, 'ended', function () { player.classList.remove('playing'); });
   });
 
   /* ── Mensaje oculto ── */

@@ -10,7 +10,28 @@
  *   nodo `drawing` totalmente editable (mover, escalar, animar…).
  * ============================================================ */
 
-import { el } from '../utils/helpers.js';
+import { el, download, fileToDataURL } from '../utils/helpers.js';
+
+/** Texturas de papel de la libreta (fondo visual del lienzo de dibujo). */
+const PAPERS = {
+  transparente: { label: 'Transparente', css: 'transparent' },
+  blanco: { label: 'Papel blanco', css: '#fdfbf7' },
+  rosa: { label: 'Papel rosa', css: 'linear-gradient(180deg,#fff1f5,#ffe4ee)' },
+  rayado: { label: 'Rayado', css: 'repeating-linear-gradient(180deg,#fdfbf7 0 27px,#f3c6d3 27px 28px)' },
+  cuadriculado: { label: 'Cuadriculado', css: 'repeating-linear-gradient(0deg,transparent 0 23px,#e8d5f2 23px 24px), repeating-linear-gradient(90deg,#fdfbf7 0 23px,#e8d5f2 23px 24px)' },
+  puntos: { label: 'Puntos', css: 'radial-gradient(circle, #d8b4c8 1.2px, transparent 1.4px) 0 0/22px 22px, #fdfbf7' },
+  pergamino: { label: 'Pergamino', css: 'radial-gradient(ellipse at 30% 20%, #f6e7c8, #ecd9ae 70%, #dfc48f)' },
+  noche: { label: 'Cielo nocturno', css: 'linear-gradient(180deg,#1e1035,#0d0620)' },
+};
+
+/** Estilos de pincel de la libreta. */
+const BRUSHES = {
+  pluma: 'Pluma',
+  lapiz: 'Lápiz',
+  marcador: 'Marcador',
+  neon: 'Neón ✨',
+  corazones: 'Corazones 💗',
+};
 
 export class DrawTool {
   constructor(store, assets, view) {
@@ -20,7 +41,9 @@ export class DrawTool {
     this.canvas = view.drawLayer;
     // desynchronized: menor latencia de trazo con stylus en pantallas 90-165 Hz
     this.ctx = this.canvas.getContext('2d', { desynchronized: true, willReadFrequently: true });
-    this.brush = { size: 8, color: '#f472b6', opacity: 1, eraser: false };
+    this.brush = { size: 8, color: '#f472b6', opacity: 1, eraser: false, type: 'pluma' };
+    this.paper = 'transparente';
+    this.stampDist = 0; // acumulador para el pincel de corazones
     this.strokes = []; // snapshots de ImageData → undo de trazos
     this.drawing = false;
 
@@ -40,6 +63,8 @@ export class DrawTool {
     const active = this.store.tool === 'draw';
     this.canvas.classList.toggle('active', active);
     this.toolbar.style.display = active ? 'flex' : 'none';
+    // El papel solo se ve mientras la libreta está abierta
+    this.canvas.style.background = active ? (PAPERS[this.paper]?.css || 'transparent') : 'transparent';
     if (active) this.#resize();
   }
 
@@ -86,6 +111,7 @@ export class DrawTool {
 
   #segment(a, b) {
     const ctx = this.ctx;
+    const type = this.brush.eraser ? 'borrador' : this.brush.type;
     ctx.save();
     ctx.globalAlpha = this.brush.opacity;
     ctx.globalCompositeOperation = this.brush.eraser ? 'destination-out' : 'source-over';
@@ -93,12 +119,87 @@ export class DrawTool {
     ctx.lineWidth = this.brush.size * (0.5 + ((a.pressure + b.pressure) / 2));
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    if (type === 'lapiz') {
+      // Trazo granulado: varias pasadas finas con jitter
+      ctx.globalAlpha = this.brush.opacity * 0.35;
+      ctx.lineWidth = Math.max(1, this.brush.size * 0.35);
+      for (let pass = 0; pass < 3; pass++) {
+        const jx = (Math.random() - 0.5) * 2, jy = (Math.random() - 0.5) * 2;
+        ctx.beginPath();
+        ctx.moveTo(a.x + jx, a.y + jy);
+        ctx.lineTo(b.x + jx, b.y + jy);
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
+    if (type === 'marcador') {
+      ctx.globalAlpha = this.brush.opacity * 0.35;
+      ctx.lineWidth = this.brush.size * 2.2;
+      ctx.lineCap = 'square';
+    } else if (type === 'neon') {
+      ctx.shadowColor = this.brush.color;
+      ctx.shadowBlur = this.brush.size * 1.6;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(2, this.brush.size * 0.55);
+      // Halo de color debajo del núcleo blanco
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.save(); ctx.strokeStyle = this.brush.color; ctx.lineWidth = this.brush.size * 1.3; ctx.stroke(); ctx.restore();
+    } else if (type === 'corazones') {
+      // Estampa corazones a lo largo del trazo
+      this.stampDist += Math.hypot(b.x - a.x, b.y - a.y);
+      const gap = this.brush.size * 2.2;
+      if (this.stampDist >= gap) {
+        this.stampDist = 0;
+        ctx.font = `${this.brush.size * 2.4}px serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.translate(b.x, b.y);
+        ctx.rotate((Math.random() - 0.5) * 0.7);
+        ctx.fillText(['💗', '💖', '💘', '🩷'][Math.floor(Math.random() * 4)], 0, 0);
+      }
+      ctx.restore();
+      return;
+    }
+
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
     ctx.restore();
+  }
+
+  /** Cambia la textura de papel (fondo visual de la hoja). */
+  setPaper(key) {
+    this.paper = key;
+    this.canvas.style.background = PAPERS[key]?.css || 'transparent';
+  }
+
+  /** Inserta una fotografía dentro del dibujo (galería del móvil). */
+  async addPhoto(file) {
+    const dataURL = await fileToDataURL(file);
+    const img = new Image();
+    await new Promise((resolve) => { img.onload = resolve; img.src = dataURL; });
+    this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+    // Centrada, ocupando como mucho el 70% de la hoja
+    const scale = Math.min((this.canvas.width * 0.7) / img.width, (this.canvas.height * 0.7) / img.height, 1);
+    const w = img.width * scale, h = img.height * scale;
+    this.ctx.drawImage(img, (this.canvas.width - w) / 2, (this.canvas.height - h) / 2, w, h);
+  }
+
+  /** Descarga la hoja como PNG (con el papel de fondo si lo hay). */
+  downloadPNG() {
+    const out = document.createElement('canvas');
+    out.width = this.canvas.width; out.height = this.canvas.height;
+    const octx = out.getContext('2d');
+    if (this.paper !== 'transparente') {
+      // Pinta el papel como color plano aproximado
+      octx.fillStyle = this.paper === 'noche' ? '#150a26' : this.paper === 'pergamino' ? '#efdcb4' : this.paper === 'rosa' ? '#ffe9f1' : '#fdfbf7';
+      octx.fillRect(0, 0, out.width, out.height);
+    }
+    octx.drawImage(this.canvas, 0, 0);
+    out.toBlob((blob) => download(`libreta-${Date.now().toString(36)}.png`, blob));
   }
 
   #end() { this.drawing = false; }
@@ -144,14 +245,29 @@ export class DrawTool {
   }
 
   #buildToolbar() {
+    const photoInput = el('input', {
+      type: 'file', accept: 'image/*', style: { display: 'none' },
+      onchange: async (e) => { if (e.target.files[0]) await this.addPhoto(e.target.files[0]); e.target.value = ''; },
+    });
     const bar = el('div', { class: 'draw-toolbar', style: { display: 'none' } }, [
-      el('span', { text: '✎ Dibujo:' }),
+      el('span', { text: '📓 Libreta:' }),
+      el('select', {
+        class: 'input mini-select', title: 'Estilo de pincel',
+        onchange: (e) => { this.brush.type = e.target.value; this.brush.eraser = false; },
+      }, Object.entries(BRUSHES).map(([key, label]) => el('option', { value: key, text: label }))),
+      el('select', {
+        class: 'input mini-select', title: 'Textura de papel',
+        onchange: (e) => this.setPaper(e.target.value),
+      }, Object.entries(PAPERS).map(([key, paper]) => el('option', { value: key, text: `Papel: ${paper.label}` }))),
       el('input', { type: 'color', value: this.brush.color, title: 'Color', oninput: (e) => { this.brush.color = e.target.value; this.brush.eraser = false; } }),
       el('label', {}, ['Tamaño ', el('input', { type: 'range', min: 1, max: 80, value: this.brush.size, oninput: (e) => { this.brush.size = +e.target.value; } })]),
       el('label', {}, ['Opacidad ', el('input', { type: 'range', min: 5, max: 100, value: 100, oninput: (e) => { this.brush.opacity = +e.target.value / 100; } })]),
       el('button', { class: 'btn', text: '◫ Borrador', onclick: (e) => { this.brush.eraser = !this.brush.eraser; e.target.classList.toggle('active', this.brush.eraser); } }),
+      photoInput,
+      el('button', { class: 'btn', text: '🖼 Foto', title: 'Añade una fotografía de tu galería al dibujo', onclick: () => photoInput.click() }),
       el('button', { class: 'btn', text: '↶ Trazo', title: 'Deshacer último trazo', onclick: () => this.undoStroke() }),
       el('button', { class: 'btn', text: '🗑 Limpiar', onclick: () => this.clear() }),
+      el('button', { class: 'btn', text: '⬇ PNG', title: 'Descargar la hoja', onclick: () => this.downloadPNG() }),
       el('button', { class: 'btn primary', text: '✓ Convertir en componente', onclick: () => this.toComponent() }),
       el('button', { class: 'btn', text: '× Salir', onclick: () => this.store.setTool('select') }),
     ]);

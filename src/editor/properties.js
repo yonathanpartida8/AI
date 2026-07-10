@@ -11,7 +11,7 @@
 
 import { el, getPath, setPath } from '../utils/helpers.js';
 import { componentDef, FONTS } from '../components/registry.js';
-import { PRESET_NAMES, TRIGGERS, EASINGS, playAnimation } from '../animations/engine.js';
+import { PRESET_NAMES, EXIT_PRESET_NAMES, TRIGGERS, EASINGS, playAnimation, playExitAnimation } from '../animations/engine.js';
 
 /** Gradientes rápidos para cualquier campo de fondo. */
 const GRADIENT_SWATCHES = [
@@ -178,6 +178,27 @@ export class PropertiesPanel {
         onclick: () => {
           const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
           if (elem) playAnimation(elem, { ...node.animation, loop: false });
+        },
+      }),
+    ]));
+
+    /* Animación de SALIDA (al ocultarse mediante acciones) */
+    const animOut = node.animationOut || { preset: 'fadeOut', duration: 450, easing: 'ease-in' };
+    this.root.append(this.#section('Animación de salida', [
+      el('p', { class: 'panel-hint', text: 'Se reproduce cuando otra acción oculta este elemento.' }),
+      this.#field('Preset', this.#select(EXIT_PRESET_NAMES, animOut.preset, (v) => this.store.updateNode(node.id, 'animationOut', { preset: v }))),
+      this.#field('Duración (ms)', el('input', {
+        class: 'input', type: 'number', value: animOut.duration, min: 100, step: 50,
+        onchange: (e) => this.store.updateNode(node.id, 'animationOut', { duration: +e.target.value }),
+      })),
+      el('button', {
+        class: 'btn block', text: '▶ Previsualizar salida',
+        onclick: () => {
+          const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
+          if (elem) {
+            const anim = playExitAnimation(elem, node.animationOut);
+            anim?.finished.then(() => anim.cancel()).catch(() => {});
+          }
         },
       }),
     ]));

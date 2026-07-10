@@ -120,8 +120,8 @@ export const Components = {
 
   audio: {
     label: 'Audio', icon: '♫', cat: 'Básicos', size: [320, 60], accepts: ['audio'],
-    defaults: { props: { assetId: null, autoplay: false, loop: false }, styles: { radius: 30, background: '#1e293b' } },
-    schema: [asset('props.assetId', 'Archivo de audio', 'audio'), check('props.autoplay', 'Autoplay'), check('props.loop', 'Loop')],
+    defaults: { props: { assetId: null, srcUrl: '', autoplay: false, loop: false }, styles: { radius: 30, background: '#1e293b' } },
+    schema: [asset('props.assetId', 'Archivo de audio', 'audio'), text('props.srcUrl', 'o URL externa'), check('props.autoplay', 'Autoplay'), check('props.loop', 'Loop')],
   },
 
   icon: {
@@ -200,10 +200,15 @@ export const Components = {
   musicPlayer: {
     label: 'Reproductor', icon: '🎵', cat: 'Avanzados', size: [360, 110], accepts: ['audio'],
     defaults: {
-      props: { assetId: null, title: 'Mi canción', artist: 'Artista' },
-      styles: { background: 'linear-gradient(135deg,#312e81,#6d28d9)', radius: 18, color: '#fff' },
+      props: { assetId: null, srcUrl: '', title: 'Mi canción', artist: 'Artista' },
+      styles: { background: 'linear-gradient(135deg,#4c1d95,#be185d)', radius: 18, color: '#fff' },
     },
-    schema: [asset('props.assetId', 'Pista de audio', 'audio'), text('props.title', 'Título'), text('props.artist', 'Artista'), ...STYLE_COMMON],
+    schema: [
+      asset('props.assetId', 'Pista de audio (asset)', 'audio'),
+      text('props.srcUrl', 'o URL externa (GitHub, etc.)'),
+      text('props.title', 'Título'), text('props.artist', 'Artista'),
+      ...STYLE_COMMON,
+    ],
   },
 
   model3d: {
@@ -251,12 +256,15 @@ export const Components = {
 
   /* ── Componentes románticos ─────────────────────────── */
   loveLetter: {
-    label: 'Carta interactiva', icon: '💌', cat: 'Románticos', size: [380, 300],
+    label: 'Carta interactiva', icon: '💌', cat: 'Románticos', size: [380, 300], accepts: ['image', 'audio'],
     defaults: {
       props: {
         cover: 'Toca para abrir',
         message: 'Cada día a tu lado es mi lugar favorito del mundo.\n\nGracias por existir.',
         signature: 'Con amor, para ti',
+        photoId: null, soundId: null, burst: true,
+        envelope: 'linear-gradient(160deg,#be123c,#881337)',
+        paper: '#fff7ed',
       },
       styles: { fontSize: 16, fontFamily: 'system-ui', color: '#7c2d12' },
     },
@@ -264,7 +272,13 @@ export const Components = {
       text('props.cover', 'Texto del sobre'),
       { key: 'props.message', label: 'Mensaje de la carta', type: 'textarea' },
       text('props.signature', 'Firma'),
+      asset('props.photoId', 'Foto dentro de la carta', 'image'),
+      asset('props.soundId', 'Sonido al abrir', 'audio'),
+      check('props.burst', 'Estallido de corazones al abrir'),
+      color('props.envelope', 'Sobre (color / gradiente)'),
+      color('props.paper', 'Papel de la carta'),
       num('styles.fontSize', 'Tamaño de letra', 10, 40),
+      color('styles.color', 'Color de la tinta'),
     ],
   },
 
@@ -464,6 +478,8 @@ export function createNodeData(type, overrides = {}) {
       preset, trigger: 'scroll', duration: 900, delay: 0,
       loop: type === 'heartButton', easing: 'ease-out',
     },
+    // Salida elegante al ocultarse mediante acciones
+    animationOut: { preset: 'fadeOut', duration: 450, easing: 'ease-in' },
     effects: { parallax: 0, tilt: false }, // efectos de scroll y profundidad
     events: [],                  // [{ on:'click', actions:[{action,target,value,delay}] }]
     locked: false,

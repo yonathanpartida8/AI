@@ -19,7 +19,7 @@ import { ProjectStore, DEVICES } from '../storage/projectStore.js';
 import { AssetManager } from '../assets/assetManager.js';
 import { renderPage } from '../renderer/renderer.js';
 import { COMPONENT_CSS } from '../renderer/componentStyles.js';
-import { playAnimation } from '../animations/engine.js';
+import { playAnimation, playExitAnimation } from '../animations/engine.js';
 import { wbEffects } from '../runtime/effectsRuntime.js';
 import { wbActions } from '../runtime/actionsRuntime.js';
 import { CanvasView } from './canvasView.js';
@@ -235,6 +235,7 @@ function buildMobileNav(store, panels, view) {
   const nav = el('nav', { id: 'mobile-nav' }, [
     item('▦', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
     item('🖼', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
+    item('♫', 'Música', () => { panels.openTab('musica'); left.classList.add('open'); }),
     item('📄', 'Páginas', () => { panels.openTab('paginas'); left.classList.add('open'); }),
     item('≣', 'Capas', () => { panels.openTab('capas'); left.classList.add('open'); }),
     item('✦', 'Diseño', () => { right.classList.add('open'); }),
@@ -278,6 +279,11 @@ function togglePreview(store, view, repaint, assets) {
       if (anim.trigger === 'load') animations.push(playAnimation(elem, anim));
       else if (anim.trigger === 'click') elem.addEventListener('click', () => playAnimation(elem, anim));
       else if (anim.trigger === 'hover') elem.addEventListener('mouseenter', () => playAnimation(elem, anim));
+      else if (anim.trigger === 'hold') {
+        let holdTimer = null;
+        elem.addEventListener('pointerdown', () => { holdTimer = setTimeout(() => playAnimation(elem, anim), 550); });
+        ['pointerup', 'pointerleave'].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
+      }
       else if (anim.trigger === 'scroll') {
         const io = new IntersectionObserver(([entry]) => {
           if (entry.isIntersecting) { playAnimation(elem, anim); io.disconnect(); }
@@ -299,6 +305,14 @@ function togglePreview(store, view, repaint, assets) {
     playAnim: (id, targetEl) => {
       const targetNode = store.node(id);
       if (targetEl && targetNode) playAnimation(targetEl, targetNode.animation);
+    },
+    // Salida animada en vista previa (WAAPI, mismos presets que el export)
+    playExit: (targetEl, done) => {
+      const targetNode = store.node(targetEl.dataset.id);
+      const anim = targetNode && playExitAnimation(targetEl, targetNode.animationOut);
+      if (!anim) return false;
+      anim.finished.then(() => { done(); anim.cancel(); }).catch(done);
+      return true;
     },
   });
 

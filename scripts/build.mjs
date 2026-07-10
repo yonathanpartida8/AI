@@ -34,8 +34,10 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>No-Code Website Builder</title>
-  <link rel="icon" href="data:,">
+  <title>Amor Builder — Creador de experiencias románticas</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#16101e">
   <!-- ═══════════════════════════════════════════════════════════
        ARCHIVO GENERADO — no editar a mano.
        Código fuente en /src y /css. Regenerar con: npm run build
@@ -71,6 +73,12 @@ ${css}
 
   <script>
 ${js}
+  </script>
+  <script>
+  // PWA: instalable cuando se sirve por http(s); en file:// se omite
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
   </script>
 </body>
 </html>

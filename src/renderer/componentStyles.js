@@ -26,8 +26,16 @@ export const COMPONENT_CSS = `
 .wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
 .wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
-.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite}
+.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite;animation-play-state:paused;transition:box-shadow .4s}
+.wb-player.playing .wb-player-disc{animation-play-state:running;box-shadow:0 0 22px rgba(255,143,171,.65)}
 @keyframes wb-spin{to{transform:rotate(360deg)}}
+.wb-eq{display:flex;align-items:flex-end;gap:3px;height:34px;flex:none;padding-right:4px}
+.wb-eq i{width:4px;height:8px;border-radius:2px;background:rgba(255,255,255,.75);transition:height .3s}
+.wb-player.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
+.wb-player.playing .wb-eq i:nth-child(2){animation-delay:.18s}
+.wb-player.playing .wb-eq i:nth-child(3){animation-delay:.36s}
+.wb-player.playing .wb-eq i:nth-child(4){animation-delay:.54s}
+@keyframes wb-eqbar{0%,100%{height:8px}50%{height:30px}}
 .wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .wb-player-info span,.wb-player-info small{opacity:.75;font-size:13px}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
@@ -44,6 +52,7 @@ export const COMPONENT_CSS = `
 .wb-letter-front::before{content:'💌';font-size:44px;animation:wb-float 3s ease-in-out infinite}
 .wb-letter-paper{position:absolute;inset:4%;background:#fff7ed;border-radius:10px;padding:7% 8%;color:#7c2d12;display:flex;flex-direction:column;justify-content:center;gap:12px;opacity:0;transform:rotateX(-70deg);transform-origin:top;transition:transform .8s .3s cubic-bezier(.2,.8,.25,1),opacity .5s .3s;box-shadow:0 12px 34px rgba(0,0,0,.3);overflow:auto}
 .wb-letter-paper p{font-family:Georgia,serif;font-size:1.05em;line-height:1.7;white-space:pre-line}
+.wb-letter-photo{width:62%;max-height:44%;object-fit:cover;align-self:center;border:5px solid #fff;border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.25);transform:rotate(-2deg);flex:none}
 .wb-letter-paper span{align-self:flex-end;font-family:Georgia,serif;font-style:italic;opacity:.85}
 .wb-letter.open .wb-letter-front{opacity:0;transform:translateY(-14%) scale(.92);pointer-events:none}
 .wb-letter.open .wb-letter-paper{opacity:1;transform:rotateX(0)}

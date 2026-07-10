@@ -20,7 +20,7 @@
 import { ZipWriter } from '../utils/zip.js';
 import { download, slugify, dataURLToBytes, esc } from '../utils/helpers.js';
 import { contentHTML, styleCSS } from '../renderer/renderer.js';
-import { PRESETS, presetToKeyframesCSS } from '../animations/engine.js';
+import { PRESETS, EXIT_PRESETS, presetToKeyframesCSS, exitToKeyframesCSS } from '../animations/engine.js';
 import { COMPONENT_CSS } from '../renderer/componentStyles.js';
 import { ASSET_KINDS } from '../assets/assetManager.js';
 import { wbParticles } from '../runtime/particlesRuntime.js';
@@ -81,9 +81,12 @@ export class Exporter {
       .map((node) => {
         const anim = node.animation;
         const hasAnim = anim && anim.preset !== 'ninguna' && PRESETS[anim.preset];
+        const animOut = node.animationOut;
+        const hasExit = animOut && animOut.preset !== 'ninguna' && EXIT_PRESETS[animOut.preset];
         const attrs = [
           `class="wb-node el-${node.id}${hasAnim && anim.trigger === 'load' ? ' wb-play' : ''}"`,
           hasAnim ? `data-trigger="${anim.trigger}"` : '',
+          hasExit ? `data-outdur="${animOut.duration || 450}"` : '',
           node.effects?.tilt ? 'data-tilt="1"' : '',
           node.effects?.parallax ? `data-parallax="${node.effects.parallax}"` : '',
           node.events?.length ? `data-events='${JSON.stringify(node.events).replaceAll("'", '&#39;')}'` : '',
@@ -142,12 +145,23 @@ ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`,
         boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_SINGLE=false;`,
+        pwa: isIndex,
         runtime: this.#buildRuntime({ single: false, has3D }),
         pageJS: `${project.custom?.js || ''}\n${page.custom?.js || ''}`,
       });
       zip.file(isIndex ? 'index.html' : `paginas/${slug}.html`, html);
     }
 
+    /* PWA: el sitio exportado es instalable y funciona sin conexión */
+    const pageFiles = project.pages.map((p, i) => i === 0 ? './index.html' : `./paginas/${slugs.get(p.id)}.html`);
+    zip.file('manifest.json', JSON.stringify({
+      name: project.meta.name, short_name: project.meta.name.slice(0, 12),
+      display: 'standalone', start_url: './index.html',
+      background_color: '#150a24', theme_color: '#150a24',
+      icons: [{ src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+    }, null, 2));
+    zip.file('icon.svg', HEART_ICON_SVG);
+    zip.file('sw.js', buildServiceWorker(pageFiles));
     zip.file('project.json', JSON.stringify({ ...project, assetsData: this.assets.exportData() }));
     zip.file('LEEME.txt',
       `Sitio generado con No-Code Website Builder\nProyecto: ${project.meta.name}\n\n` +
@@ -204,8 +218,10 @@ ${this.#nodesHTML(page, renderCtx)}
 
   /* ── Documento HTML común ──────────────────────────── */
 
-  #pageDocument({ title, cssText, body, boot, runtime, pageJS, extraHead = '' }) {
+  #pageDocument({ title, cssText, body, boot, runtime, pageJS, extraHead = '', pwa = false }) {
     const custom = (pageJS || '').trim();
+    const pwaHead = pwa ? `<link rel="manifest" href="manifest.json">\n  <meta name="theme-color" content="#150a24">` : '';
+    const pwaReg = pwa ? `<script>if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){navigator.serviceWorker.register('./sw.js').catch(function(){})}</script>` : '';
     return `<!doctype html>
 <html lang="es">
 <head>
@@ -213,6 +229,7 @@ ${this.#nodesHTML(page, renderCtx)}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(title)}</title>
   <link rel="icon" href="data:,">
+  ${pwaHead}
   ${extraHead}
   <style>
 ${cssText}
@@ -225,6 +242,7 @@ ${body}
 ${runtime}
   </script>
 ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\\/script')}\n}catch(e){console.warn('JS personalizado:',e)}\n  </script>` : ''}
+  ${pwaReg}
 </body>
 </html>`;
   }
@@ -234,6 +252,7 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
   #buildCSS(project, keyFor) {
     const bps = project.settings.breakpoints;
     const usedPresets = new Set();
+    const usedExits = new Set();
     const rules = [];
     const tabletRules = [];
     const mobileRules = [];
@@ -259,9 +278,15 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
         const selector = anim.trigger === 'hover' ? `.el-${node.id}:hover` : `.el-${node.id}.wb-play`;
         rules.push(`${selector}{animation:wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || 'ease-out'} ${anim.delay || 0}ms ${iter} both}`);
         const first = PRESETS[anim.preset][0];
-        if (['scroll', 'click'].includes(anim.trigger) && first.opacity === 0) {
+        if (['scroll', 'click', 'hold'].includes(anim.trigger) && first.opacity === 0) {
           rules.push(`.el-${node.id}:not(.wb-play){opacity:0}`);
         }
+      }
+
+      const animOut = node.animationOut;
+      if (animOut && animOut.preset !== 'ninguna' && EXIT_PRESETS[animOut.preset]) {
+        usedExits.add(animOut.preset);
+        rules.push(`.el-${node.id}.wb-out{animation:wb-out-${animOut.preset} ${animOut.duration || 450}ms ${animOut.easing || 'ease-in'} both!important}`);
       }
     }
 
@@ -279,7 +304,8 @@ ${tabletRules.join('\n')}
 ${mobileRules.join('\n')}
 }` : '';
 
-    const keyframes = [...usedPresets].map(presetToKeyframesCSS).join('\n');
+    const keyframes = [...usedPresets].map(presetToKeyframesCSS).join('\n') + '\n' +
+      [...usedExits].map(exitToKeyframesCSS).join('\n');
     const fontFaces = this.assets.fontFaceCSS();
     const pagesCSS = project.pages.map((p) => p.custom?.css || '').join('\n');
 
@@ -408,6 +434,18 @@ WB_ACTIONS(document, {
       node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
     });
   });
+  document.querySelectorAll('[data-trigger="hold"]').forEach(function (node) {
+    var holdTimer = null;
+    node.addEventListener('pointerdown', function () {
+      holdTimer = setTimeout(function () {
+        node.classList.remove('wb-play'); void node.offsetWidth; node.classList.add('wb-play');
+        if (navigator.vibrate) navigator.vibrate(25);
+      }, 550);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) {
+      node.addEventListener(ev, function () { clearTimeout(holdTimer); });
+    });
+  });
 })();
 
 /* Sliders automáticos */
@@ -459,6 +497,43 @@ document.querySelectorAll('.wb-gif[data-playing="false"]').forEach(function (img
 wbFit(); setTimeout(wbFit, 60);
 ${has3D ? build3DJS() : ''}`;
   }
+}
+
+/* ── PWA del sitio exportado ───────────────────────────── */
+
+export const HEART_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#ff8fab"/><stop offset="1" stop-color="#b388eb"/></linearGradient></defs>
+<rect width="100" height="100" rx="22" fill="#1c1024"/>
+<path d="M50 78 C20 58 14 38 27 28 C36 21 46 25 50 33 C54 25 64 21 73 28 C86 38 80 58 50 78Z" fill="url(#g)"/>
+</svg>`;
+
+function buildServiceWorker(pageFiles) {
+  return `/* Service worker — generado por No-Code Website Builder.
+ * Cachea el sitio completo: funciona sin conexión y es instalable. */
+var CACHE = 'amor-v1';
+var CORE = ${JSON.stringify(['./', ...pageFiles, './manifest.json', './icon.svg'])};
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
+});
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
+});
+self.addEventListener('fetch', function (e) {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(caches.match(e.request).then(function (hit) {
+    return hit || fetch(e.request).then(function (res) {
+      if (res.ok && e.request.url.indexOf(self.location.origin) === 0) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      }
+      return res;
+    });
+  }));
+});
+`;
 }
 
 /* ── Motor Three.js del sitio exportado ────────────────── */

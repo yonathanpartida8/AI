@@ -14,6 +14,7 @@ import { el, esc, formatBytes } from '../utils/helpers.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
+import { MUSIC_TRACKS, MUSIC_REPO_BASE, trackURL } from '../config/musicLibrary.js';
 
 export class Panels {
   constructor(store, assets, view) {
@@ -41,10 +42,11 @@ export class Panels {
 
   render() {
     this.root.innerHTML = '';
-    const tabs = el('div', { class: 'panel-tabs' }, ['componentes', 'assets', 'paginas', 'capas'].map((name) =>
+    const tabs = el('div', { class: 'panel-tabs' }, ['componentes', 'assets', 'musica', 'paginas', 'capas'].map((name) =>
       el('button', {
         class: `tab-btn${this.tab === name ? ' active' : ''}`,
-        text: { componentes: 'Piezas', assets: 'Assets', paginas: 'Páginas', capas: 'Capas' }[name],
+        text: { componentes: 'Piezas', assets: 'Assets', musica: '♫', paginas: 'Páginas', capas: 'Capas' }[name],
+        title: name === 'musica' ? 'Música' : null,
         onclick: () => { this.tab = name; this.render(); },
       })));
     this.root.append(tabs);
@@ -53,6 +55,7 @@ export class Panels {
     ({
       componentes: () => this.#renderComponents(body),
       assets: () => this.#renderAssets(body),
+      musica: () => this.#renderMusic(body),
       paginas: () => this.#renderPages(body),
       capas: () => this.#renderLayers(body),
     })[this.tab]();
@@ -177,6 +180,69 @@ export class Panels {
     if (!type) return;
     const width = this.store.project.settings.breakpoints[this.store.device];
     this.store.addNode(type, at || { x: Math.round(width / 2 - 160), y: 120 }, { props: { ...Components[type].defaults.props, assetId: asset.id } });
+  }
+
+  /* ── Pestaña de Música (repositorio de GitHub) ─────── */
+
+  #renderMusic(body) {
+    body.append(
+      el('h4', { class: 'panel-heading', text: '♫ Tu música desde GitHub' }),
+      el('p', { class: 'panel-hint', html: 'Estas pistas se leen de <b>src/config/musicLibrary.js</b> — cambia ahí los nombres de archivo (musica1.mp3, musica2.mp3…) y tu repositorio.' }),
+    );
+    this.previewAudio ||= new Audio();
+    const list = el('div', { class: 'music-list' });
+    MUSIC_TRACKS.forEach((track) => {
+      const url = trackURL(track);
+      const playBtn = el('button', {
+        class: 'music-play', text: '▶',
+        onclick: () => {
+          if (this.previewAudio.src === url && !this.previewAudio.paused) {
+            this.previewAudio.pause();
+            playBtn.textContent = '▶';
+          } else {
+            this.previewAudio.src = url;
+            this.previewAudio.play().catch(() => alert('No se pudo cargar la pista.\nRevisa tu repositorio en src/config/musicLibrary.js'));
+            list.querySelectorAll('.music-play').forEach((b) => { b.textContent = '▶'; });
+            playBtn.textContent = '❚❚';
+          }
+        },
+      });
+      this.previewAudio.addEventListener('ended', () => { playBtn.textContent = '▶'; });
+      list.append(el('div', { class: 'music-row' }, [
+        playBtn,
+        el('div', { class: 'music-meta' }, [
+          el('strong', { text: track.title }),
+          el('span', { text: track.artist }),
+          el('small', { text: track.file }),
+        ]),
+        el('button', {
+          class: 'btn primary', text: '＋', title: 'Añadir reproductor a la página',
+          onclick: () => {
+            const width = this.store.project.settings.breakpoints[this.store.device];
+            this.store.addNode('musicPlayer', { x: Math.round(width / 2 - 180), y: 140 }, {
+              props: { assetId: null, srcUrl: url, title: track.title, artist: track.artist },
+            });
+          },
+        }),
+      ]));
+    });
+    body.append(list);
+
+    // Pega cualquier otra URL de audio directamente
+    const urlInput = el('input', { class: 'input', placeholder: 'https://…/cancion.mp3' });
+    body.append(
+      el('h4', { class: 'panel-heading', text: 'O pega una URL directa' }),
+      urlInput,
+      el('button', {
+        class: 'btn block', text: '＋ Añadir reproductor con esa URL',
+        onclick: () => {
+          if (!urlInput.value.trim()) return;
+          this.store.addNode('musicPlayer', { x: 200, y: 140 }, {
+            props: { assetId: null, srcUrl: urlInput.value.trim(), title: 'Mi canción', artist: '♡' },
+          });
+        },
+      }),
+    );
   }
 
   /* ── Drop sobre el lienzo (componentes, assets, archivos del SO) ── */

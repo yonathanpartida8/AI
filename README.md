@@ -36,8 +36,10 @@ luciérnagas · aurora · ondas de agua · nebulosa · lluvia · órbita. Simula
 por tiempo real: idéntica velocidad y máxima fluidez a 60/90/120/144/165 Hz.
 
 ### 🎬 Animaciones y transiciones
-26 presets (latido, tada, flip 3D, giro 3D, brillo, caída, respirar…) con
-triggers al cargar / scroll / clic / hover. Letras animadas (olas, saltos,
+26 presets de entrada (latido, tada, flip 3D, giro 3D, brillo, caída…) con
+triggers al cargar / scroll / tocar / **mantener presionado** / hover, y
+**8 animaciones de salida** (disolver, zoomOut, flipOut…) que se reproducen
+automáticamente cuando una acción oculta el elemento. Letras animadas (olas, saltos,
 brillo, arcoíris). Brillos de texto (neón, rosa, dorado, fuego, hielo).
 Efectos por elemento: **parallax al scroll** y **tilt 3D** táctil.
 Transiciones de página cinematográficas: círculo mágico, cortina, giro 3D,
@@ -79,6 +81,30 @@ llegan limpios a cartas, botones y secretos.
   los integra automáticamente.
 - **Fuentes propias**: sube .ttf/.woff2 desde Assets y aparecen en el
   selector de fuentes (y en el sitio exportado).
+
+### 🎵 Pestaña de Música (tu repositorio de GitHub)
+Sube tus MP3 a GitHub y edita **un solo archivo** para conectarlos:
+`src/config/musicLibrary.js` — ahí cambias `MUSIC_REPO_BASE` (tu
+usuario/repo) y los nombres (`musica1.mp3`, `musica2.mp3`…). La pestaña ♫
+te deja escucharlas y añadirlas con un toque. El reproductor tiene disco
+giratorio y **ecualizador animado** que solo se mueven mientras suena.
+
+### 📓 Libreta digital romántica (módulo de dibujo)
+Dibuja con el dedo: 5 pinceles (pluma, lápiz, marcador, **neón**,
+**corazones** que estampan 💗), 8 texturas de papel (rayado, cuadriculado,
+puntos, pergamino, cielo nocturno…), inserta **fotografías de tu galería**
+dentro del dibujo, descarga la hoja en PNG o conviértela en un componente
+de la página.
+
+### 💌 Cartas personalizadas
+La carta interactiva ahora acepta **foto dentro**, **sonido al abrirse**,
+estallido de corazones, color del sobre (gradientes), papel y tinta — con
+su animación 3D de apertura.
+
+### 📲 PWA instalable
+El editor y el **sitio exportado en ZIP** incluyen manifest + service
+worker: se instalan como app en el móvil y funcionan sin conexión una vez
+publicados (GitHub Pages, Netlify…).
 
 ### 📤 Exportación (multimedia garantizada)
 - **📱 HTML (1 archivo)**: todo el sitio —páginas, GIFs, vídeos, audio,

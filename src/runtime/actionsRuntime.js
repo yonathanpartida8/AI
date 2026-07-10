@@ -34,6 +34,16 @@ export function wbActions(root, ctx) {
 
   function replayCSS(el) { el.classList.remove('wb-play'); void el.offsetWidth; el.classList.add('wb-play'); }
 
+  /** Oculta con la animación de salida del elemento (si la tiene). */
+  function hideWithExit(el) {
+    if (el.classList.contains('wb-hidden')) return;
+    var done = function () { el.classList.add('wb-hidden'); el.classList.remove('wb-out'); };
+    if (ctx.playExit && ctx.playExit(el, done)) return; // editor: WAAPI
+    var dur = +el.getAttribute('data-outdur') || 0;
+    if (dur > 0) { el.classList.add('wb-out'); timers.push(setTimeout(done, dur)); }
+    else done();
+  }
+
   function run(a, sourceEl) {
     var target = a.target ? find(a.target) : sourceEl;
     switch (a.action) {
@@ -43,9 +53,16 @@ export function wbActions(root, ctx) {
       case 'openUrl':
         if (a.value || a.target) window.open(a.value || a.target, '_blank', 'noopener');
         break;
-      case 'showNode': if (target) { target.classList.remove('wb-hidden'); target.style.visibility = ''; } break;
-      case 'hideNode': if (target) target.classList.add('wb-hidden'); break;
-      case 'toggleNode': if (target) target.classList.toggle('wb-hidden'); break;
+      case 'showNode':
+        if (target) { target.classList.remove('wb-hidden', 'wb-out'); target.style.visibility = ''; replayCSS(target); }
+        break;
+      case 'hideNode': if (target) hideWithExit(target); break;
+      case 'toggleNode':
+        if (target) {
+          if (target.classList.contains('wb-hidden')) { target.classList.remove('wb-hidden', 'wb-out'); replayCSS(target); }
+          else hideWithExit(target);
+        }
+        break;
       case 'playAnimation':
         if (ctx.playAnim) ctx.playAnim(a.target, target);
         else if (target) replayCSS(target);
