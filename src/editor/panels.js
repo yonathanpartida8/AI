@@ -10,7 +10,7 @@
  * - Capas: z-order, bloquear, ocultar, eliminar.
  * ============================================================ */
 
-import { el, esc, formatBytes } from '../utils/helpers.js';
+import { el, esc, formatBytes, debounce } from '../utils/helpers.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
@@ -27,7 +27,8 @@ export class Panels {
     this.tab = 'componentes';
     this.assetFilter = { kind: null, query: '' };
 
-    store.on('change', () => { if (this.tab === 'capas' || this.tab === 'paginas') this.render(); });
+    this.scheduleRender = debounce(() => this.render(), 120);
+    store.on('change', () => { if (this.tab === 'capas' || this.tab === 'paginas') this.scheduleRender(); });
     store.on('page', () => this.render());
     store.on('selection', () => { if (this.tab === 'capas') this.render(); });
     assets.on('change', () => { if (this.tab === 'assets') this.render(); });

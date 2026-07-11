@@ -392,7 +392,7 @@ body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
 body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button,
 body.preview .wb-nav, body.preview .wb-heartbtn { pointer-events: auto; cursor: pointer; }
-body.preview .wb-embed iframe { pointer-events: auto; }
+body.preview #artboard .wb-embed iframe { pointer-events: auto; } /* gana al bloqueo de edición */
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
 

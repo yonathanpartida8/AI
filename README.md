@@ -113,9 +113,14 @@ acción "Ir a página" de cualquier objeto.
 
 ### 🌐 Importar HTML completo como objeto
 Sube cualquier página `.html` (pestaña Assets o botón Importar) y se
-convierte en un **objeto del lienzo** que conserva sus estilos, scripts e
-interacciones (iframe aislado): muévelo, escálalo, anímalo y combínalo con
-el resto de elementos. Funciona igual en el sitio exportado.
+convierte en un **objeto del lienzo**: se renderiza en un **viewport
+virtual** del ancho para el que fue diseñada (configurable) y se **escala
+proporcionalmente en tiempo real** al redimensionarla — sin deformarse ni
+perder calidad. Botones, formularios, enlaces, scroll y scripts funcionan
+**exactamente como en un navegador independiente** (en vista previa y en el
+sitio exportado; mientras editas va inerte para no consumir recursos, con
+opción "activo al editar"). Los iframes sobreviven a las ediciones sin
+recargarse jamás.
 
 ### 📓 Libreta digital romántica (módulo de dibujo)
 Dibuja con el dedo **viendo el trazo en tiempo real** (corregido el retraso

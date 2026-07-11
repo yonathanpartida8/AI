@@ -276,6 +276,18 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
       const mobile = node.responsive?.mobile;
       if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet, ...mobile })}}`);
 
+      // HTML importado: viewport virtual escalado proporcionalmente
+      if (node.type === 'htmlEmbed') {
+        const embedRule = (frame) => {
+          const vw = node.props?.viewWidth || 1280;
+          const scale = Math.max(frame.w, 16) / vw;
+          return `.el-${node.id} .wb-embed iframe{position:absolute;left:0;top:0;border:0;width:${vw}px;height:${Math.round(frame.h / scale)}px;transform:scale(${scale});transform-origin:0 0}`;
+        };
+        rules.push(embedRule(node.base));
+        if (tablet && Object.keys(tablet).length) tabletRules.push(embedRule({ ...node.base, ...tablet }));
+        if (mobile && Object.keys(mobile).length) mobileRules.push(embedRule({ ...node.base, ...tablet, ...mobile }));
+      }
+
       const anim = node.animation;
       if (anim?.custom) {
         // Animación CSS definida por el usuario (keyframes en su CSS global)
@@ -323,7 +335,7 @@ ${mobileRules.join('\n')}
 html,body{background:#000}
 .wb-scale-wrap{width:100%;overflow:hidden}
 .wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
-[data-trigger],[data-tilt],[data-parallax]{will-change:transform,opacity}
+[data-tilt],[data-parallax]{will-change:transform} /* acotado: menos memoria GPU */
 ${fontFaces}
 ${COMPONENT_CSS}
 ${MY_ANIMATIONS_CSS}

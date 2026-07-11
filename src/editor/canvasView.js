@@ -16,7 +16,7 @@
  * cuando cambia la vista (render bajo demanda).
  * ============================================================ */
 
-import { clamp } from '../utils/helpers.js';
+import { clamp, throttleRAF } from '../utils/helpers.js';
 
 export class CanvasView {
   constructor(store) {
@@ -30,6 +30,8 @@ export class CanvasView {
     this.rulerH = document.getElementById('ruler-h');
     this.rulerV = document.getElementById('ruler-v');
 
+    // Las reglas se repintan como mucho una vez por frame (zoom/pan fluidos)
+    this.drawRulers = throttleRAF(this.drawRulers.bind(this));
     store.on('view', () => this.apply());
     store.on('change', () => this.syncSize());
     store.on('device', () => this.fit());

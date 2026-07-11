@@ -9,7 +9,7 @@
  * Animación · Eventos · Responsive.
  * ============================================================ */
 
-import { el, getPath, setPath } from '../utils/helpers.js';
+import { el, getPath, setPath, debounce } from '../utils/helpers.js';
 import { componentDef, FONTS } from '../components/registry.js';
 import { PRESET_NAMES, EXIT_PRESET_NAMES, TRIGGERS, EASINGS, playAnimation, playExitAnimation } from '../animations/engine.js';
 
@@ -59,8 +59,12 @@ export class PropertiesPanel {
     this.assets = assets;
     this.view = view;
     this.root = document.getElementById('right-panel');
+    // Reconstruir el panel es caro: en ráfagas de edición (arrastres,
+    // flechas) se difiere — el lienzo mantiene sus FPS y el panel se
+    // pone al día 100 ms después del último cambio.
+    this.scheduleRender = debounce(() => this.render(), 100);
     store.on('selection', () => this.render());
-    store.on('change', () => this.render());
+    store.on('change', () => this.scheduleRender());
     store.on('device', () => this.render());
     this.render();
   }

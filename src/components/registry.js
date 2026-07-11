@@ -430,10 +430,15 @@ export const Components = {
   /* ── Extensión con código propio ────────────────────── */
   htmlEmbed: {
     label: 'Página HTML importada', icon: '🌐', cat: 'Avanzados', size: [480, 360], accepts: ['html'],
-    defaults: { props: { assetId: null, interactive: true }, styles: { radius: 14, shadow: 'suave' } },
+    defaults: {
+      props: { assetId: null, interactive: true, viewWidth: 1280, liveInEditor: false },
+      styles: { radius: 14, shadow: 'suave' },
+    },
     schema: [
       asset('props.assetId', 'Archivo HTML (sube uno en Assets)', 'html'),
+      num('props.viewWidth', 'Ancho de diseño del HTML (px)', 320, 1920, 10),
       check('props.interactive', 'Interactivo en el sitio final'),
+      check('props.liveInEditor', 'Activo también mientras editas (consume más)'),
       ...STYLE_COMMON,
     ],
   },

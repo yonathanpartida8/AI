@@ -407,7 +407,7 @@ body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
 body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button,
 body.preview .wb-nav, body.preview .wb-heartbtn { pointer-events: auto; cursor: pointer; }
-body.preview .wb-embed iframe { pointer-events: auto; }
+body.preview #artboard .wb-embed iframe { pointer-events: auto; } /* gana al bloqueo de edición */
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
 
@@ -1201,10 +1201,15 @@ body.preview #fab-add { display: none !important; }
       cat: "Avanzados",
       size: [480, 360],
       accepts: ["html"],
-      defaults: { props: { assetId: null, interactive: true }, styles: { radius: 14, shadow: "suave" } },
+      defaults: {
+        props: { assetId: null, interactive: true, viewWidth: 1280, liveInEditor: false },
+        styles: { radius: 14, shadow: "suave" }
+      },
       schema: [
         asset("props.assetId", "Archivo HTML (sube uno en Assets)", "html"),
+        num("props.viewWidth", "Ancho de dise\xF1o del HTML (px)", 320, 1920, 10),
         check("props.interactive", "Interactivo en el sitio final"),
+        check("props.liveInEditor", "Activo tambi\xE9n mientras editas (consume m\xE1s)"),
         ...STYLE_COMMON
       ]
     },
@@ -2840,11 +2845,11 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         if (!p.assetId) return `<div class="wb-placeholder">\u{1F310} P\xE1gina HTML<small>Sube un .html en Assets y el\xEDgelo en Dise\xF1o</small></div>`;
         const html = (ctx.htmlText ? ctx.htmlText(p.assetId) : "") || "";
         const doc = html.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
-        const sandbox = ctx.editor ? "allow-same-origin" : "allow-scripts allow-same-origin";
+        const FULL = "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock";
+        const sandbox = ctx.editor && !p.liveInEditor ? "allow-same-origin" : FULL;
         const inert = !ctx.editor && p.interactive === false ? "pointer-events:none;" : "";
-        return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden">
-        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy"
-          style="width:100%;height:100%;border:0;border-radius:inherit;${inert}"></iframe></div>`;
+        return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
+        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy" style="${inert}"></iframe></div>`;
       }
       case "custom3D":
         return `<div class="wb-3d" data-kind="custom" data-cameraz="${p.cameraZ ?? 4}"><script type="text/wb-3d">${String(p.code || "").replaceAll("<\/script", "<\\/script")}<\/script></div>`;
@@ -2909,9 +2914,26 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         return `<div class="wb-placeholder">${esc(node2.type)}</div>`;
     }
   }
+  function scaleEmbed(elem, node2, frame) {
+    const iframe = elem.querySelector(".wb-embed iframe");
+    if (!iframe) return;
+    const viewWidth = node2.props?.viewWidth || 1280;
+    const scale = Math.max(frame.w, 16) / viewWidth;
+    Object.assign(iframe.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      border: "0",
+      width: `${viewWidth}px`,
+      height: `${Math.round(frame.h / scale)}px`,
+      transform: `scale(${scale})`,
+      transformOrigin: "0 0"
+    });
+  }
   function syncNodeEl(elem, node2, store) {
     const frame = store.frame(node2);
     Object.assign(elem.style, frameCSS(frame));
+    if (node2.type === "htmlEmbed") scaleEmbed(elem, node2, frame);
     for (const prop of [
       "background",
       "color",
@@ -3868,6 +3890,7 @@ ${steps.join("\n")}
       this.overlay = document.getElementById("overlay");
       this.rulerH = document.getElementById("ruler-h");
       this.rulerV = document.getElementById("ruler-v");
+      this.drawRulers = throttleRAF(this.drawRulers.bind(this));
       store.on("view", () => this.apply());
       store.on("change", () => this.syncSize());
       store.on("device", () => this.fit());
@@ -4463,8 +4486,9 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       this.root = document.getElementById("left-panel");
       this.tab = "componentes";
       this.assetFilter = { kind: null, query: "" };
+      this.scheduleRender = debounce(() => this.render(), 120);
       store.on("change", () => {
-        if (this.tab === "capas" || this.tab === "paginas") this.render();
+        if (this.tab === "capas" || this.tab === "paginas") this.scheduleRender();
       });
       store.on("page", () => this.render());
       store.on("selection", () => {
@@ -4971,8 +4995,9 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       this.assets = assets;
       this.view = view;
       this.root = document.getElementById("right-panel");
+      this.scheduleRender = debounce(() => this.render(), 100);
       store.on("selection", () => this.render());
-      store.on("change", () => this.render());
+      store.on("change", () => this.scheduleRender());
       store.on("device", () => this.render());
       this.render();
     }
@@ -6531,6 +6556,16 @@ ${custom.replaceAll("<\/script", "<\\/script")}
         if (tablet && Object.keys(tablet).length) tabletRules.push(`.el-${node2.id}{${frameRule({ ...node2.base, ...tablet })}}`);
         const mobile = node2.responsive?.mobile;
         if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node2.id}{${frameRule({ ...node2.base, ...tablet, ...mobile })}}`);
+        if (node2.type === "htmlEmbed") {
+          const embedRule = (frame) => {
+            const vw = node2.props?.viewWidth || 1280;
+            const scale = Math.max(frame.w, 16) / vw;
+            return `.el-${node2.id} .wb-embed iframe{position:absolute;left:0;top:0;border:0;width:${vw}px;height:${Math.round(frame.h / scale)}px;transform:scale(${scale});transform-origin:0 0}`;
+          };
+          rules.push(embedRule(node2.base));
+          if (tablet && Object.keys(tablet).length) tabletRules.push(embedRule({ ...node2.base, ...tablet }));
+          if (mobile && Object.keys(mobile).length) mobileRules.push(embedRule({ ...node2.base, ...tablet, ...mobile }));
+        }
         const anim = node2.animation;
         if (anim?.custom) {
           const selector = anim.trigger === "hover" ? `.el-${node2.id}:hover` : `.el-${node2.id}.wb-play`;
@@ -6570,7 +6605,7 @@ ${mobileRules.join("\n")}
 html,body{background:#000}
 .wb-scale-wrap{width:100%;overflow:hidden}
 .wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
-[data-trigger],[data-tilt],[data-parallax]{will-change:transform,opacity}
+[data-tilt],[data-parallax]{will-change:transform} /* acotado: menos memoria GPU */
 ${fontFaces}
 ${COMPONENT_CSS}
 ${MY_ANIMATIONS_CSS}
@@ -7185,9 +7220,8 @@ ${extraJS}`;
       body.classList.remove("preview");
       previewCleanup?.();
       previewCleanup = null;
-      document.querySelectorAll("#artboard .wb-embed iframe").forEach((frame) => {
-        frame.setAttribute("sandbox", "allow-same-origin");
-        frame.srcdoc = frame.srcdoc;
+      document.querySelectorAll('#artboard .wb-node[data-type="htmlEmbed"]').forEach((el2) => {
+        el2.dataset.sig = "";
       });
       repaint();
       return;
@@ -7199,8 +7233,9 @@ ${extraJS}`;
     const animations = [];
     artboard.querySelectorAll(".wb-embed iframe").forEach((frame) => {
       if (frame.getAttribute("sandbox")?.includes("allow-scripts")) return;
-      frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
-      frame.srcdoc = frame.srcdoc;
+      const live = frame.cloneNode();
+      live.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock");
+      frame.replaceWith(live);
     });
     for (const node2 of store.pageNodes()) {
       const elem = artboard.querySelector(`[data-id="${node2.id}"]`);

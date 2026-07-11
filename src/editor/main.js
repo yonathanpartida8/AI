@@ -288,11 +288,9 @@ function togglePreview(store, view, repaint, assets) {
     body.classList.remove('preview');
     previewCleanup?.();
     previewCleanup = null;
-    // Los iframes vuelven a estado inerte (edición ligera)
-    document.querySelectorAll('#artboard .wb-embed iframe').forEach((frame) => {
-      frame.setAttribute('sandbox', 'allow-same-origin');
-      frame.srcdoc = frame.srcdoc;
-    });
+    // Invalida la firma de los embeds → el render incremental los
+    // reconstruye con su sandbox correcto (inerte o "activo al editar")
+    document.querySelectorAll('#artboard .wb-node[data-type="htmlEmbed"]').forEach((el) => { el.dataset.sig = ''; });
     repaint();
     return;
   }
@@ -303,11 +301,14 @@ function togglePreview(store, view, repaint, assets) {
   const artboard = view.artboard;
   const animations = [];
 
-  // Los HTML importados despiertan sus scripts SOLO en vista previa
+  // Los HTML importados despiertan sus scripts en vista previa.
+  // Se REEMPLAZA el iframe (clon con sandbox completo): el navegador lo
+  // parsea de cero con los permisos nuevos — recarga garantizada.
   artboard.querySelectorAll('.wb-embed iframe').forEach((frame) => {
     if (frame.getAttribute('sandbox')?.includes('allow-scripts')) return;
-    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-    frame.srcdoc = frame.srcdoc; // recarga con scripts activos
+    const live = frame.cloneNode();
+    live.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock');
+    frame.replaceWith(live);
   });
 
   // Animaciones por trigger (WAAPI, igual comportamiento que el CSS exportado)

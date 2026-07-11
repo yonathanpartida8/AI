@@ -221,17 +221,26 @@ export function contentHTML(node, ctx) {
 
     case 'htmlEmbed': {
       if (!p.assetId) return `<div class="wb-placeholder">🌐 Página HTML<small>Sube un .html en Assets y elígelo en Diseño</small></div>`;
-      // El HTML importado vive en un iframe con srcdoc (fiable y sin límites
-      // de longitud de URL). En el EDITOR va inerte (sin scripts) para que
-      // páginas pesadas no consuman recursos mientras diseñas; en vista
-      // previa y en el sitio final corre completo.
+      /*
+       * El HTML importado se renderiza en un VIEWPORT VIRTUAL del ancho
+       * para el que fue diseñado (props.viewWidth, 1280 por defecto) y se
+       * ESCALA proporcionalmente al tamaño del contenedor con transform
+       * (GPU, sin deformación ni pérdida de calidad). El escalado exacto
+       * lo aplican syncNodeEl (editor, en tiempo real) y el CSS exportado.
+       *
+       * srcdoc evita los límites/errores de los dataURL. En el editor va
+       * inerte (sin scripts) salvo que actives «Activo mientras editas»;
+       * en vista previa y en el sitio final corre completo: botones,
+       * formularios, enlaces, scroll y eventos funcionan como en un
+       * navegador independiente (sandbox ampliado).
+       */
       const html = (ctx.htmlText ? ctx.htmlText(p.assetId) : '') || '';
       const doc = html.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
-      const sandbox = ctx.editor ? 'allow-same-origin' : 'allow-scripts allow-same-origin';
+      const FULL = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock';
+      const sandbox = ctx.editor && !p.liveInEditor ? 'allow-same-origin' : FULL;
       const inert = !ctx.editor && p.interactive === false ? 'pointer-events:none;' : '';
-      return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden">
-        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy"
-          style="width:100%;height:100%;border:0;border-radius:inherit;${inert}"></iframe></div>`;
+      return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
+        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy" style="${inert}"></iframe></div>`;
     }
 
     case 'custom3D':
@@ -321,10 +330,30 @@ export function contentHTML(node, ctx) {
 
 /* ── Render del EDITOR ───────────────────────────────── */
 
+/**
+ * Escalado proporcional del HTML importado: el iframe se renderiza al
+ * ancho de diseño y se escala al contenedor. Redimensionar el nodo
+ * re-escala el contenido EN TIEMPO REAL sin deformarlo.
+ */
+export function scaleEmbed(elem, node, frame) {
+  const iframe = elem.querySelector('.wb-embed iframe');
+  if (!iframe) return;
+  const viewWidth = node.props?.viewWidth || 1280;
+  const scale = Math.max(frame.w, 16) / viewWidth;
+  Object.assign(iframe.style, {
+    position: 'absolute', left: '0', top: '0', border: '0',
+    width: `${viewWidth}px`,
+    height: `${Math.round(frame.h / scale)}px`,
+    transform: `scale(${scale})`,
+    transformOrigin: '0 0',
+  });
+}
+
 /** Aplica marco + estilos visuales al elemento del editor. */
 export function syncNodeEl(elem, node, store) {
   const frame = store.frame(node);
   Object.assign(elem.style, frameCSS(frame));
+  if (node.type === 'htmlEmbed') scaleEmbed(elem, node, frame);
   // Limpia estilos visuales previos y aplica los actuales
   for (const prop of ['background', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign',
     'letterSpacing', 'lineHeight', 'borderRadius', 'border', 'boxShadow', 'backdropFilter', 'clipPath', 'visibility']) {
