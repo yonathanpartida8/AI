@@ -42,6 +42,10 @@ const TEXT_GLOW_CSS = {
   hielo: '0 0 8px rgba(186,230,253,.95), 0 0 26px rgba(56,189,248,.6)',
 };
 
+/* Iconos SVG del reproductor (sin emojis, coherentes en export) */
+const MUSIC_NOTE_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v11"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/></svg>';
+const PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5z"/></svg>';
+
 const IMG_FILTERS = {
   ninguno: () => 'none',
   grises: (a) => `grayscale(${a}%)`,
@@ -96,7 +100,7 @@ export function styleCSS(node) {
 function media(node, ctx) {
   const src = node.props.assetId ? ctx.resolve(node.props.assetId) : '';
   const fit = node.props.fit || 'cover';
-  if (!src) return `<div class="wb-placeholder">${esc(node.name)}<small>Arrastra un asset aquí</small></div>`;
+  if (!src) return `<div class="wb-placeholder">${esc(node.name)}<small>Toca para poner aquí un recuerdo</small></div>`;
   const filter = IMG_FILTERS[node.props.filter || 'ninguno'](node.props.filterAmount ?? 100);
   return `<img src="${src}" alt="${esc(node.props.alt || node.name)}" draggable="false"
     style="width:100%;height:100%;object-fit:${fit};filter:${filter};border-radius:inherit;pointer-events:none">`;
@@ -132,7 +136,7 @@ export function contentHTML(node, ctx) {
 
     case 'gif': {
       const src = p.assetId ? ctx.resolve(p.assetId) : '';
-      if (!src) return `<div class="wb-placeholder">GIF<small>Arrastra un GIF aquí</small></div>`;
+      if (!src) return `<div class="wb-placeholder">GIF<small>Un momento en movimiento va aquí</small></div>`;
       // Un GIF pausado se congela pintándolo en un canvas (lo hace el runtime).
       return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false"
         style="width:100%;height:100%;object-fit:${p.fit || 'cover'};border-radius:inherit;pointer-events:none">`;
@@ -140,7 +144,7 @@ export function contentHTML(node, ctx) {
 
     case 'video': {
       const src = p.assetId ? ctx.resolve(p.assetId) : '';
-      if (!src) return `<div class="wb-placeholder">Vídeo<small>Arrastra un vídeo aquí</small></div>`;
+      if (!src) return `<div class="wb-placeholder">Vídeo<small>Ese vídeo que os hace sonreír</small></div>`;
       const attrs = [
         p.autoplay && !p.playOnScroll ? 'autoplay' : '', p.loop ? 'loop' : '', p.muted ? 'muted' : '',
         p.controls ? 'controls' : '', 'playsinline',
@@ -151,7 +155,7 @@ export function contentHTML(node, ctx) {
 
     case 'audio': {
       const src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
-      if (!src) return `<div class="wb-placeholder">Audio<small>Arrastra un audio aquí</small></div>`;
+      if (!src) return `<div class="wb-placeholder">Audio<small>Una melodía para este rincón</small></div>`;
       return `<audio src="${src}" controls ${p.autoplay ? 'autoplay' : ''} ${p.loop ? 'loop' : ''} style="width:100%"></audio>`;
     }
 
@@ -165,7 +169,7 @@ export function contentHTML(node, ctx) {
 
     case 'gallery': {
       const ids = p.assetIds || [];
-      if (!ids.length) return `<div class="wb-placeholder">Galería<small>Añade imágenes desde Assets</small></div>`;
+      if (!ids.length) return `<div class="wb-placeholder">Galería<small>Vuestras fotos favoritas, juntas</small></div>`;
       const cells = ids.map((id) => `<img src="${ctx.resolve(id)}" alt="" loading="lazy" draggable="false"
         style="width:100%;height:100%;object-fit:cover;border-radius:inherit;pointer-events:none">`).join('');
       return `<div class="wb-gallery" style="display:grid;grid-template-columns:repeat(${p.columns || 3},1fr);gap:${p.gap ?? 10}px;width:100%;height:100%">${cells}</div>`;
@@ -173,7 +177,7 @@ export function contentHTML(node, ctx) {
 
     case 'slider': {
       const ids = p.assetIds || [];
-      if (!ids.length) return `<div class="wb-placeholder">Slider<small>Añade imágenes desde Assets</small></div>`;
+      if (!ids.length) return `<div class="wb-placeholder">Slider<small>Recuerdos que pasan solos</small></div>`;
       const slides = ids.map((id, i) => `<img class="wb-slide${i === 0 ? ' active' : ''}" src="${ctx.resolve(id)}" alt="" draggable="false">`).join('');
       return `<div class="wb-slider" data-interval="${p.interval || 3000}" data-transition="${p.transition || 'fade'}">${slides}</div>`;
     }
@@ -196,11 +200,35 @@ export function contentHTML(node, ctx) {
 
     case 'musicPlayer': {
       const src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
-      return `<div class="wb-player">
-        <div class="wb-player-disc">♫</div>
-        <div class="wb-player-info"><strong>${esc(p.title || '')}</strong><span>${esc(p.artist || '')}</span>
-        ${src ? `<audio src="${esc(src)}" controls style="width:100%;height:28px"></audio>` : '<small>Sin pista: elige un asset o pega una URL</small>'}</div>
-        <div class="wb-eq"><i></i><i></i><i></i><i></i></div></div>`;
+      const yt = String(src).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,20})/);
+      const cover = p.coverId
+        ? `<img class="wb-mp-cover" src="${ctx.resolve(p.coverId)}" alt="" draggable="false">`
+        : `<div class="wb-mp-cover wb-mp-cover-icon">${MUSIC_NOTE_SVG}</div>`;
+      if (yt) {
+        /*
+         * YouTube: por sus políticas no se puede extraer el audio; la vía
+         * compatible sin inicio de sesión es el embed oficial en modo
+         * privacidad (youtube-nocookie). Se muestra como tarjeta de vídeo.
+         */
+        return `<div class="wb-mp wb-mp-yt"><iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0"
+          allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"
+          style="width:100%;height:100%;border:0;border-radius:inherit"></iframe></div>`;
+      }
+      const mini = p.variant === 'mini';
+      return `<div class="wb-mp${mini ? ' wb-mp-mini' : ''}">
+        ${cover}
+        <div class="wb-mp-body">
+          <div class="wb-mp-meta"><strong>${esc(p.title || '')}</strong><span>${esc(p.artist || '')}</span></div>
+          ${src ? `
+          <div class="wb-mp-controls">
+            <button class="wb-mp-play" type="button" aria-label="Reproducir">${PLAY_SVG}</button>
+            <div class="wb-mp-track"><div class="wb-mp-fill"></div></div>
+            <span class="wb-mp-time">0:00</span>
+          </div>` : '<small class="wb-mp-empty">Elige una canción para este momento</small>'}
+        </div>
+        <div class="wb-eq"><i></i><i></i><i></i><i></i></div>
+        ${src ? `<audio src="${esc(src)}" preload="metadata"></audio>` : ''}
+      </div>`;
     }
 
     case 'model3d':
@@ -215,7 +243,7 @@ export function contentHTML(node, ctx) {
         data-metal="${p.metal ?? 0.35}" data-cameraz="${p.cameraZ ?? 4}"></div>`;
 
     case 'photo3d': {
-      if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Diseño</small></div>`;
+      if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Una foto con profundidad — elígela en Diseño</small></div>`;
       return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
     }
 
@@ -269,10 +297,13 @@ export function contentHTML(node, ctx) {
     }
 
     case 'timeline': {
+      // Formato por evento: fecha | título | texto | fotoId (opcional)
       const items = String(p.items || '').split(';').map((row) => row.trim()).filter(Boolean);
       const lis = items.map((row, i) => {
-        const [date = '', title = '', body = ''] = row.split('|').map((s2) => s2.trim());
-        return `<li style="--i:${i}"><b>${esc(date)}</b><strong>${esc(title)}</strong><p>${esc(body)}</p></li>`;
+        const [date = '', title = '', body = '', photoId = ''] = row.split('|').map((s2) => s2.trim());
+        const photo = photoId && ctx.resolve(photoId)
+          ? `<img class="wb-tl-photo" src="${ctx.resolve(photoId)}" alt="" draggable="false">` : '';
+        return `<li style="--i:${i}">${photo}<b>${esc(date)}</b><strong>${esc(title)}</strong><p>${esc(body)}</p></li>`;
       }).join('');
       return `<ul class="wb-timeline${ctx.editor ? ' wb-play' : ''}">${lis}</ul>`;
     }
@@ -311,7 +342,7 @@ export function contentHTML(node, ctx) {
       const src = p.assetId ? ctx.resolve(p.assetId) : '';
       const img = src
         ? `<img src="${src}" alt="${esc(p.caption || '')}" draggable="false">`
-        : `<div class="wb-placeholder">📸<small>Elige una foto</small></div>`;
+        : `<div class="wb-placeholder"><small>Pulsa y elige esa foto especial</small></div>`;
       return `<figure class="wb-polaroid" style="--prot:${p.rotate ?? -3}deg">${img}<figcaption>${esc(p.caption || '')}</figcaption></figure>`;
     }
 

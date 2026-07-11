@@ -1,9 +1,9 @@
 {
-  "name": "nocode-website-builder",
+  "name": "builderynthn-m-beta",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Constructor visual de sitios web sin código: editor drag-and-drop con exportador ZIP",
+  "description": "BuilderYNTHN_M-Beta — creador de experiencias románticas digitales",
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "python3 -m http.server 8080 || npx serve ."

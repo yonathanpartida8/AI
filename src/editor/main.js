@@ -15,6 +15,7 @@
  * ============================================================ */
 
 import { el, download } from '../utils/helpers.js';
+import { ic } from './icons.js';
 import { ProjectStore, DEVICES } from '../storage/projectStore.js';
 import { AssetManager } from '../assets/assetManager.js';
 import { renderPage } from '../renderer/renderer.js';
@@ -89,9 +90,10 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     setTimeout(() => savedDot.classList.remove('flash'), 600);
   });
 
+  const DEVICE_IC = { desktop: 'desktop', tablet: 'tablet', mobile: 'mobile' };
   const deviceButtons = el('div', { class: 'seg' }, Object.entries(DEVICES).map(([key, meta]) =>
     el('button', {
-      class: `seg-btn${store.device === key ? ' active' : ''}`, text: `${meta.icon} ${meta.label}`,
+      class: `seg-btn${store.device === key ? ' active' : ''}`, html: `${ic(DEVICE_IC[key], 15)}<span>${meta.label}</span>`,
       dataset: { device: key },
       title: `${meta.width}px`,
       onclick: () => store.setDevice(key),
@@ -137,27 +139,27 @@ function buildTopbar(store, view, exporter, assets, repaint) {
   });
 
   bar.append(
-    el('div', { class: 'brand', text: '◆ Builder' }),
+    el('div', { class: 'brand', html: `${ic('heart', 15)}<span>BuilderYNTHN<small>_M-Beta</small></span>` }),
     savedDot,
     el('div', { class: 'sep' }),
-    el('button', { class: 'btn', text: '↶', title: 'Deshacer (Ctrl+Z)', onclick: () => store.undo() }),
-    el('button', { class: 'btn', text: '↷', title: 'Rehacer (Ctrl+Y)', onclick: () => store.redo() }),
+    el('button', { class: 'btn btn-ic', html: ic('undo'), title: 'Deshacer (Ctrl+Z)', onclick: () => store.undo() }),
+    el('button', { class: 'btn btn-ic', html: ic('redo'), title: 'Rehacer (Ctrl+Y)', onclick: () => store.redo() }),
     el('div', { class: 'sep' }),
     deviceButtons,
     el('div', { class: 'sep' }),
-    el('button', { class: 'btn', text: '−', title: 'Alejar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
+    el('button', { class: 'btn btn-ic', html: ic('minus'), title: 'Alejar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
     zoomLabel,
-    el('button', { class: 'btn', text: '+', title: 'Acercar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
-    el('button', { class: 'btn', text: '⤢', title: 'Ajustar a pantalla', onclick: () => view.fit() }),
+    el('button', { class: 'btn btn-ic', html: ic('plus'), title: 'Acercar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
+    el('button', { class: 'btn btn-ic', html: ic('fit'), title: 'Ajustar a pantalla', onclick: () => view.fit() }),
     el('div', { class: 'sep' }),
-    el('button', { class: 'btn', text: '✎ Dibujar', onclick: () => store.setTool(store.tool === 'draw' ? 'select' : 'draw') }),
+    el('button', { class: 'btn', html: `${ic('pen')}<span>Dibujar</span>`, onclick: () => store.setTool(store.tool === 'draw' ? 'select' : 'draw') }),
     el('span', { class: 'spacer' }),
-    el('button', { class: 'btn', text: '▶ Vista previa', onclick: () => togglePreview(store, view, repaint, assets) }),
+    el('button', { class: 'btn', html: `${ic('play')}<span>Vista previa</span>`, onclick: () => togglePreview(store, view, repaint, assets) }),
     el('div', { class: 'sep' }),
     fileInput,
-    el('button', { class: 'btn', text: '⭱ Importar', title: 'Importar proyecto .json', onclick: () => fileInput.click() }),
+    el('button', { class: 'btn', html: `${ic('upload')}<span>Importar</span>`, title: 'Importar proyecto (.json/.html) o página externa', onclick: () => fileInput.click() }),
     el('button', {
-      class: 'btn', text: '⭳ Guardar .json', title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
+      class: 'btn', html: `${ic('download')}<span>Guardar</span>`, title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
       onclick: () => {
         // El .json incluye los assets → el archivo es 100% autocontenido
         const data = { ...store.exportJSON(), assetsData: assets.exportData() };
@@ -166,7 +168,7 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
     el('button', {
-      class: 'btn primary', text: '📱 HTML (1 archivo)',
+      class: 'btn primary', html: `${ic('file')}<span>HTML (1 archivo)</span>`,
       title: 'Todo el sitio en un único archivo autocontenido: ábrelo directamente en el móvil',
       onclick: async (e) => {
         e.target.disabled = true;
@@ -176,17 +178,17 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       },
     }),
     el('button', {
-      class: 'btn primary', text: '⬇ Sitio (.zip)',
+      class: 'btn primary', html: `${ic('archive')}<span>Sitio (.zip)</span>`,
       title: 'Carpeta de proyecto completa para subir a un hosting',
       onclick: async (e) => {
-        e.target.disabled = true; e.target.textContent = 'Empaquetando…';
+        e.target.disabled = true;
         try { await exporter.export(); }
         catch (err) { alert(`Error al exportar: ${err.message}`); console.error(err); }
-        e.target.disabled = false; e.target.textContent = '⬇ Sitio (.zip)';
+        e.target.disabled = false;
       },
     }),
     el('button', {
-      class: 'btn danger', text: '🗑 Nuevo', title: 'Proyecto nuevo (borra el actual)',
+      class: 'btn danger', html: `${ic('trash')}<span>Nuevo</span>`, title: 'Proyecto nuevo (borra el actual)',
       onclick: () => {
         if (!confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) return;
         const template = confirm('¿Empezar con la plantilla de ejemplo?\n(Aceptar = plantilla · Cancelar = lienzo en blanco)');
@@ -241,7 +243,7 @@ function buildMobileNav(store, panels, view) {
       closeAll();
       if (!wasActive) { open(); btn.classList.add('active'); }
     },
-  }, [el('span', { class: 'mn-icon', text: icon }), el('span', { class: 'mn-label', text: label })]);
+  }, [el('span', { class: 'mn-icon', html: ic(icon, 20) }), el('span', { class: 'mn-label', text: label })]);
 
   // FAB estilo One UI: añadir piezas con el pulgar, siempre a mano
   const fab = el('button', {
@@ -255,16 +257,17 @@ function buildMobileNav(store, panels, view) {
         if (navigator.vibrate) navigator.vibrate(10);
       }
     },
-  }, ['＋']);
+  });
+  fab.innerHTML = ic('plus', 26);
   document.body.append(fab);
 
   const nav = el('nav', { id: 'mobile-nav' }, [
-    item('▦', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
-    item('🖼', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
-    item('♫', 'Música', () => { panels.openTab('musica'); left.classList.add('open'); }),
-    item('📄', 'Páginas', () => { panels.openTab('paginas'); left.classList.add('open'); }),
-    item('≣', 'Capas', () => { panels.openTab('capas'); left.classList.add('open'); }),
-    item('✦', 'Diseño', () => { right.classList.add('open'); }),
+    item('grid', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
+    item('image', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
+    item('music', 'Música', () => { panels.openTab('musica'); left.classList.add('open'); }),
+    item('pages', 'Páginas', () => { panels.openTab('paginas'); left.classList.add('open'); }),
+    item('layers', 'Capas', () => { panels.openTab('capas'); left.classList.add('open'); }),
+    item('sliders', 'Diseño', () => { right.classList.add('open'); }),
   ]);
   document.body.append(nav);
 
@@ -272,6 +275,46 @@ function buildMobileNav(store, panels, view) {
   view.viewport.addEventListener('pointerdown', closeAll);
   // Entrar en la libreta de dibujo también las cierra (lienzo despejado)
   store.on('tool', () => { if (store.tool === 'draw') closeAll(); });
+  // La barra rápida del lienzo abre el panel de Diseño
+  document.addEventListener('wb:open-design', () => {
+    if (getComputedStyle(nav).display !== 'none') { closeAll(); right.classList.add('open'); }
+  });
+  // Deslizar hacia abajo cierra cualquier hoja (gesto natural)
+  makeSheetDismissable(left, closeAll);
+  makeSheetDismissable(right, closeAll);
+}
+
+/**
+ * Gesto de descarte: arrastra la hoja hacia abajo desde su parte
+ * superior (asa/pestañas) y suéltala para cerrarla — con la hoja
+ * siguiendo el dedo y animación de retorno si no llega al umbral.
+ */
+function makeSheetDismissable(sheet, close) {
+  let startY = 0, delta = 0, dragging = false;
+  sheet.addEventListener('pointerdown', (e) => {
+    if (!sheet.classList.contains('open')) return;
+    // Solo desde el tercio superior de la hoja (asa, pestañas, títulos)
+    const rect = sheet.getBoundingClientRect();
+    if (e.clientY - rect.top > 90) return;
+    if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName)) return;
+    dragging = true; startY = e.clientY; delta = 0;
+    sheet.style.transition = 'none';
+    try { sheet.setPointerCapture(e.pointerId); } catch { /* sintético */ }
+  });
+  sheet.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    delta = Math.max(0, e.clientY - startY);
+    sheet.style.transform = `translateY(${delta}px)`;
+  });
+  const finish = () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    if (delta > 110) { close(); if (navigator.vibrate) navigator.vibrate(8); }
+  };
+  sheet.addEventListener('pointerup', finish);
+  sheet.addEventListener('pointercancel', finish);
 }
 
 /* ── Vista previa dentro del editor ──────────────────── */

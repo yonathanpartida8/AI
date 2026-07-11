@@ -1,4 +1,4 @@
-# ◆ Amor Builder — Creador de Experiencias Románticas
+# BuilderYNTHN_M-Beta — Creador de Experiencias Románticas
 
 **Interfaz Liquid Glass** en blancos y negros con tipografía bold, y
 **motor de render incremental**: edita proyectos con decenas de elementos,

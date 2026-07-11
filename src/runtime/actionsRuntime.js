@@ -133,12 +133,58 @@ export function wbActions(root, ctx) {
     }
   }
 
+  /* Variables del proyecto (compartidas entre cadenas y páginas) */
+  var vars = (typeof window !== 'undefined' && (window.WB_VARS = window.WB_VARS || {})) || {};
+
+  /** Evalúa "nombre op valor" (==, !=, >, <, >=, <=). */
+  function evalCond(expr) {
+    var m = String(expr || '').match(/^\s*([\w áéíóúñ-]+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/);
+    if (!m) return true;
+    var cur = vars[m[1].trim()];
+    var val = m[3].trim();
+    var a2 = isNaN(+cur) ? String(cur) : +cur;
+    var b2 = isNaN(+val) ? val : +val;
+    switch (m[2]) {
+      case '==': return String(a2) === String(b2) || a2 === b2;
+      case '!=': return String(a2) !== String(b2) && a2 !== b2;
+      case '>': return +a2 > +b2;
+      case '<': return +a2 < +b2;
+      case '>=': return +a2 >= +b2;
+      case '<=': return +a2 <= +b2;
+    }
+    return true;
+  }
+
+  /**
+   * Ejecuta la cadena EN SECUENCIA respetando retardos, variables y
+   * condiciones: 'ifVar' corta el resto de la cadena si no se cumple.
+   */
   function runChain(ev, el) {
-    var actions = ev.actions || (ev.action ? [ev] : []); // compatible con formato antiguo
-    actions.forEach(function (a) {
-      if (a.delay) later(function () { run(a, el); }, a.delay);
-      else run(a, el);
-    });
+    var actions = ev.actions || (ev.action ? [ev] : []); // formato antiguo compatible
+    var i = 0;
+    function step() {
+      if (i >= actions.length) return;
+      var a = actions[i++];
+      var exec = function () {
+        if (a.action === 'setVar') {
+          var mm = String(a.value || '').split('=');
+          if (mm.length >= 2) {
+            var name = mm[0].trim(), val = mm.slice(1).join('=').trim();
+            // soporta contadores: "toques = toques + 1"
+            var inc = val.match(/^([\w áéíóúñ-]+?)\s*\+\s*(\d+)$/);
+            vars[name] = inc ? (+vars[inc[1].trim()] || 0) + +inc[2] : (isNaN(+val) ? val : +val);
+          }
+        } else if (a.action === 'ifVar') {
+          if (!evalCond(a.value)) return; // condición falsa → corta la cadena
+        } else {
+          run(a, el);
+        }
+        step();
+      };
+      if (a.delay) timers.push(setTimeout(exec, a.delay));
+      else exec();
+    }
+    step();
   }
 
   Array.prototype.slice.call(root.querySelectorAll('[data-events]')).forEach(function (el) {

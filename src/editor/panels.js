@@ -11,6 +11,7 @@
  * ============================================================ */
 
 import { el, esc, formatBytes, debounce } from '../utils/helpers.js';
+import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
@@ -48,7 +49,7 @@ export class Panels {
     const tabs = el('div', { class: 'panel-tabs' }, ['componentes', 'assets', 'musica', 'paginas', 'capas'].map((name) =>
       el('button', {
         class: `tab-btn${this.tab === name ? ' active' : ''}`,
-        text: { componentes: 'Piezas', assets: 'Assets', musica: '♫', paginas: 'Páginas', capas: 'Capas' }[name],
+        html: name === 'musica' ? ic('music', 15) : { componentes: 'Piezas', assets: 'Assets', paginas: 'Páginas', capas: 'Capas' }[name],
         title: name === 'musica' ? 'Música' : null,
         onclick: () => { this.tab = name; this.render(); },
       })));
@@ -74,7 +75,7 @@ export class Panels {
       blockList.append(el('button', {
         class: 'block-item', title: 'Añade esta sección al final de la página',
         onclick: () => this.store.addBlock(key),
-      }, [el('span', { class: 'palette-icon', text: block.icon }), el('span', { text: block.label })]));
+      }, [el('span', { class: 'palette-icon', html: ic(BLOCK_ICONS[key] || 'sparkles') }), el('span', { text: block.label })]));
     }
     body.append(blockList);
 
@@ -88,7 +89,7 @@ export class Panels {
           onclick: () => this.store.addNode('custom3D', { x: 200, y: 160 }, {
             name: item.name, props: { code: item.code, cameraZ: 4 },
           }),
-        }, [el('span', { class: 'palette-icon', text: item.icon || '🧊' }), el('span', { text: item.name })]));
+        }, [el('span', { class: 'palette-icon', html: ic('cube') }), el('span', { text: item.name })]));
       }
       body.append(grid3d);
     }
@@ -101,7 +102,7 @@ export class Panels {
           onclick: () => this.store.addNode('customHTML', {
             x: 160, y: 160, w: widget.width || 340, h: widget.height || 220,
           }, { name: widget.name, props: { html: widget.html || '', css: widget.css || '', js: widget.js || '' } }),
-        }, [el('span', { class: 'palette-icon', text: widget.icon || '🧩' }), el('span', { text: widget.name })]));
+        }, [el('span', { class: 'palette-icon', html: ic('wand') }), el('span', { text: widget.name })]));
       }
       body.append(gridw);
     }
@@ -115,7 +116,7 @@ export class Panels {
           class: 'palette-item', draggable: 'true', title: `Arrastra al lienzo o haz clic`,
           ondragstart: (e) => e.dataTransfer.setData('application/x-wb-component', type),
           onclick: () => this.#addAtCenter(type),
-        }, [el('span', { class: 'palette-icon', text: def.icon }), el('span', { text: def.label })]);
+        }, [el('span', { class: 'palette-icon', html: typeIcon(type) }), el('span', { text: def.label })]);
         grid.append(item);
       }
       body.append(grid);
@@ -143,7 +144,7 @@ export class Panels {
     });
     body.append(
       input,
-      el('button', { class: 'btn primary block', text: '⬆ Subir desde galería / disco', onclick: () => input.click() }),
+      el('button', { class: 'btn primary block', html: `${ic('upload', 15)}<span>Subir desde galería / disco</span>`, onclick: () => input.click() }),
       el('input', {
         class: 'input block', type: 'search', placeholder: 'Buscar por nombre o etiqueta…',
         value: this.assetFilter.query,
@@ -153,7 +154,8 @@ export class Panels {
         el('button', { class: `chip${!this.assetFilter.kind ? ' active' : ''}`, text: 'Todo', onclick: () => { this.assetFilter.kind = null; this.render(); } }),
         ...Object.entries(ASSET_KINDS).filter(([k]) => k !== 'svg').map(([kind, meta]) =>
           el('button', {
-            class: `chip${this.assetFilter.kind === kind ? ' active' : ''}`, text: meta.icon,
+            class: `chip${this.assetFilter.kind === kind ? ' active' : ''}`,
+            html: ic({ image: 'image', gif: 'film', video: 'video', audio: 'music', model: 'cube', font: 'type', html: 'globe' }[kind] || 'file', 14),
             title: meta.label,
             onclick: () => { this.assetFilter.kind = kind; this.render(); },
           })),
@@ -177,7 +179,7 @@ export class Panels {
         ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb' })
         : ['image', 'gif', 'svg'].includes(asset.kind)
           ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false' })
-          : el('div', { class: 'asset-thumb kind-icon', text: ASSET_KINDS[asset.kind].icon });
+          : el('div', { class: 'asset-thumb kind-icon', html: ic({ audio: 'music', model: 'cube', font: 'type', html: 'globe' }[asset.kind] || 'file', 26) });
       const card = el('div', {
         class: 'asset-card', draggable: 'true',
         title: `${asset.name} · ${formatBytes(asset.size)} · carpeta: ${asset.folder}`,
@@ -187,7 +189,7 @@ export class Panels {
         preview,
         el('span', { class: 'asset-name', text: asset.name }),
         el('button', {
-          class: 'asset-del', text: '×', title: 'Eliminar asset',
+          class: 'asset-del', html: ic('close', 11), title: 'Eliminar asset',
           onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${asset.name}"?`)) this.assets.remove(asset.id); },
         }),
       ]);
@@ -224,23 +226,23 @@ export class Panels {
       this.previewAudio = new Audio();
       // listener único (los re-render del panel no lo duplican)
       this.previewAudio.addEventListener('ended', () => {
-        this.root.querySelectorAll('.music-play').forEach((b) => { b.textContent = '▶'; });
+        this.root.querySelectorAll('.music-play').forEach((b) => { b.innerHTML = ic('play', 15); });
       });
     }
     const list = el('div', { class: 'music-list' });
     MUSIC_TRACKS.forEach((track) => {
       const url = trackURL(track);
       const playBtn = el('button', {
-        class: 'music-play', text: '▶',
+        class: 'music-play', html: ic('play', 15),
         onclick: () => {
           if (this.previewAudio.src === url && !this.previewAudio.paused) {
             this.previewAudio.pause();
-            playBtn.textContent = '▶';
+            playBtn.innerHTML = ic('play', 15);
           } else {
             this.previewAudio.src = url;
             this.previewAudio.play().catch(() => alert('No se pudo cargar la pista.\nRevisa tu repositorio en src/config/musicLibrary.js'));
-            list.querySelectorAll('.music-play').forEach((b) => { b.textContent = '▶'; });
-            playBtn.textContent = '❚❚';
+            list.querySelectorAll('.music-play').forEach((b) => { b.innerHTML = ic('play', 15); });
+            playBtn.innerHTML = ic('stop', 14);
           }
         },
       });
@@ -252,7 +254,7 @@ export class Panels {
           el('small', { text: track.file }),
         ]),
         el('button', {
-          class: 'btn primary', text: '＋', title: 'Añadir reproductor a la página',
+          class: 'btn primary btn-ic', html: ic('plus', 15), title: 'Añadir reproductor a la página',
           onclick: () => {
             const width = this.store.project.settings.breakpoints[this.store.device];
             this.store.addNode('musicPlayer', { x: Math.round(width / 2 - 180), y: 140 }, {
@@ -267,10 +269,11 @@ export class Panels {
     // Pega cualquier otra URL de audio directamente
     const urlInput = el('input', { class: 'input', placeholder: 'https://…/cancion.mp3' });
     body.append(
-      el('h4', { class: 'panel-heading', text: 'O pega una URL directa' }),
+      el('h4', { class: 'panel-heading', text: 'O pega una URL (directa o YouTube)' }),
       urlInput,
+      el('p', { class: 'panel-hint', text: 'Nota: YouTube no permite extraer solo el audio; los enlaces de YouTube se muestran como su reproductor oficial en modo privacidad (sin inicio de sesión).' }),
       el('button', {
-        class: 'btn block', text: '＋ Añadir reproductor con esa URL',
+        class: 'btn block', html: `${ic('plus', 13)}<span>Añadir reproductor con esa URL</span>`,
         onclick: () => {
           if (!urlInput.value.trim()) return;
           this.store.addNode('musicPlayer', { x: 200, y: 140 }, {
@@ -316,9 +319,11 @@ export class Panels {
   /* ── Páginas ───────────────────────────────────────── */
 
   #renderPages(body) {
-    body.append(el('button', { class: 'btn primary block', text: '+ Nueva página', onclick: () => this.store.addPage() }));
+    body.append(el('button', { class: 'btn primary block', html: `${ic('plus', 14)}<span>Nueva página</span>`, onclick: () => this.store.addPage() }));
     const list = el('div', { class: 'page-list' });
+    const pq = (this.pageQuery || '').toLowerCase();
     for (const page of this.store.project.pages) {
+      if (pq && !page.name.toLowerCase().includes(pq)) continue;
       const active = page.id === this.store.pageId;
       list.append(el('div', { class: `page-item${active ? ' active' : ''}`, onclick: () => this.store.setPage(page.id) }, [
         el('span', {
@@ -330,10 +335,10 @@ export class Panels {
           },
         }),
         el('span', { class: 'page-actions' }, [
-          el('button', { text: '↑', title: 'Subir', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, -1); } }),
-          el('button', { text: '↓', title: 'Bajar', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, 1); } }),
-          el('button', { text: '⧉', title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
-          el('button', { text: '×', title: 'Eliminar', onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id); } }),
+          el('button', { html: ic('up', 13), title: 'Subir', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, -1); } }),
+          el('button', { html: ic('down', 13), title: 'Bajar', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, 1); } }),
+          el('button', { html: ic('duplicate', 13), title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
+          el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id); } }),
         ]),
       ]));
     }
@@ -391,25 +396,49 @@ export class Panels {
   #renderLayers(body) {
     const nodes = this.store.pageNodes();
     if (!nodes.length) {
-      body.append(el('p', { class: 'panel-hint', text: 'La página está vacía. Añade componentes desde la pestaña Piezas.' }));
+      body.append(el('p', { class: 'panel-hint', text: 'La página está vacía. Añade piezas y dale vida.' }));
       return;
     }
+    // Búsqueda de capas (proyectos grandes)
+    body.append(el('input', {
+      class: 'input block', type: 'search', placeholder: 'Buscar capa…', value: this.layerQuery || '',
+      oninput: (e) => { this.layerQuery = e.target.value; this.render(); },
+    }));
+    const q = (this.layerQuery || '').toLowerCase();
     const list = el('div', { class: 'layer-list' });
-    // De arriba (último en pintar) a abajo
+    // De arriba (último en pintar) a abajo — arrastra para reordenar
     for (const node of [...nodes].reverse()) {
+      if (q && !node.name.toLowerCase().includes(q)) continue;
       const selected = this.store.selection.includes(node.id);
       list.append(el('div', {
         class: `layer-item${selected ? ' active' : ''}`,
+        draggable: 'true',
+        ondragstart: (e) => { e.dataTransfer.setData('text/wb-layer', node.id); e.dataTransfer.effectAllowed = 'move'; },
+        ondragover: (e) => { e.preventDefault(); e.currentTarget.classList.add('drop-hint'); },
+        ondragleave: (e) => e.currentTarget.classList.remove('drop-hint'),
+        ondrop: (e) => {
+          e.preventDefault();
+          e.currentTarget.classList.remove('drop-hint');
+          const dragId = e.dataTransfer.getData('text/wb-layer');
+          if (!dragId || dragId === node.id) return;
+          this.store.snapshot('layer');
+          const arr = this.store.page.nodes;
+          const from = arr.indexOf(dragId);
+          arr.splice(from, 1);
+          arr.splice(arr.indexOf(node.id), 0, dragId);
+          this.store.commit();
+        },
         onclick: (e) => this.store.select(node.id, e.shiftKey),
       }, [
-        el('span', { class: 'layer-icon', text: Components[node.type]?.icon || '▢' }),
+        el('span', { class: 'layer-grip', html: ic('drag', 13), title: 'Arrastra para reordenar' }),
+        el('span', { class: 'layer-icon', html: typeIcon(node.type, 15) }),
         el('span', { class: 'layer-name', text: node.name, title: node.name }),
         el('span', { class: 'layer-actions' }, [
-          el('button', { text: '↑', title: 'Subir capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, 1); } }),
-          el('button', { text: '↓', title: 'Bajar capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, -1); } }),
-          el('button', { text: node.locked ? '🔒' : '🔓', title: 'Bloquear', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'locked'); } }),
-          el('button', { text: node.hidden ? '🙈' : '👁', title: 'Ocultar', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'hidden'); } }),
-          el('button', { text: '×', title: 'Eliminar', onclick: (e) => { e.stopPropagation(); this.store.removeNodes([node.id]); } }),
+          el('button', { html: ic('up', 13), title: 'Subir capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, 1); } }),
+          el('button', { html: ic('down', 13), title: 'Bajar capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, -1); } }),
+          el('button', { html: ic(node.locked ? 'lock' : 'unlock', 13), title: 'Bloquear', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'locked'); } }),
+          el('button', { html: ic(node.hidden ? 'eyeOff' : 'eye', 13), title: 'Ocultar', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'hidden'); } }),
+          el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); this.store.removeNodes([node.id]); } }),
         ]),
       ]));
     }

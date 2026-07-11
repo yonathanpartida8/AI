@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Amor Builder — Creador de experiencias románticas</title>
+  <title>BuilderYNTHN_M-Beta</title>
   <link rel="icon" href="icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#16101e">
@@ -53,7 +53,22 @@ body::before {
   to   { transform: translate(-2.5%, -2%) scale(1.06); }
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+/* Sin azules del navegador: selección, foco y toques con estilo propio */
+::selection { background: rgba(255, 143, 171, .35); color: #fff; }
+button, [draggable], .palette-item, .block-item, .tab-btn, .seg-btn { user-select: none; -webkit-user-select: none; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid rgba(255, 255, 255, .55); outline-offset: 2px; border-radius: 6px; }
+
+.ic { display: inline-block; vertical-align: -3px; flex: none; }
+.btn .ic + span, .brand .ic + span { margin-left: 6px; }
+.btn-ic { padding: 7px 9px; display: inline-flex; align-items: center; }
+.btn { display: inline-flex; align-items: center; }
+.seg-btn { display: inline-flex; align-items: center; gap: 5px; }
+.brand { display: inline-flex; align-items: center; }
+.brand small { font-weight: 500; color: var(--text-dim); }
+.draw-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 
 html, body {
   height: 100%;
@@ -328,7 +343,7 @@ button { font: inherit; color: inherit; }
    con el export; #artboard da la especificidad para ganar aquí.) */
 #artboard .wb-node { user-select: none; }
 #artboard .wb-node .wb-text { outline: none; }
-#artboard .wb-btn, #artboard .wb-heartbtn, #artboard .wb-nav { cursor: default; pointer-events: none; }
+#artboard .wb-btn, #artboard .wb-heartbtn, #artboard .wb-nav, #artboard .wb-mp-play, #artboard .wb-mp-track { cursor: default; pointer-events: none; }
 #artboard .wb-embed iframe { pointer-events: none; } /* editable como objeto */
 #artboard .wb-form input, #artboard .wb-form textarea, #artboard .wb-form button { pointer-events: none; }
 #artboard .wb-menu a { pointer-events: none; }
@@ -406,7 +421,8 @@ body.preview #ruler-corner { display: none; }
 body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
 body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button,
-body.preview .wb-nav, body.preview .wb-heartbtn { pointer-events: auto; cursor: pointer; }
+body.preview .wb-nav, body.preview .wb-heartbtn,
+body.preview .wb-mp-play, body.preview .wb-mp-track { pointer-events: auto; cursor: pointer; }
 body.preview #artboard .wb-embed iframe { pointer-events: auto; } /* gana al bloqueo de edición */
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
@@ -537,6 +553,92 @@ body.preview #fab-add { display: none !important; }
   .h-rotate { top: -34px; border-radius: 50%; }
   .sel-label { margin-bottom: 40px; }
 }
+
+/* ── Color Picker profesional ───────────────────────── */
+
+.cp-open {
+  width: 34px; height: 32px; flex: none; border: 1px solid var(--edge);
+  border-radius: 9px; cursor: pointer; padding: 0;
+  background-image: linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%);
+  background-size: 10px 10px;
+}
+.cp-pop {
+  position: fixed; z-index: 300; width: 236px; padding: 14px;
+  background: rgba(18, 18, 22, .92);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: .5px solid var(--edge); border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255,255,255,.12);
+  animation: cp-in .22s cubic-bezier(.2, .9, .25, 1) both;
+  display: flex; flex-direction: column; gap: 10px;
+}
+@keyframes cp-in { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+.cp-wheel-wrap { position: relative; width: 168px; height: 168px; margin: 0 auto; touch-action: none; }
+.cp-wheel { display: block; }
+.cp-sv {
+  position: absolute; left: 50%; top: 50%; width: 116px; height: 116px;
+  transform: translate(-50%, -50%); border-radius: 12px; cursor: crosshair;
+}
+.cp-cursor {
+  position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  border: 2.5px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.55);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.cp-cursor-hue { width: 12px; height: 12px; }
+.cp-row { display: flex; align-items: center; gap: 8px; }
+.cp-preview {
+  width: 34px; height: 34px; flex: none; border: 1px solid var(--edge);
+  border-radius: 10px; cursor: pointer; position: relative;
+}
+.cp-preview::after {
+  content: '+'; position: absolute; right: -4px; top: -6px; width: 15px; height: 15px;
+  background: #fff; color: #000; border-radius: 50%; font: 800 11px/15px sans-serif; text-align: center;
+}
+.cp-hex { flex: 1; font-family: monospace; font-size: 12px; }
+.cp-label { font-size: 11px; color: var(--text-dim); width: 30px; }
+.cp-alpha {
+  flex: 1; appearance: none; height: 12px; border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent, var(--cp-c, #fff)),
+    repeating-conic-gradient(#777 0 25%, #444 0 50%) 0 0/10px 10px;
+}
+.cp-alpha::-webkit-slider-thumb {
+  appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; border: 2px solid rgba(0,0,0,.5); cursor: pointer;
+}
+.cp-favs { display: flex; flex-wrap: wrap; gap: 6px; min-height: 4px; }
+.cp-fav { width: 22px; height: 22px; border: 1px solid var(--edge); border-radius: 7px; cursor: pointer; }
+.cp-fav:hover { transform: scale(1.15); }
+
+/* ── Barra rápida contextual (elemento seleccionado) ── */
+
+.quickbar {
+  position: absolute; display: flex; gap: 2px; padding: 4px;
+  background: rgba(18, 18, 22, .92);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: .5px solid var(--edge); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+  pointer-events: auto;
+  transform: scale(var(--izoom, 1)); transform-origin: bottom left;
+  animation: cp-in .18s cubic-bezier(.2, .9, .25, 1) both;
+}
+.quickbar button {
+  width: 30px; height: 30px; border: none; border-radius: 8px;
+  background: none; color: var(--text); cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .12s, transform .12s;
+}
+.quickbar button:hover { background: rgba(255, 255, 255, .12); }
+.quickbar button:active { transform: scale(.88); }
+.quickbar button.danger:hover { background: var(--danger); }
+
+/* ── Editor de línea de tiempo ──────────────────────── */
+
+.tl-editor { display: flex; flex-direction: column; gap: 10px; }
+.tl-row { display: flex; flex-direction: column; gap: 5px; padding: 8px; border: .5px solid var(--border); border-radius: 12px; background: var(--panel-2); }
+.tl-row-head { display: flex; gap: 4px; }
+.tl-row-head .input { flex: 1; }
+.layer-grip { color: var(--text-dim); cursor: grab; flex: none; display: inline-flex; }
+.layer-item.drop-hint { border-color: var(--pink); box-shadow: 0 0 0 1px var(--pink); }
 
 /* ── Scrollbars ─────────────────────────────────────── */
 
@@ -683,6 +785,152 @@ body.preview #fab-add { display: none !important; }
   function slugify(str) {
     return String(str).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "pagina";
   }
+
+  // src/editor/icons.js
+  var P = (d) => `<path d="${d}"/>`;
+  var C = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
+  var R = (x, y, w, h, rx = 2) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+  var L = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  var ICONS = {
+    undo: P("M9 14 4 9l5-5") + P("M4 9h10a6 6 0 0 1 0 12h-3"),
+    redo: P("M15 14l5-5-5-5") + P("M20 9H10a6 6 0 0 0 0 12h3"),
+    desktop: R(3, 4, 18, 12) + L(9, 20, 15, 20) + L(12, 16, 12, 20),
+    tablet: R(5, 3, 14, 18, 2) + L(11, 18, 13, 18),
+    mobile: R(7, 2.5, 10, 19, 2.5) + L(11, 18, 13, 18),
+    minus: L(5, 12, 19, 12),
+    plus: L(12, 5, 12, 19) + L(5, 12, 19, 12),
+    fit: P("M9 3H4a1 1 0 0 0-1 1v5") + P("M15 3h5a1 1 0 0 1 1 1v5") + P("M9 21H4a1 1 0 0 1-1-1v-5") + P("M15 21h5a1 1 0 0 0 1-1v-5"),
+    pen: P("M12 19l7-7a2.1 2.1 0 0 0-3-3l-7 7-1.5 4.5L12 19z") + L(4, 21, 8, 21),
+    play: P("M7 4.5v15l12-7.5L7 4.5z"),
+    stop: R(6, 6, 12, 12, 2),
+    upload: P("M12 16V4") + P("m6 10 6-6 6 6") + P("M4 20h16"),
+    download: P("M12 4v12") + P("m6 10 6 6 6-6") + P("M4 20h16"),
+    file: P("M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z") + P("M14 3v4h4"),
+    archive: R(3, 4, 18, 5, 1.5) + P("M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9") + L(10, 13, 14, 13),
+    trash: P("M4 7h16") + P("M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2") + P("M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13") + L(10, 11, 10, 17) + L(14, 11, 14, 17),
+    grid: R(4, 4, 7, 7) + R(13, 4, 7, 7) + R(4, 13, 7, 7) + R(13, 13, 7, 7),
+    image: R(3.5, 5, 17, 14, 2) + C(9, 10, 1.6) + P("m5 17 4.5-4.5a1 1 0 0 1 1.4 0L18 19"),
+    music: P("M9 18V6l10-2v11") + C(6.5, 18, 2.5) + C(16.5, 15, 2.5),
+    pages: P("M8 4h9a1 1 0 0 1 1 1v12") + R(5, 7, 11, 14, 2),
+    layers: P("m12 3 9 5-9 5-9-5 9-5z") + P("m4.5 12.5 7.5 4.2 7.5-4.2") + P("m4.5 16.5 7.5 4.2 7.5-4.2"),
+    sliders: L(5, 6, 19, 6) + C(9, 6, 2) + L(5, 12, 19, 12) + C(15, 12, 2) + L(5, 18, 19, 18) + C(11, 18, 2),
+    lock: R(5.5, 11, 13, 9, 2) + P("M8 11V8a4 4 0 0 1 8 0v3"),
+    unlock: R(5.5, 11, 13, 9, 2) + P("M8 11V8a4 4 0 0 1 7.5-2"),
+    eye: P("M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z") + C(12, 12, 3),
+    eyeOff: P("M4 4l16 16") + P("M9.9 5.1A9.4 9.4 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 4M6.1 6.8A16.6 16.6 0 0 0 2.5 12S6 18.5 12 18.5a9.6 9.6 0 0 0 4-.9"),
+    copy: R(9, 9, 11, 11, 2) + P("M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"),
+    duplicate: R(8, 8, 12, 12, 2) + P("M8 12H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3") + L(14, 11, 14, 17) + L(11, 14, 17, 14),
+    front: P("m12 3 6 6h-4v6h-4V9H6l6-6z") + L(5, 21, 19, 21),
+    back: P("m12 21-6-6h4V9h4v6h4l-6 6z") + L(5, 3, 19, 3),
+    up: P("m6 14 6-6 6 6"),
+    down: P("m6 10 6 6 6-6"),
+    close: L(6, 6, 18, 18) + L(18, 6, 6, 18),
+    search: C(11, 11, 6.5) + L(16, 16, 21, 21),
+    heart: P("M12 20s-7.5-4.9-9.3-9.1C1.3 7.6 3.6 4.5 6.8 4.5c2 0 3.6 1.1 4.4 2.7l.8 1.6.8-1.6c.8-1.6 2.4-2.7 4.4-2.7 3.2 0 5.5 3.1 4.1 6.4C19.5 15.1 12 20 12 20z"),
+    sparkles: P("M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5L12 4z") + P("M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z") + P("M5 15l.7 1.8L7.5 17.5l-1.8.7L5 20l-.7-1.8L2.5 17.5l1.8-.7L5 15z"),
+    type: P("M5 6V4h14v2") + L(12, 4, 12, 20) + L(9, 20, 15, 20),
+    square: R(4, 6, 16, 12, 3),
+    film: R(4, 4, 16, 16, 2) + L(4, 9, 20, 9) + L(4, 15, 20, 15) + L(9, 4, 9, 20) + L(15, 4, 15, 20),
+    video: R(3, 6, 13, 12, 2.5) + P("m16 10 5-3v10l-5-3"),
+    star: P("m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9-4.3-4.1 5.9-.9L12 3.5z"),
+    diamond: P("m12 3 8 9-8 9-8-9 8-9z"),
+    box: R(4, 4, 16, 16, 3),
+    rows: R(3.5, 5, 17, 5.5, 1.5) + R(3.5, 13.5, 17, 5.5, 1.5),
+    arrowRight: P("M4 12h14") + P("m13 6 6 6-6 6"),
+    columns: R(4, 5, 4.8, 14, 1.5) + R(9.6, 5, 4.8, 14, 1.5) + R(15.2, 5, 4.8, 14, 1.5),
+    mail: R(3, 5.5, 18, 13, 2) + P("m4 7 8 6 8-6"),
+    menu: L(4, 7, 20, 7) + L(4, 12, 20, 12) + L(4, 17, 20, 17),
+    disc: C(12, 12, 8.5) + C(12, 12, 2.2),
+    cube: P("M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z") + P("M12 12l8-4.5M12 12 4 7.5M12 12v9"),
+    code: P("m9 8-4 4 4 4") + P("m15 8 4 4-4 4"),
+    globe: C(12, 12, 8.5) + P("M3.5 12h17") + P("M12 3.5c-5.5 5.5-5.5 11.5 0 17 5.5-5.5 5.5-11.5 0-17z"),
+    clock: C(12, 12, 8.5) + P("M12 7v5l3.5 2"),
+    hourglass: P("M7 3h10v4l-4 5 4 5v4H7v-4l4-5-4-5V3z"),
+    camera: R(3, 7, 18, 13, 2.5) + P("M9 7l1.2-2.4A1 1 0 0 1 11.1 4h1.8a1 1 0 0 1 .9.6L15 7") + C(12, 13, 3.4),
+    droplet: P("M12 3.5S6 10 6 14.5a6 6 0 0 0 12 0C18 10 12 3.5 12 3.5z"),
+    wand: P("m5 19 9-9") + P("m15 4 .9 2.1L18 7l-2.1.9L15 10l-.9-2.1L12 7l2.1-.9L15 4z") + P("M19 12l.6 1.4L21 14l-1.4.6L19 16l-.6-1.4L17 14l1.4-.6L19 12z"),
+    drag: C(9, 6, 1.4) + C(15, 6, 1.4) + C(9, 12, 1.4) + C(15, 12, 1.4) + C(9, 18, 1.4) + C(15, 18, 1.4),
+    gift: R(4, 10, 16, 10, 2) + R(3, 7, 18, 3.5, 1.5) + L(12, 7, 12, 20) + P("M12 7s-1-4-4-4a2 2 0 0 0 0 4h4zm0 0s1-4 4-4a2 2 0 0 1 0 4h-4z"),
+    calendar: R(3.5, 5, 17, 15.5, 2) + L(3.5, 9.5, 20.5, 9.5) + L(8, 3, 8, 6.5) + L(16, 3, 16, 6.5),
+    gamepad: P("M7 9h10a5 5 0 0 1 5 5c0 2.8-2.2 4.5-4.5 4.5-1.6 0-2.8-.9-3.5-2h-4c-.7 1.1-1.9 2-3.5 2C4.2 18.5 2 16.8 2 14a5 5 0 0 1 5-5z") + L(7.5, 12, 7.5, 15.5) + L(5.75, 13.75, 9.25, 13.75) + C(16, 13, 0.9) + C(18.2, 15, 0.9),
+    quote: P("M7 7c-2 1-3 2.7-3 5v5h5v-5H6c0-1.8.8-3 2.5-3.8L7 7z") + P("M17 7c-2 1-3 2.7-3 5v5h5v-5h-3c0-1.8.8-3 2.5-3.8L17 7z"),
+    ring: C(12, 14, 6) + P("m9 5 3 3 3-3-1.5-2h-3L9 5z"),
+    balloon: P("M12 3.5c3.3 0 6 2.7 6 6.2 0 3.8-2.7 6.8-6 6.8s-6-3-6-6.8c0-3.5 2.7-6.2 6-6.2z") + P("m11 16.5 1 2 1-2") + P("M12 18.5c0 2-1.5 2-1.5 3.5"),
+    eyedrop: P("m4 20 1-4L15 6l3 3L8 19l-4 1z") + P("m13.5 4.5 2-2a2.1 2.1 0 0 1 3 3l-2 2"),
+    check: P("m5 12.5 4.5 4.5L19 7.5"),
+    more: C(5, 12, 1.6) + C(12, 12, 1.6) + C(19, 12, 1.6),
+    home: P("m4 11 8-7 8 7") + P("M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"),
+    folder: P("M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9.5V17A1.5 1.5 0 0 1 19 18.5H5A1.5 1.5 0 0 1 3.5 17V7z"),
+    divider: L(3, 12, 21, 12) + C(12, 12, 2)
+  };
+  function ic(name, size = 18) {
+    const body = ICONS[name] || ICONS.sparkles;
+    return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  }
+  var TYPE_ICONS = {
+    text: "type",
+    button: "square",
+    navButton: "arrowRight",
+    image: "image",
+    gif: "film",
+    video: "video",
+    audio: "music",
+    icon: "star",
+    shape: "diamond",
+    container: "box",
+    section: "rows",
+    gallery: "grid",
+    slider: "columns",
+    form: "mail",
+    menu: "menu",
+    musicPlayer: "disc",
+    model3d: "cube",
+    particles: "sparkles",
+    drawing: "pen",
+    loveLetter: "mail",
+    timeline: "clock",
+    hiddenMessage: "eyeOff",
+    heartButton: "heart",
+    typewriter: "type",
+    countdown: "hourglass",
+    polaroid: "camera",
+    floatingEmojis: "balloon",
+    heart3d: "heart",
+    photo3d: "camera",
+    gradientBg: "droplet",
+    customHTML: "code",
+    custom3D: "cube",
+    htmlEmbed: "globe",
+    divider: "divider"
+  };
+  function typeIcon(type, size = 18) {
+    return ic(TYPE_ICONS[type] || "box", size);
+  }
+  var BLOCK_ICONS = {
+    romanticHero: "sparkles",
+    letter: "mail",
+    timelineB: "clock",
+    countdownB: "hourglass",
+    polaroids: "camera",
+    secret: "eyeOff",
+    chapter: "pages",
+    music: "music",
+    reasons: "heart",
+    coupons: "gift",
+    question: "ring",
+    gift: "gift",
+    calendar: "calendar",
+    game: "gamepad",
+    quotes: "quote",
+    hero: "sparkles",
+    features: "grid",
+    quote: "quote",
+    gallery: "grid",
+    faq: "menu",
+    contact: "mail",
+    cta: "arrowRight",
+    footer: "rows"
+  };
 
   // src/components/registry.js
   var FONTS = ["system-ui", "Georgia", "Courier New", "Arial Black", "Trebuchet MS", "Verdana", "Brush Script MT", "Palatino", "Impact"];
@@ -913,12 +1161,14 @@ body.preview #fab-add { display: none !important; }
       size: [360, 110],
       accepts: ["audio"],
       defaults: {
-        props: { assetId: null, srcUrl: "", title: "Mi canci\xF3n", artist: "Artista" },
+        props: { assetId: null, srcUrl: "", coverId: null, variant: "tarjeta", title: "Nuestra canci\xF3n", artist: "La que lo dice todo" },
         styles: { background: "linear-gradient(135deg,#4c1d95,#be185d)", radius: 18, color: "#fff" }
       },
       schema: [
         asset("props.assetId", "Pista de audio (asset)", "audio"),
-        text("props.srcUrl", "o URL externa (GitHub, etc.)"),
+        text("props.srcUrl", "o URL (GitHub / directa / YouTube)"),
+        asset("props.coverId", "Portada del \xE1lbum", "image"),
+        select("props.variant", "Estilo", ["tarjeta", "mini"]),
         text("props.title", "T\xEDtulo"),
         text("props.artist", "Artista"),
         ...STYLE_COMMON
@@ -1055,7 +1305,7 @@ body.preview #fab-add { display: none !important; }
         styles: { color: "#e2e8f0", fontSize: 16, background: "rgba(15,23,42,.55)", radius: 18 }
       },
       schema: [
-        { key: "props.items", label: "Recuerdos (fecha | t\xEDtulo | texto ; \u2026)", type: "textarea" },
+        { key: "props.items", label: "Nuestros recuerdos", type: "timelineItems" },
         ...TEXT_STYLE.slice(0, 4),
         ...STYLE_COMMON
       ]
@@ -1326,7 +1576,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
   function heroBlock(y) {
     const nodes = [
       node("section", { x: 0, y, w: W, h: 780 }, {
-        name: "Fondo h\xE9roe",
+        name: "Pulsa para cambiar este recuerdo :>",
         styles: { background: "linear-gradient(160deg,#0f0c29 0%,#1c1548 45%,#0b1020 100%)" }
       }),
       node("particles", { x: 0, y, w: W, h: 780 }, {
@@ -1416,7 +1666,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 360,
       nodes: [
         node("section", { x: 0, y, w: W, h: 360 }, {
-          name: "Fondo cita",
+          name: "Un pensamiento bonito",
           styles: { background: "linear-gradient(90deg,#0b1020,#1e1b4b,#0b1020)" }
         }),
         node("icon", { x: 600, y: y + 48, w: 80, h: 64 }, {
@@ -1495,7 +1745,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     return {
       height: 300,
       nodes: [
-        node("section", { x: 0, y, w: W, h: 300 }, { name: "Fondo pie", styles: { background: "#080b14" } }),
+        node("section", { x: 0, y, w: W, h: 300 }, { name: "El cierre con cari\xF1o", styles: { background: "#080b14" } }),
         node("text", { x: 90, y: y + 66, w: 320, h: 44 }, {
           name: "Marca pie",
           props: { text: "\u25C6 Mi Sitio", tag: "h3" },
@@ -1528,27 +1778,27 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 820,
       nodes: [
         node("section", { x: 0, y, w: W, h: 820 }, {
-          name: "Cielo rom\xE1ntico",
+          name: "Pulsa para cambiar este cielo :>",
           styles: { background: "linear-gradient(175deg,#1e0a2e 0%,#3b0f3f 45%,#180b2b 100%)" }
         }),
         node("particles", { x: 0, y, w: W, h: 820 }, {
-          name: "Corazones flotando",
+          name: "Corazones que flotan por ti",
           styles: { background: "transparent", radius: 0 },
           props: { count: 90, color: "#f472b6", speed: 0.7, size: 3, mode: "corazones" }
         }),
         node("particles", { x: 0, y, w: W, h: 820 }, {
-          name: "Estrellas titilando",
+          name: "Estrellitas de nuestras noches",
           styles: { background: "transparent", radius: 0 },
           props: { count: 160, color: "#fbcfe8", speed: 0.6, size: 1.6, mode: "estrellas" }
         }),
         node("text", { x: 240, y: y + 210, w: 800, h: 150 }, {
-          name: "T\xEDtulo rom\xE1ntico",
+          name: "Estas palabras son para ti",
           props: { text: "Para ti, mi amor", tag: "h1", textFx: "brillo" },
           styles: { fontSize: 64, fontWeight: "900", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia", textGlow: "rosa" },
           animation: load("zoomIn", 200, { duration: 1400 })
         }),
         node("typewriter", { x: 290, y: y + 390, w: 700, h: 60 }, {
-          name: "Dedicatoria",
+          name: "Lo que quiero decirte",
           props: { text: "Hice esta p\xE1gina solo para ti\u2026 cada rinc\xF3n guarda algo nuestro \u{1F48C}", speed: 70, loop: true },
           styles: { fontSize: 21, color: "#f9a8d4", textAlign: "center", fontFamily: "Georgia" }
         }),
@@ -1605,7 +1855,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 320,
       nodes: [
         node("section", { x: 0, y, w: W, h: 320 }, {
-          name: "Fondo contador",
+          name: "El tiempo que llevamos brillando",
           styles: { background: "linear-gradient(90deg,#180b2b,#4a1042,#180b2b)" }
         }),
         node("text", { x: 340, y: y + 55, w: 600, h: 50 }, {
@@ -1668,7 +1918,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 520,
       nodes: [
         node("section", { x: 0, y, w: W, h: 520 }, {
-          name: "Fondo cap\xEDtulo",
+          name: "El fondo de este cap\xEDtulo",
           styles: { background: "linear-gradient(160deg,#0f0a1e,#2a0f35)" }
         }),
         node("text", { x: 440, y: y + 90, w: 400, h: 40 }, {
@@ -1760,7 +2010,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 620,
       nodes: [
         node("section", { x: 0, y, w: W, h: 620 }, {
-          name: "Fondo contacto",
+          name: "Donde me encuentras",
           styles: { background: "linear-gradient(180deg,#0b1020,#151233,#0b1020)" }
         }),
         node("text", { x: 340, y: y + 60, w: 600, h: 60 }, {
@@ -1944,8 +2194,113 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       ]
     };
   }
+  function giftBlock(y) {
+    const gifts = [["Un deseo", "Pide lo que quieras"], ["Una promesa", "Te la debo"], ["Una sorpresa", "Muy pronto\u2026"]];
+    const nodes = [
+      node("text", { x: 340, y: y + 60, w: 600, h: 60 }, {
+        name: "Regalos para ti",
+        props: { text: "Tienes regalos por abrir", tag: "h2" },
+        styles: { fontSize: 34, fontWeight: "800", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia" },
+        animation: scroll("fadeInUp")
+      })
+    ];
+    gifts.forEach(([title, sub], i) => {
+      const box = node("container", { x: 150 + i * 350, y: y + 170, w: 290, h: 200 }, {
+        name: `Regalo ${i + 1}`,
+        styles: { background: "linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04))", radius: 22, borderWidth: 1, borderColor: "rgba(255,143,171,.4)", shadow: "media" },
+        animation: scroll("caida", i * 160)
+      });
+      box.effects = { parallax: 0, tilt: true, press: "rebote", hoverFx: "elevar" };
+      box.events = [{
+        on: "click",
+        actions: [
+          { action: "burstHearts", target: "", value: "\u{1F381}", delay: 0 },
+          { action: "showMessage", target: "", value: `${title}: ${sub}`, delay: 250 },
+          { action: "vibrate", target: "", value: "60", delay: 0 }
+        ]
+      }];
+      nodes.push(
+        box,
+        node("text", { x: 150 + i * 350 + 20, y: y + 230, w: 250, h: 40 }, {
+          name: `T\xEDtulo regalo ${i + 1}`,
+          props: { text: title, tag: "h3" },
+          styles: { fontSize: 20, fontWeight: "700", textAlign: "center", color: "#fecdd3" },
+          animation: scroll("fadeIn", i * 160 + 120)
+        }),
+        node("text", { x: 150 + i * 350 + 20, y: y + 280, w: 250, h: 30 }, {
+          name: `Pista regalo ${i + 1}`,
+          props: { text: "Toca para abrirlo", tag: "p" },
+          styles: { fontSize: 12, color: "rgba(253,242,248,.55)", textAlign: "center" }
+        })
+      );
+    });
+    return { height: 440, nodes };
+  }
+  function calendarBlock(y) {
+    return {
+      height: 400,
+      nodes: [
+        node("text", { x: 340, y: y + 55, w: 600, h: 55 }, {
+          name: "Fecha para recordar",
+          props: { text: "Una fecha para no olvidar", tag: "h2" },
+          styles: { fontSize: 32, fontWeight: "800", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia" },
+          animation: scroll("fadeInUp")
+        }),
+        node("container", { x: 460, y: y + 135, w: 360, h: 210 }, {
+          name: "Hoja de calendario",
+          styles: { background: "#fdf6ec", radius: 22, shadow: "fuerte" },
+          animation: scroll("giro3d", 150)
+        }),
+        node("shape", { x: 460, y: y + 135, w: 360, h: 54 }, {
+          name: "Cabecera calendario",
+          styles: { background: "linear-gradient(90deg,#f43f5e,#ec4899)", radius: 0 },
+          animation: scroll("fadeIn", 200)
+        }),
+        node("text", { x: 470, y: y + 147, w: 340, h: 32 }, {
+          name: "Mes especial",
+          props: { text: "FEBRERO", tag: "p" },
+          styles: { fontSize: 17, fontWeight: "800", textAlign: "center", color: "#fff", letterSpacing: 6 },
+          animation: scroll("fadeIn", 250)
+        }),
+        node("text", { x: 470, y: y + 195, w: 340, h: 100 }, {
+          name: "El d\xEDa",
+          props: { text: "14", tag: "h2" },
+          styles: { fontSize: 84, fontWeight: "900", textAlign: "center", color: "#1c1024" },
+          animation: scroll("zoomIn", 320)
+        }),
+        node("text", { x: 470, y: y + 300, w: 340, h: 30 }, {
+          name: "Por qu\xE9 importa",
+          props: { text: "El d\xEDa que empez\xF3 todo", tag: "p" },
+          styles: { fontSize: 14, textAlign: "center", color: "#8b5f6b", fontFamily: "Georgia" },
+          animation: scroll("fadeIn", 400)
+        })
+      ]
+    };
+  }
+  function gameBlock(y) {
+    const game = node("customHTML", { x: 240, y: y + 150, w: 800, h: 380 }, {
+      name: "Atrapa mi coraz\xF3n (juego)",
+      props: {
+        html: '<div class="cazacorazon"><div class="cc-marcador">Atrapa mi coraz\xF3n \xB7 <b>0</b>/5</div><button class="cc-heart" aria-label="coraz\xF3n"><svg viewBox="0 0 24 24" width="34" height="34" fill="#ff5f8f"><path d="M12 20s-7.5-4.9-9.3-9.1C1.3 7.6 3.6 4.5 6.8 4.5c2 0 3.6 1.1 4.4 2.7l.8 1.6.8-1.6c.8-1.6 2.4-2.7 4.4-2.7 3.2 0 5.5 3.1 4.1 6.4C19.5 15.1 12 20 12 20z"/></svg></button><div class="cc-final">\xA1Me atrapaste! Ya era tuyo desde el principio.</div></div>',
+        css: ".cazacorazon{position:relative;width:100%;height:100%;border-radius:22px;background:linear-gradient(160deg,#1c1024,#2a1535);overflow:hidden;font-family:system-ui;color:#fff}.cc-marcador{position:absolute;top:14px;left:0;right:0;text-align:center;opacity:.85;font-size:14px;letter-spacing:.06em}.cc-heart{position:absolute;left:45%;top:45%;background:none;border:none;cursor:pointer;transition:left .25s cubic-bezier(.2,.9,.3,1.4),top .25s cubic-bezier(.2,.9,.3,1.4),transform .15s;filter:drop-shadow(0 6px 16px rgba(255,95,143,.5))}.cc-heart:active{transform:scale(.8)}.cc-final{position:absolute;inset:0;display:grid;place-items:center;font:700 22px Georgia,serif;text-align:center;padding:20px;background:rgba(28,16,36,.9);opacity:0;pointer-events:none;transition:opacity .6s}.cazacorazon.fin .cc-final{opacity:1}",
+        js: "const caja=document.currentScript.closest('.wb-custom').querySelector('.cazacorazon');const h=caja.querySelector('.cc-heart');const m=caja.querySelector('.cc-marcador b');let n=0;function huye(){h.style.left=(8+Math.random()*78)+'%';h.style.top=(18+Math.random()*66)+'%';}h.addEventListener('pointerenter',()=>{if(n<4)huye();});h.addEventListener('click',()=>{n++;m.textContent=n;if(navigator.vibrate)navigator.vibrate(25);if(n>=5){caja.classList.add('fin');}else huye();});"
+      }
+    });
+    return {
+      height: 600,
+      nodes: [
+        node("text", { x: 340, y: y + 55, w: 600, h: 55 }, {
+          name: "T\xEDtulo del juego",
+          props: { text: "\xBFPodr\xE1s atraparlo?", tag: "h2" },
+          styles: { fontSize: 32, fontWeight: "800", textAlign: "center", color: "#fdf2f8", fontFamily: "Georgia" },
+          animation: scroll("fadeInUp")
+        }),
+        game
+      ]
+    };
+  }
   var BLOCKS = {
-    romanticHero: { label: "Portada rom\xE1ntica \u{1F498}", icon: "\u{1F498}", build: romanticHeroBlock },
+    romanticHero: { label: "Portada rom\xE1ntica", icon: "\u{1F498}", build: romanticHeroBlock },
     letter: { label: "Carta de amor", icon: "\u{1F48C}", build: letterBlock },
     timelineB: { label: "Nuestra historia (l\xEDnea de tiempo)", icon: "\u{1F570}", build: timelineBlock },
     countdownB: { label: "Contador de amor", icon: "\u23F3", build: countdownBlock },
@@ -1956,6 +2311,9 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     reasons: { label: "Razones por las que te amo", icon: "\u{1F49D}", build: reasonsBlock },
     coupons: { label: "Cupones de amor", icon: "\u{1F39F}", build: couponsBlock },
     question: { label: "La gran pregunta (S\xED/No)", icon: "\u{1F48D}", build: questionBlock },
+    gift: { label: "Regalos por abrir", icon: "\u{1F381}", build: giftBlock },
+    calendar: { label: "Fecha para recordar", icon: "\u{1F4C5}", build: calendarBlock },
+    game: { label: "Juego: atrapa mi coraz\xF3n", icon: "\u{1F579}", build: gameBlock },
     hero: { label: "H\xE9roe con part\xEDculas", icon: "\u2728", build: heroBlock },
     features: { label: "Caracter\xEDsticas (3 tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
     quote: { label: "Cita destacada", icon: "\u275D", build: quoteBlock },
@@ -2709,6 +3067,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     fuego: "0 0 6px rgba(251,146,60,.9), 0 0 20px rgba(239,68,68,.75), 0 0 44px rgba(220,38,38,.5)",
     hielo: "0 0 8px rgba(186,230,253,.95), 0 0 26px rgba(56,189,248,.6)"
   };
+  var MUSIC_NOTE_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v11"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/></svg>';
+  var PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5z"/></svg>';
   var IMG_FILTERS = {
     ninguno: () => "none",
     grises: (a) => `grayscale(${a}%)`,
@@ -2754,7 +3114,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
   function media(node2, ctx) {
     const src = node2.props.assetId ? ctx.resolve(node2.props.assetId) : "";
     const fit = node2.props.fit || "cover";
-    if (!src) return `<div class="wb-placeholder">${esc(node2.name)}<small>Arrastra un asset aqu\xED</small></div>`;
+    if (!src) return `<div class="wb-placeholder">${esc(node2.name)}<small>Toca para poner aqu\xED un recuerdo</small></div>`;
     const filter = IMG_FILTERS[node2.props.filter || "ninguno"](node2.props.filterAmount ?? 100);
     return `<img src="${src}" alt="${esc(node2.props.alt || node2.name)}" draggable="false"
     style="width:100%;height:100%;object-fit:${fit};filter:${filter};border-radius:inherit;pointer-events:none">`;
@@ -2786,13 +3146,13 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         return media(node2, ctx);
       case "gif": {
         const src = p.assetId ? ctx.resolve(p.assetId) : "";
-        if (!src) return `<div class="wb-placeholder">GIF<small>Arrastra un GIF aqu\xED</small></div>`;
+        if (!src) return `<div class="wb-placeholder">GIF<small>Un momento en movimiento va aqu\xED</small></div>`;
         return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false"
         style="width:100%;height:100%;object-fit:${p.fit || "cover"};border-radius:inherit;pointer-events:none">`;
       }
       case "video": {
         const src = p.assetId ? ctx.resolve(p.assetId) : "";
-        if (!src) return `<div class="wb-placeholder">V\xEDdeo<small>Arrastra un v\xEDdeo aqu\xED</small></div>`;
+        if (!src) return `<div class="wb-placeholder">V\xEDdeo<small>Ese v\xEDdeo que os hace sonre\xEDr</small></div>`;
         const attrs = [
           p.autoplay && !p.playOnScroll ? "autoplay" : "",
           p.loop ? "loop" : "",
@@ -2805,7 +3165,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       case "audio": {
         const src = p.assetId ? ctx.resolve(p.assetId) : p.srcUrl || "";
-        if (!src) return `<div class="wb-placeholder">Audio<small>Arrastra un audio aqu\xED</small></div>`;
+        if (!src) return `<div class="wb-placeholder">Audio<small>Una melod\xEDa para este rinc\xF3n</small></div>`;
         return `<audio src="${src}" controls ${p.autoplay ? "autoplay" : ""} ${p.loop ? "loop" : ""} style="width:100%"></audio>`;
       }
       case "icon":
@@ -2816,14 +3176,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         return ctx.editor && node2.type !== "shape" ? `<span class="wb-tag-label">${esc(node2.name)}</span>` : "";
       case "gallery": {
         const ids = p.assetIds || [];
-        if (!ids.length) return `<div class="wb-placeholder">Galer\xEDa<small>A\xF1ade im\xE1genes desde Assets</small></div>`;
+        if (!ids.length) return `<div class="wb-placeholder">Galer\xEDa<small>Vuestras fotos favoritas, juntas</small></div>`;
         const cells = ids.map((id) => `<img src="${ctx.resolve(id)}" alt="" loading="lazy" draggable="false"
         style="width:100%;height:100%;object-fit:cover;border-radius:inherit;pointer-events:none">`).join("");
         return `<div class="wb-gallery" style="display:grid;grid-template-columns:repeat(${p.columns || 3},1fr);gap:${p.gap ?? 10}px;width:100%;height:100%">${cells}</div>`;
       }
       case "slider": {
         const ids = p.assetIds || [];
-        if (!ids.length) return `<div class="wb-placeholder">Slider<small>A\xF1ade im\xE1genes desde Assets</small></div>`;
+        if (!ids.length) return `<div class="wb-placeholder">Slider<small>Recuerdos que pasan solos</small></div>`;
         const slides = ids.map((id, i) => `<img class="wb-slide${i === 0 ? " active" : ""}" src="${ctx.resolve(id)}" alt="" draggable="false">`).join("");
         return `<div class="wb-slider" data-interval="${p.interval || 3e3}" data-transition="${p.transition || "fade"}">${slides}</div>`;
       }
@@ -2840,11 +3200,28 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       case "musicPlayer": {
         const src = p.assetId ? ctx.resolve(p.assetId) : p.srcUrl || "";
-        return `<div class="wb-player">
-        <div class="wb-player-disc">\u266B</div>
-        <div class="wb-player-info"><strong>${esc(p.title || "")}</strong><span>${esc(p.artist || "")}</span>
-        ${src ? `<audio src="${esc(src)}" controls style="width:100%;height:28px"></audio>` : "<small>Sin pista: elige un asset o pega una URL</small>"}</div>
-        <div class="wb-eq"><i></i><i></i><i></i><i></i></div></div>`;
+        const yt = String(src).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,20})/);
+        const cover = p.coverId ? `<img class="wb-mp-cover" src="${ctx.resolve(p.coverId)}" alt="" draggable="false">` : `<div class="wb-mp-cover wb-mp-cover-icon">${MUSIC_NOTE_SVG}</div>`;
+        if (yt) {
+          return `<div class="wb-mp wb-mp-yt"><iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0"
+          allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"
+          style="width:100%;height:100%;border:0;border-radius:inherit"></iframe></div>`;
+        }
+        const mini = p.variant === "mini";
+        return `<div class="wb-mp${mini ? " wb-mp-mini" : ""}">
+        ${cover}
+        <div class="wb-mp-body">
+          <div class="wb-mp-meta"><strong>${esc(p.title || "")}</strong><span>${esc(p.artist || "")}</span></div>
+          ${src ? `
+          <div class="wb-mp-controls">
+            <button class="wb-mp-play" type="button" aria-label="Reproducir">${PLAY_SVG}</button>
+            <div class="wb-mp-track"><div class="wb-mp-fill"></div></div>
+            <span class="wb-mp-time">0:00</span>
+          </div>` : '<small class="wb-mp-empty">Elige una canci\xF3n para este momento</small>'}
+        </div>
+        <div class="wb-eq"><i></i><i></i><i></i><i></i></div>
+        ${src ? `<audio src="${esc(src)}" preload="metadata"></audio>` : ""}
+      </div>`;
       }
       case "model3d":
         return `<div class="wb-3d" data-kind="model" data-model="${p.assetId ? ctx.resolve(p.assetId) : ""}"
@@ -2856,7 +3233,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         data-autorotate="${p.autoRotate !== false}" data-speed="${p.rotateSpeed ?? 1}"
         data-metal="${p.metal ?? 0.35}" data-cameraz="${p.cameraZ ?? 4}"></div>`;
       case "photo3d": {
-        if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Elige una imagen en Dise\xF1o</small></div>`;
+        if (!p.assetId) return `<div class="wb-placeholder">Foto 3D<small>Una foto con profundidad \u2014 el\xEDgela en Dise\xF1o</small></div>`;
         return `<div class="wb-3d" data-kind="photo" data-src="${ctx.resolve(p.assetId)}" data-depth="${p.depth ?? 1}"></div>`;
       }
       case "htmlEmbed": {
@@ -2890,8 +3267,9 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       case "timeline": {
         const items = String(p.items || "").split(";").map((row) => row.trim()).filter(Boolean);
         const lis = items.map((row, i) => {
-          const [date = "", title = "", body = ""] = row.split("|").map((s2) => s2.trim());
-          return `<li style="--i:${i}"><b>${esc(date)}</b><strong>${esc(title)}</strong><p>${esc(body)}</p></li>`;
+          const [date = "", title = "", body = "", photoId = ""] = row.split("|").map((s2) => s2.trim());
+          const photo = photoId && ctx.resolve(photoId) ? `<img class="wb-tl-photo" src="${ctx.resolve(photoId)}" alt="" draggable="false">` : "";
+          return `<li style="--i:${i}">${photo}<b>${esc(date)}</b><strong>${esc(title)}</strong><p>${esc(body)}</p></li>`;
         }).join("");
         return `<ul class="wb-timeline${ctx.editor ? " wb-play" : ""}">${lis}</ul>`;
       }
@@ -2919,7 +3297,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       case "polaroid": {
         const src = p.assetId ? ctx.resolve(p.assetId) : "";
-        const img = src ? `<img src="${src}" alt="${esc(p.caption || "")}" draggable="false">` : `<div class="wb-placeholder">\u{1F4F8}<small>Elige una foto</small></div>`;
+        const img = src ? `<img src="${src}" alt="${esc(p.caption || "")}" draggable="false">` : `<div class="wb-placeholder"><small>Pulsa y elige esa foto especial</small></div>`;
         return `<figure class="wb-polaroid" style="--prot:${p.rotate ?? -3}deg">${img}<figcaption>${esc(p.caption || "")}</figcaption></figure>`;
       }
       case "floatingEmojis":
@@ -3072,19 +3450,35 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 .wb-menu-links{display:flex;gap:22px}
 .wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
-.wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
-.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite;animation-play-state:paused;transition:box-shadow .4s}
-.wb-player.playing .wb-player-disc{animation-play-state:running;box-shadow:0 0 22px rgba(255,143,171,.65)}
+/* \u2500\u2500 Reproductor de m\xFAsica (limpio, sin controles nativos) \u2500\u2500 */
+.wb-mp{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit;position:relative;overflow:hidden}
+.wb-mp audio{display:none}
+.wb-mp-cover{width:64px;height:64px;flex:none;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .5s}
+.wb-mp.playing .wb-mp-cover{animation:wb-spin 9s linear infinite;border-radius:50%}
+.wb-mp-cover-icon{display:grid;place-items:center;background:rgba(255,255,255,.14)}
 @keyframes wb-spin{to{transform:rotate(360deg)}}
-.wb-eq{display:flex;align-items:flex-end;gap:3px;height:34px;flex:none;padding-right:4px}
+.wb-mp-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.wb-mp-meta{display:flex;flex-direction:column;min-width:0}
+.wb-mp-meta strong{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wb-mp-meta span{opacity:.7;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wb-mp-empty{opacity:.6;font-size:12px}
+.wb-mp-controls{display:flex;align-items:center;gap:10px}
+.wb-mp-play{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;display:grid;place-items:center;cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.25,1);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.wb-mp-play:active{transform:scale(.88)}
+.wb-mp-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.22);cursor:pointer;position:relative}
+.wb-mp-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:3px;background:#fff;transition:width .25s linear}
+.wb-mp-time{font-size:11px;opacity:.75;font-variant-numeric:tabular-nums;flex:none}
+.wb-mp-mini{padding:8px 12px;gap:10px}
+.wb-mp-mini .wb-mp-cover{width:40px;height:40px;border-radius:10px}
+.wb-mp-mini .wb-mp-meta span,.wb-mp-mini .wb-eq{display:none}
+.wb-mp-yt{padding:0}
+.wb-eq{display:flex;align-items:flex-end;gap:3px;height:30px;flex:none}
 .wb-eq i{width:4px;height:8px;border-radius:2px;background:rgba(255,255,255,.75);transition:height .3s}
-.wb-player.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
-.wb-player.playing .wb-eq i:nth-child(2){animation-delay:.18s}
-.wb-player.playing .wb-eq i:nth-child(3){animation-delay:.36s}
-.wb-player.playing .wb-eq i:nth-child(4){animation-delay:.54s}
-@keyframes wb-eqbar{0%,100%{height:8px}50%{height:30px}}
-.wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.wb-player-info span,.wb-player-info small{opacity:.75;font-size:13px}
+.wb-mp.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
+.wb-mp.playing .wb-eq i:nth-child(2){animation-delay:.18s}
+.wb-mp.playing .wb-eq i:nth-child(3){animation-delay:.36s}
+.wb-mp.playing .wb-eq i:nth-child(4){animation-delay:.54s}
+@keyframes wb-eqbar{0%,100%{height:8px}50%{height:26px}}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
 .wb-3d canvas{border-radius:inherit}
 .wb-gallery img{border-radius:6px}
@@ -3111,6 +3505,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 .wb-timeline li{position:relative;list-style:none;margin:0 0 22px;opacity:0;transform:translateY(22px);transition:opacity .6s,transform .6s;transition-delay:calc(var(--i)*180ms)}
 .wb-timeline.wb-play li{opacity:1;transform:none}
 .wb-timeline li::before{content:'\u2665';position:absolute;left:-27px;top:2px;color:#f472b6;font-size:13px;text-shadow:0 0 10px rgba(244,114,182,.8)}
+.wb-tl-photo{width:100%;max-height:130px;object-fit:cover;border-radius:12px;margin-bottom:8px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .wb-timeline b{display:block;font-size:.8em;color:#f472b6;letter-spacing:.06em;text-transform:uppercase}
 .wb-timeline strong{display:block;font-size:1.05em;margin:2px 0}
 .wb-timeline p{opacity:.8;font-size:.92em;line-height:1.5}
@@ -3484,17 +3879,44 @@ ${steps.join("\n")}
         }
       });
     });
-    qa(".wb-player audio").forEach(function(audio) {
-      var player = audio.closest(".wb-player");
-      if (!player) return;
+    var PAUSE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>';
+    var PLAY_SVG2 = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5z"/></svg>';
+    function fmtTime(sec) {
+      if (!isFinite(sec)) return "0:00";
+      var m = Math.floor(sec / 60), s2 = Math.floor(sec % 60);
+      return m + ":" + (s2 < 10 ? "0" : "") + s2;
+    }
+    qa(".wb-mp").forEach(function(player) {
+      var audio = player.querySelector("audio");
+      var playBtn = player.querySelector(".wb-mp-play");
+      if (!audio || !playBtn) return;
+      var fill = player.querySelector(".wb-mp-fill");
+      var time = player.querySelector(".wb-mp-time");
+      var track = player.querySelector(".wb-mp-track");
+      on(playBtn, "click", function() {
+        if (audio.paused) audio.play().catch(function() {
+        });
+        else audio.pause();
+      });
       on(audio, "play", function() {
         player.classList.add("playing");
+        playBtn.innerHTML = PAUSE_SVG;
       });
       on(audio, "pause", function() {
         player.classList.remove("playing");
+        playBtn.innerHTML = PLAY_SVG2;
       });
       on(audio, "ended", function() {
         player.classList.remove("playing");
+        playBtn.innerHTML = PLAY_SVG2;
+      });
+      on(audio, "timeupdate", function() {
+        if (fill && audio.duration) fill.style.width = audio.currentTime / audio.duration * 100 + "%";
+        if (time) time.textContent = fmtTime(audio.currentTime);
+      });
+      if (track) on(track, "pointerdown", function(e) {
+        var r = track.getBoundingClientRect();
+        if (audio.duration) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration;
       });
     });
     qa(".wb-hiddenmsg").forEach(function(el2) {
@@ -3845,14 +4267,55 @@ ${steps.join("\n")}
           break;
       }
     }
+    var vars = typeof window !== "undefined" && (window.WB_VARS = window.WB_VARS || {}) || {};
+    function evalCond(expr) {
+      var m = String(expr || "").match(/^\s*([\w áéíóúñ-]+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/);
+      if (!m) return true;
+      var cur = vars[m[1].trim()];
+      var val = m[3].trim();
+      var a2 = isNaN(+cur) ? String(cur) : +cur;
+      var b2 = isNaN(+val) ? val : +val;
+      switch (m[2]) {
+        case "==":
+          return String(a2) === String(b2) || a2 === b2;
+        case "!=":
+          return String(a2) !== String(b2) && a2 !== b2;
+        case ">":
+          return +a2 > +b2;
+        case "<":
+          return +a2 < +b2;
+        case ">=":
+          return +a2 >= +b2;
+        case "<=":
+          return +a2 <= +b2;
+      }
+      return true;
+    }
     function runChain(ev, el2) {
       var actions = ev.actions || (ev.action ? [ev] : []);
-      actions.forEach(function(a) {
-        if (a.delay) later(function() {
-          run(a, el2);
-        }, a.delay);
-        else run(a, el2);
-      });
+      var i = 0;
+      function step() {
+        if (i >= actions.length) return;
+        var a = actions[i++];
+        var exec = function() {
+          if (a.action === "setVar") {
+            var mm = String(a.value || "").split("=");
+            if (mm.length >= 2) {
+              var name = mm[0].trim(), val = mm.slice(1).join("=").trim();
+              var inc = val.match(/^([\w áéíóúñ-]+?)\s*\+\s*(\d+)$/);
+              vars[name] = inc ? (+vars[inc[1].trim()] || 0) + +inc[2] : isNaN(+val) ? val : +val;
+            }
+          } else if (a.action === "ifVar") {
+            if (!evalCond(a.value)) return;
+          } else {
+            run(a, el2);
+          }
+          step();
+        };
+        if (a.delay) timers.push(setTimeout(exec, a.delay));
+        else exec();
+      }
+      step();
     }
     Array.prototype.slice.call(root.querySelectorAll("[data-events]")).forEach(function(el2) {
       var events;
@@ -4433,8 +4896,35 @@ ${steps.join("\n")}
           label.textContent = `${node2.name} \xB7 ${Math.round(f.w)}\xD7${Math.round(f.h)}`;
           box.append(label);
         }
+        if (single) box.append(this.#buildQuickbar(node2));
         overlay.append(box);
       }
+    }
+    /** Barra rápida contextual: acciones al alcance del pulgar. */
+    #buildQuickbar(node2) {
+      const store = this.store;
+      const btn = (icon, title, onclick, cls = "") => el("button", {
+        class: cls,
+        title,
+        html: ic(icon, 15),
+        onpointerdown: (e) => e.stopPropagation(),
+        // no inicia drag del nodo
+        onclick
+      });
+      const bar = el("div", { class: "quickbar", style: { left: "0", bottom: "100%", marginBottom: "6px" } }, [
+        btn("duplicate", "Duplicar", () => store.duplicateNodes([node2.id])),
+        btn("copy", "Copiar", () => {
+          store.select([node2.id]);
+          store.copy();
+        }),
+        btn(node2.locked ? "lock" : "unlock", node2.locked ? "Desbloquear" : "Bloquear", () => store.toggleFlag(node2.id, "locked")),
+        btn(node2.hidden ? "eyeOff" : "eye", node2.hidden ? "Mostrar" : "Ocultar", () => store.toggleFlag(node2.id, "hidden")),
+        btn("front", "Traer al frente", () => store.bringToFront(node2.id)),
+        btn("back", "Enviar al fondo", () => store.sendToBack(node2.id)),
+        btn("sliders", "Dise\xF1o y l\xF3gica", () => document.dispatchEvent(new CustomEvent("wb:open-design"))),
+        btn("trash", "Eliminar", () => store.removeNodes([node2.id]), "danger")
+      ]);
+      return bar;
     }
   };
 
@@ -4579,7 +5069,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       this.root.innerHTML = "";
       const tabs = el("div", { class: "panel-tabs" }, ["componentes", "assets", "musica", "paginas", "capas"].map((name) => el("button", {
         class: `tab-btn${this.tab === name ? " active" : ""}`,
-        text: { componentes: "Piezas", assets: "Assets", musica: "\u266B", paginas: "P\xE1ginas", capas: "Capas" }[name],
+        html: name === "musica" ? ic("music", 15) : { componentes: "Piezas", assets: "Assets", paginas: "P\xE1ginas", capas: "Capas" }[name],
         title: name === "musica" ? "M\xFAsica" : null,
         onclick: () => {
           this.tab = name;
@@ -4606,7 +5096,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
           class: "block-item",
           title: "A\xF1ade esta secci\xF3n al final de la p\xE1gina",
           onclick: () => this.store.addBlock(key)
-        }, [el("span", { class: "palette-icon", text: block.icon }), el("span", { text: block.label })]));
+        }, [el("span", { class: "palette-icon", html: ic(BLOCK_ICONS[key] || "sparkles") }), el("span", { text: block.label })]));
       }
       body.append(blockList);
       if (MY_3D.length) {
@@ -4620,7 +5110,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               name: item.name,
               props: { code: item.code, cameraZ: 4 }
             })
-          }, [el("span", { class: "palette-icon", text: item.icon || "\u{1F9CA}" }), el("span", { text: item.name })]));
+          }, [el("span", { class: "palette-icon", html: ic("cube") }), el("span", { text: item.name })]));
         }
         body.append(grid3d);
       }
@@ -4637,7 +5127,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               w: widget.width || 340,
               h: widget.height || 220
             }, { name: widget.name, props: { html: widget.html || "", css: widget.css || "", js: widget.js || "" } })
-          }, [el("span", { class: "palette-icon", text: widget.icon || "\u{1F9E9}" }), el("span", { text: widget.name })]));
+          }, [el("span", { class: "palette-icon", html: ic("wand") }), el("span", { text: widget.name })]));
         }
         body.append(gridw);
       }
@@ -4652,7 +5142,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
             title: `Arrastra al lienzo o haz clic`,
             ondragstart: (e) => e.dataTransfer.setData("application/x-wb-component", type),
             onclick: () => this.#addAtCenter(type)
-          }, [el("span", { class: "palette-icon", text: def.icon }), el("span", { text: def.label })]);
+          }, [el("span", { class: "palette-icon", html: typeIcon(type) }), el("span", { text: def.label })]);
           grid.append(item);
         }
         body.append(grid);
@@ -4682,7 +5172,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       });
       body.append(
         input,
-        el("button", { class: "btn primary block", text: "\u2B06 Subir desde galer\xEDa / disco", onclick: () => input.click() }),
+        el("button", { class: "btn primary block", html: `${ic("upload", 15)}<span>Subir desde galer\xEDa / disco</span>`, onclick: () => input.click() }),
         el("input", {
           class: "input block",
           type: "search",
@@ -4700,7 +5190,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
           } }),
           ...Object.entries(ASSET_KINDS).filter(([k]) => k !== "svg").map(([kind, meta]) => el("button", {
             class: `chip${this.assetFilter.kind === kind ? " active" : ""}`,
-            text: meta.icon,
+            html: ic({ image: "image", gif: "film", video: "video", audio: "music", model: "cube", font: "type", html: "globe" }[kind] || "file", 14),
             title: meta.label,
             onclick: () => {
               this.assetFilter.kind = kind;
@@ -4722,7 +5212,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         return;
       }
       for (const asset2 of list) {
-        const preview = asset2.kind === "video" ? el("video", { src: asset2.data, muted: "true", class: "asset-thumb" }) : ["image", "gif", "svg"].includes(asset2.kind) ? el("img", { src: asset2.data, class: "asset-thumb", draggable: "false" }) : el("div", { class: "asset-thumb kind-icon", text: ASSET_KINDS[asset2.kind].icon });
+        const preview = asset2.kind === "video" ? el("video", { src: asset2.data, muted: "true", class: "asset-thumb" }) : ["image", "gif", "svg"].includes(asset2.kind) ? el("img", { src: asset2.data, class: "asset-thumb", draggable: "false" }) : el("div", { class: "asset-thumb kind-icon", html: ic({ audio: "music", model: "cube", font: "type", html: "globe" }[asset2.kind] || "file", 26) });
         const card = el("div", {
           class: "asset-card",
           draggable: "true",
@@ -4734,7 +5224,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
           el("span", { class: "asset-name", text: asset2.name }),
           el("button", {
             class: "asset-del",
-            text: "\xD7",
+            html: ic("close", 11),
             title: "Eliminar asset",
             onclick: (e) => {
               e.stopPropagation();
@@ -4771,7 +5261,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         this.previewAudio = new Audio();
         this.previewAudio.addEventListener("ended", () => {
           this.root.querySelectorAll(".music-play").forEach((b) => {
-            b.textContent = "\u25B6";
+            b.innerHTML = ic("play", 15);
           });
         });
       }
@@ -4780,18 +5270,18 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         const url = trackURL(track);
         const playBtn = el("button", {
           class: "music-play",
-          text: "\u25B6",
+          html: ic("play", 15),
           onclick: () => {
             if (this.previewAudio.src === url && !this.previewAudio.paused) {
               this.previewAudio.pause();
-              playBtn.textContent = "\u25B6";
+              playBtn.innerHTML = ic("play", 15);
             } else {
               this.previewAudio.src = url;
               this.previewAudio.play().catch(() => alert("No se pudo cargar la pista.\nRevisa tu repositorio en src/config/musicLibrary.js"));
               list.querySelectorAll(".music-play").forEach((b) => {
-                b.textContent = "\u25B6";
+                b.innerHTML = ic("play", 15);
               });
-              playBtn.textContent = "\u275A\u275A";
+              playBtn.innerHTML = ic("stop", 14);
             }
           }
         });
@@ -4803,8 +5293,8 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
             el("small", { text: track.file })
           ]),
           el("button", {
-            class: "btn primary",
-            text: "\uFF0B",
+            class: "btn primary btn-ic",
+            html: ic("plus", 15),
             title: "A\xF1adir reproductor a la p\xE1gina",
             onclick: () => {
               const width = this.store.project.settings.breakpoints[this.store.device];
@@ -4818,11 +5308,12 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       body.append(list);
       const urlInput = el("input", { class: "input", placeholder: "https://\u2026/cancion.mp3" });
       body.append(
-        el("h4", { class: "panel-heading", text: "O pega una URL directa" }),
+        el("h4", { class: "panel-heading", text: "O pega una URL (directa o YouTube)" }),
         urlInput,
+        el("p", { class: "panel-hint", text: "Nota: YouTube no permite extraer solo el audio; los enlaces de YouTube se muestran como su reproductor oficial en modo privacidad (sin inicio de sesi\xF3n)." }),
         el("button", {
           class: "btn block",
-          text: "\uFF0B A\xF1adir reproductor con esa URL",
+          html: `${ic("plus", 13)}<span>A\xF1adir reproductor con esa URL</span>`,
           onclick: () => {
             if (!urlInput.value.trim()) return;
             this.store.addNode("musicPlayer", { x: 200, y: 140 }, {
@@ -4866,9 +5357,11 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     }
     /* ── Páginas ───────────────────────────────────────── */
     #renderPages(body) {
-      body.append(el("button", { class: "btn primary block", text: "+ Nueva p\xE1gina", onclick: () => this.store.addPage() }));
+      body.append(el("button", { class: "btn primary block", html: `${ic("plus", 14)}<span>Nueva p\xE1gina</span>`, onclick: () => this.store.addPage() }));
       const list = el("div", { class: "page-list" });
+      const pq = (this.pageQuery || "").toLowerCase();
       for (const page2 of this.store.project.pages) {
+        if (pq && !page2.name.toLowerCase().includes(pq)) continue;
         const active = page2.id === this.store.pageId;
         list.append(el("div", { class: `page-item${active ? " active" : ""}`, onclick: () => this.store.setPage(page2.id) }, [
           el("span", {
@@ -4882,19 +5375,19 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
             }
           }),
           el("span", { class: "page-actions" }, [
-            el("button", { text: "\u2191", title: "Subir", onclick: (e) => {
+            el("button", { html: ic("up", 13), title: "Subir", onclick: (e) => {
               e.stopPropagation();
               this.store.movePage(page2.id, -1);
             } }),
-            el("button", { text: "\u2193", title: "Bajar", onclick: (e) => {
+            el("button", { html: ic("down", 13), title: "Bajar", onclick: (e) => {
               e.stopPropagation();
               this.store.movePage(page2.id, 1);
             } }),
-            el("button", { text: "\u29C9", title: "Duplicar", onclick: (e) => {
+            el("button", { html: ic("duplicate", 13), title: "Duplicar", onclick: (e) => {
               e.stopPropagation();
               this.store.duplicatePage(page2.id);
             } }),
-            el("button", { text: "\xD7", title: "Eliminar", onclick: (e) => {
+            el("button", { html: ic("trash", 13), title: "Eliminar", onclick: (e) => {
               e.stopPropagation();
               if (confirm(`\xBFEliminar "${page2.name}"?`)) this.store.deletePage(page2.id);
             } })
@@ -4983,36 +5476,71 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     #renderLayers(body) {
       const nodes = this.store.pageNodes();
       if (!nodes.length) {
-        body.append(el("p", { class: "panel-hint", text: "La p\xE1gina est\xE1 vac\xEDa. A\xF1ade componentes desde la pesta\xF1a Piezas." }));
+        body.append(el("p", { class: "panel-hint", text: "La p\xE1gina est\xE1 vac\xEDa. A\xF1ade piezas y dale vida." }));
         return;
       }
+      body.append(el("input", {
+        class: "input block",
+        type: "search",
+        placeholder: "Buscar capa\u2026",
+        value: this.layerQuery || "",
+        oninput: (e) => {
+          this.layerQuery = e.target.value;
+          this.render();
+        }
+      }));
+      const q = (this.layerQuery || "").toLowerCase();
       const list = el("div", { class: "layer-list" });
       for (const node2 of [...nodes].reverse()) {
+        if (q && !node2.name.toLowerCase().includes(q)) continue;
         const selected = this.store.selection.includes(node2.id);
         list.append(el("div", {
           class: `layer-item${selected ? " active" : ""}`,
+          draggable: "true",
+          ondragstart: (e) => {
+            e.dataTransfer.setData("text/wb-layer", node2.id);
+            e.dataTransfer.effectAllowed = "move";
+          },
+          ondragover: (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add("drop-hint");
+          },
+          ondragleave: (e) => e.currentTarget.classList.remove("drop-hint"),
+          ondrop: (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove("drop-hint");
+            const dragId = e.dataTransfer.getData("text/wb-layer");
+            if (!dragId || dragId === node2.id) return;
+            this.store.snapshot("layer");
+            const arr = this.store.page.nodes;
+            const from = arr.indexOf(dragId);
+            arr.splice(from, 1);
+            arr.splice(arr.indexOf(node2.id), 0, dragId);
+            this.store.commit();
+          },
           onclick: (e) => this.store.select(node2.id, e.shiftKey)
         }, [
-          el("span", { class: "layer-icon", text: Components[node2.type]?.icon || "\u25A2" }),
+          el("span", { class: "layer-grip", html: ic("drag", 13), title: "Arrastra para reordenar" }),
+          el("span", { class: "layer-icon", html: typeIcon(node2.type, 15) }),
           el("span", { class: "layer-name", text: node2.name, title: node2.name }),
           el("span", { class: "layer-actions" }, [
-            el("button", { text: "\u2191", title: "Subir capa", onclick: (e) => {
+            el("button", { html: ic("up", 13), title: "Subir capa", onclick: (e) => {
               e.stopPropagation();
               this.store.moveLayer(node2.id, 1);
             } }),
-            el("button", { text: "\u2193", title: "Bajar capa", onclick: (e) => {
+            el("button", { html: ic("down", 13), title: "Bajar capa", onclick: (e) => {
               e.stopPropagation();
               this.store.moveLayer(node2.id, -1);
             } }),
-            el("button", { text: node2.locked ? "\u{1F512}" : "\u{1F513}", title: "Bloquear", onclick: (e) => {
+            el("button", { html: ic(node2.locked ? "lock" : "unlock", 13), title: "Bloquear", onclick: (e) => {
               e.stopPropagation();
               this.store.toggleFlag(node2.id, "locked");
             } }),
-            el("button", { text: node2.hidden ? "\u{1F648}" : "\u{1F441}", title: "Ocultar", onclick: (e) => {
+            el("button", { html: ic(node2.hidden ? "eyeOff" : "eye", 13), title: "Ocultar", onclick: (e) => {
               e.stopPropagation();
               this.store.toggleFlag(node2.id, "hidden");
             } }),
-            el("button", { text: "\xD7", title: "Eliminar", onclick: (e) => {
+            el("button", { html: ic("trash", 13), title: "Eliminar", onclick: (e) => {
               e.stopPropagation();
               this.store.removeNodes([node2.id]);
             } })
@@ -5026,6 +5554,255 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     }
   };
 
+  // src/editor/colorPicker.js
+  var FAV_KEY = "wb-fav-colors";
+  function hsvToRgb(h, s, v) {
+    const f = (n) => {
+      const k = (n + h / 60) % 6;
+      return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+    };
+    return [f(5) * 255, f(3) * 255, f(1) * 255].map(Math.round);
+  }
+  function rgbToHsv(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0;
+    if (d) {
+      if (max === r) h = (g - b) / d % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+      if (h < 0) h += 360;
+    }
+    return [h, max ? d / max : 0, max];
+  }
+  function parseColor(str) {
+    if (!str) return null;
+    str = String(str).trim();
+    let m = str.match(/^#([0-9a-f]{3,8})$/i);
+    if (m) {
+      let hex = m[1];
+      if (hex.length <= 4) hex = [...hex].map((c) => c + c).join("");
+      const n = parseInt(hex.slice(0, 6), 16);
+      const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+      return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255, a };
+    }
+    m = str.match(/^rgba?\(([^)]+)\)$/i);
+    if (m) {
+      const parts = m[1].split(",").map((p) => parseFloat(p));
+      return { r: parts[0] || 0, g: parts[1] || 0, b: parts[2] || 0, a: parts[3] ?? 1 };
+    }
+    return null;
+  }
+  function toCss({ r, g, b, a }) {
+    if (a >= 1) return `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+    return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${Math.round(a * 100) / 100})`;
+  }
+  function loadFavs() {
+    try {
+      return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+  function saveFavs(list) {
+    localStorage.setItem(FAV_KEY, JSON.stringify(list.slice(0, 18)));
+  }
+  var activePicker = null;
+  function closeColorPicker() {
+    activePicker?.remove();
+    activePicker = null;
+  }
+  function openColorPicker(anchor, initial, onChange) {
+    closeColorPicker();
+    const start = parseColor(initial) || { r: 255, g: 143, b: 171, a: 1 };
+    let [h, s, v] = rgbToHsv(start.r, start.g, start.b);
+    let a = start.a;
+    const WHEEL = 168, RING = 14;
+    const pop = el("div", { class: "cp-pop", role: "dialog" });
+    const wheel = el("canvas", { class: "cp-wheel", width: WHEEL * 2, height: WHEEL * 2, style: { width: `${WHEEL}px`, height: `${WHEEL}px` } });
+    const wctx = wheel.getContext("2d");
+    const svBox = el("canvas", { class: "cp-sv", width: 200, height: 200 });
+    const svCtx = svBox.getContext("2d");
+    const svCursor = el("div", { class: "cp-cursor" });
+    const hueCursor = el("div", { class: "cp-cursor cp-cursor-hue" });
+    const wheelWrap = el("div", { class: "cp-wheel-wrap" }, [wheel, svBox, svCursor, hueCursor]);
+    function drawWheel() {
+      const c = WHEEL, rOut = WHEEL - 2, rIn = WHEEL - 2 - RING * 2;
+      wctx.clearRect(0, 0, WHEEL * 2, WHEEL * 2);
+      for (let deg = 0; deg < 360; deg += 2) {
+        const rad = (deg - 90) * Math.PI / 180;
+        wctx.beginPath();
+        wctx.strokeStyle = `hsl(${deg} 100% 50%)`;
+        wctx.lineWidth = RING * 2;
+        wctx.arc(c, c, (rOut + rIn) / 2, rad, rad + 0.06);
+        wctx.stroke();
+      }
+    }
+    function drawSV() {
+      const size = 200;
+      const grad1 = svCtx.createLinearGradient(0, 0, size, 0);
+      grad1.addColorStop(0, "#fff");
+      grad1.addColorStop(1, `hsl(${h} 100% 50%)`);
+      svCtx.fillStyle = grad1;
+      svCtx.fillRect(0, 0, size, size);
+      const grad2 = svCtx.createLinearGradient(0, 0, 0, size);
+      grad2.addColorStop(0, "rgba(0,0,0,0)");
+      grad2.addColorStop(1, "#000");
+      svCtx.fillStyle = grad2;
+      svCtx.fillRect(0, 0, size, size);
+    }
+    const alphaInput = el("input", { class: "cp-alpha", type: "range", min: 0, max: 100, value: Math.round(a * 100) });
+    const hexInput = el("input", { class: "input cp-hex", spellcheck: "false" });
+    const preview = el("button", { class: "cp-preview", title: "Guardar en favoritos" });
+    const favRow = el("div", { class: "cp-favs" });
+    function current() {
+      const [r, g, b] = hsvToRgb(h, s, v);
+      return { r, g, b, a };
+    }
+    function positionCursors() {
+      const svSize = 116;
+      const off = (WHEEL - svSize) / 2;
+      svCursor.style.left = `${off + s * svSize}px`;
+      svCursor.style.top = `${off + (1 - v) * svSize}px`;
+      const rad = (h - 90) * Math.PI / 180;
+      const rMid = WHEEL / 2 - 1 - RING / 2;
+      hueCursor.style.left = `${WHEEL / 2 + Math.cos(rad) * rMid}px`;
+      hueCursor.style.top = `${WHEEL / 2 + Math.sin(rad) * rMid}px`;
+    }
+    function apply(fireChange = true) {
+      const css = toCss(current());
+      preview.style.background = css;
+      hexInput.value = css;
+      alphaInput.style.setProperty("--cp-c", toCss({ ...current(), a: 1 }));
+      positionCursors();
+      if (fireChange) onChange(css);
+    }
+    function refreshFavs() {
+      favRow.innerHTML = "";
+      for (const fav of loadFavs()) {
+        favRow.append(el("button", {
+          class: "cp-fav",
+          title: `${fav} \xB7 mant\xE9n presionado para quitar`,
+          style: { background: fav },
+          onclick: () => {
+            const parsed = parseColor(fav);
+            if (parsed) {
+              [h, s, v] = rgbToHsv(parsed.r, parsed.g, parsed.b);
+              a = parsed.a;
+              alphaInput.value = Math.round(a * 100);
+              drawSV();
+              apply();
+            }
+          },
+          oncontextmenu: (e) => {
+            e.preventDefault();
+            saveFavs(loadFavs().filter((c) => c !== fav));
+            refreshFavs();
+          }
+        }));
+      }
+    }
+    preview.addEventListener("click", () => {
+      const css = toCss(current());
+      const favs = loadFavs();
+      if (!favs.includes(css)) {
+        favs.unshift(css);
+        saveFavs(favs);
+        refreshFavs();
+      }
+    });
+    function handleWheelPointer(e) {
+      const rect2 = wheel.getBoundingClientRect();
+      const x = e.clientX - rect2.left - WHEEL / 2;
+      const y = e.clientY - rect2.top - WHEEL / 2;
+      const dist = Math.hypot(x, y);
+      const svHalf = 116 / 2;
+      if (Math.abs(x) <= svHalf + 6 && Math.abs(y) <= svHalf + 6 && dist < WHEEL / 2 - RING - 4) {
+        s = Math.max(0, Math.min(1, (x + svHalf) / 116));
+        v = Math.max(0, Math.min(1, 1 - (y + svHalf) / 116));
+      } else {
+        h = (Math.atan2(y, x) * 180 / Math.PI + 90 + 360) % 360;
+        drawSV();
+      }
+      apply();
+    }
+    let draggingWheel = false;
+    wheelWrap.addEventListener("pointerdown", (e) => {
+      draggingWheel = true;
+      wheelWrap.setPointerCapture?.(e.pointerId);
+      handleWheelPointer(e);
+    });
+    wheelWrap.addEventListener("pointermove", (e) => {
+      if (draggingWheel) handleWheelPointer(e);
+    });
+    wheelWrap.addEventListener("pointerup", () => {
+      draggingWheel = false;
+    });
+    alphaInput.addEventListener("input", () => {
+      a = +alphaInput.value / 100;
+      apply();
+    });
+    hexInput.addEventListener("change", () => {
+      const parsed = parseColor(hexInput.value);
+      if (parsed) {
+        [h, s, v] = rgbToHsv(parsed.r, parsed.g, parsed.b);
+        a = parsed.a;
+        alphaInput.value = Math.round(a * 100);
+        drawSV();
+        apply();
+      }
+    });
+    const eyeBtn = el("button", {
+      class: "btn btn-ic",
+      html: ic("eyedrop", 15),
+      title: window.EyeDropper ? "Cuentagotas: copia un color de la pantalla" : "Cuentagotas no soportado en este navegador",
+      onclick: async () => {
+        if (!window.EyeDropper) return;
+        try {
+          const result = await new window.EyeDropper().open();
+          const parsed = parseColor(result.sRGBHex);
+          if (parsed) {
+            [h, s, v] = rgbToHsv(parsed.r, parsed.g, parsed.b);
+            drawSV();
+            apply();
+          }
+        } catch {
+        }
+      }
+    });
+    pop.append(
+      wheelWrap,
+      el("div", { class: "cp-row" }, [preview, hexInput, eyeBtn]),
+      el("div", { class: "cp-row" }, [el("span", { class: "cp-label", text: "Alfa" }), alphaInput]),
+      favRow,
+      el("button", { class: "btn block", text: "Listo", onclick: closeColorPicker })
+    );
+    document.body.append(pop);
+    activePicker = pop;
+    const rect = anchor.getBoundingClientRect();
+    const pw = 236, ph = 380;
+    let left = Math.min(Math.max(8, rect.left), innerWidth - pw - 8);
+    let top = rect.bottom + 8;
+    if (top + ph > innerHeight) top = Math.max(8, rect.top - ph - 8);
+    Object.assign(pop.style, { left: `${left}px`, top: `${top}px` });
+    setTimeout(() => {
+      const outside = (e) => {
+        if (!pop.contains(e.target)) {
+          closeColorPicker();
+          document.removeEventListener("pointerdown", outside, true);
+        }
+      };
+      document.addEventListener("pointerdown", outside, true);
+    }, 0);
+    drawWheel();
+    drawSV();
+    refreshFavs();
+    apply(false);
+  }
+
   // src/editor/properties.js
   var GRADIENT_SWATCHES = [
     "#0b1020",
@@ -5036,7 +5813,11 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     "linear-gradient(135deg,#f59e0b,#ef4444)",
     "linear-gradient(135deg,#10b981,#0ea5e9)",
     "linear-gradient(160deg,#0f0c29,#302b63,#24243e)",
-    "radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)"
+    "radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)",
+    /* Texturas */
+    "repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0 2px,transparent 2px 12px), #17121f",
+    "radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.4px) 0 0/16px 16px, #141019",
+    "repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px), repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px), #100c16"
   ];
   var EVENT_TRIGGERS = {
     click: "Al tocar / clic",
@@ -5060,6 +5841,8 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     burstHearts: { label: "Estallido de corazones", targetKind: "none", valueLabel: "Emoji (ej: \u{1F496})" },
     showMessage: { label: "Mostrar mensaje flotante", targetKind: "none", valueLabel: "Texto del mensaje \u{1F48C}" },
     vibrate: { label: "Vibrar (m\xF3vil)", targetKind: "none", valueLabel: "Milisegundos" },
+    setVar: { label: "Definir variable", targetKind: "none", valueLabel: "toques = toques + 1" },
+    ifVar: { label: "Continuar solo si\u2026", targetKind: "none", valueLabel: "toques >= 5" },
     openUrl: { label: "Abrir URL", targetKind: "none", valueLabel: "https://\u2026" },
     runJS: { label: "Ejecutar JavaScript", targetKind: "none", valueLabel: "c\xF3digo JS (recibe `el`)" }
   };
@@ -5148,8 +5931,8 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
           ["centerY", "\u21D5"]
         ].map(([mode, label]) => el("button", { class: "btn", text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
         el("div", { class: "btn-row" }, [
-          el("button", { class: "btn", text: "\u29C9 Duplicar", onclick: () => this.store.duplicateNodes() }),
-          el("button", { class: "btn danger", text: "\xD7 Eliminar", onclick: () => this.store.removeNodes() })
+          el("button", { class: "btn", html: `${ic("duplicate", 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes() }),
+          el("button", { class: "btn danger", html: `${ic("trash", 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes() })
         ])
       );
     }
@@ -5286,25 +6069,24 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       ]));
       this.root.append(this.#section("Herramientas", [
         el("div", { class: "btn-row" }, [
-          el("button", { class: "btn", text: "\u21E4", title: "Alinear a la izquierda de la p\xE1gina", onclick: () => this.store.alignSelection("left") }),
-          el("button", { class: "btn", text: "\u21F9", title: "Centrar horizontalmente", onclick: () => this.store.alignSelection("centerX") }),
-          el("button", { class: "btn", text: "\u21E5", title: "Alinear a la derecha", onclick: () => this.store.alignSelection("right") }),
-          el("button", { class: "btn", text: "\u2912", title: "Alinear arriba", onclick: () => this.store.alignSelection("top") }),
-          el("button", { class: "btn", text: "\u21D5", title: "Centrar verticalmente", onclick: () => this.store.alignSelection("centerY") })
+          el("button", { class: "btn btn-ic", html: ic("back"), title: "Alinear a la izquierda", onclick: () => this.store.alignSelection("left"), style: { transform: "rotate(90deg)" } }),
+          el("button", { class: "btn", text: "Centrar", title: "Centrar horizontalmente", onclick: () => this.store.alignSelection("centerX") }),
+          el("button", { class: "btn btn-ic", html: ic("front"), title: "Alinear a la derecha", onclick: () => this.store.alignSelection("right"), style: { transform: "rotate(90deg)" } }),
+          el("button", { class: "btn", text: "Medio", title: "Centrar verticalmente", onclick: () => this.store.alignSelection("centerY") })
         ]),
         el("div", { class: "btn-row" }, [
-          el("button", { class: "btn", text: "\u2B06 Al frente", title: "Traer encima de todo", onclick: () => this.store.bringToFront(node2.id) }),
-          el("button", { class: "btn", text: "\u2B07 Al fondo", title: "Enviar detr\xE1s de todo", onclick: () => this.store.sendToBack(node2.id) })
+          el("button", { class: "btn", html: `${ic("front", 14)}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node2.id) }),
+          el("button", { class: "btn", html: `${ic("back", 14)}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node2.id) })
         ]),
         el("div", { class: "btn-row" }, [
-          el("button", { class: "btn", text: "\u2398 Copiar estilo", title: "Ctrl+Shift+C", onclick: () => this.store.copyStyle() }),
-          el("button", { class: "btn", text: "\u2397 Pegar estilo", title: "Ctrl+Shift+V", onclick: () => this.store.pasteStyle() })
+          el("button", { class: "btn", html: `${ic("copy", 14)}<span>Copiar estilo</span>`, title: "Ctrl+Shift+C", onclick: () => this.store.copyStyle() }),
+          el("button", { class: "btn", html: `${ic("check", 14)}<span>Pegar estilo</span>`, title: "Ctrl+Shift+V", onclick: () => this.store.pasteStyle() })
         ])
       ]));
       this.root.append(el("div", { class: "btn-row" }, [
-        el("button", { class: "btn", text: "\u29C9 Duplicar", onclick: () => this.store.duplicateNodes([node2.id]) }),
-        el("button", { class: "btn", text: node2.locked ? "\u{1F512}" : "\u{1F513}", onclick: () => this.store.toggleFlag(node2.id, "locked") }),
-        el("button", { class: "btn danger", text: "\xD7 Eliminar", onclick: () => this.store.removeNodes([node2.id]) })
+        el("button", { class: "btn", html: `${ic("duplicate", 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes([node2.id]) }),
+        el("button", { class: "btn btn-ic", html: ic(node2.locked ? "lock" : "unlock"), title: node2.locked ? "Desbloquear" : "Bloquear", onclick: () => this.store.toggleFlag(node2.id, "locked") }),
+        el("button", { class: "btn danger", html: `${ic("trash", 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node2.id]) })
       ]));
     }
     #updateAnim(node2, patch) {
@@ -5337,11 +6119,18 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
             onchange: (e) => commit(+e.target.value)
           }));
         case "color": {
-          const isHex = /^#[0-9a-f]{3,8}$/i.test(value || "");
-          const controls = [el("div", { class: "color-field" }, [
-            el("input", { type: "color", value: isHex ? value : "#6366f1", oninput: (e) => commit(e.target.value) }),
-            el("input", { class: "input", value: value ?? "", placeholder: "color / gradiente CSS", onchange: (e) => commit(e.target.value) })
-          ])];
+          const textInput = el("input", { class: "input", value: value ?? "", placeholder: "color / gradiente CSS", onchange: (e) => commit(e.target.value) });
+          const swatchBtn = el("button", {
+            class: "cp-open",
+            title: "Abrir selector de color",
+            style: { background: value || "transparent" },
+            onclick: (e) => openColorPicker(e.currentTarget, value, (css) => {
+              swatchBtn.style.background = css;
+              textInput.value = css;
+              commit(css);
+            })
+          });
+          const controls = [el("div", { class: "color-field" }, [swatchBtn, textInput])];
           if (/background/i.test(field.key)) {
             controls.push(el("div", { class: "swatch-row" }, GRADIENT_SWATCHES.map((g) => el("button", { class: "swatch", title: g, style: { background: g }, onclick: () => commit(g) }))));
           }
@@ -5349,6 +6138,64 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         }
         case "select":
           return this.#field(field.label, this.#select(field.options, value, commit));
+        case "timelineItems": {
+          const rows = String(value || "").split(";").map((r2) => r2.trim()).filter(Boolean).map((r2) => {
+            const [d = "", t = "", b2 = "", ph = ""] = r2.split("|").map((x) => x.trim());
+            return { d, t, b: b2, ph };
+          });
+          const serialize = () => commit(rows.map((r2) => [r2.d, r2.t, r2.b, r2.ph].join(" | ")).join(" ; "));
+          const photos = this.assets.list({ kind: "image" });
+          const wrap = el("div", { class: "tl-editor" }, [
+            ...rows.map((row, i) => el("div", { class: "tl-row" }, [
+              el("div", { class: "tl-row-head" }, [
+                el("input", { class: "input", value: row.d, placeholder: "Fecha", onchange: (e) => {
+                  row.d = e.target.value;
+                  serialize();
+                } }),
+                el("button", { class: "btn btn-ic", html: ic("up", 12), title: "Subir", onclick: () => {
+                  if (i > 0) {
+                    [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+                    serialize();
+                  }
+                } }),
+                el("button", { class: "btn btn-ic", html: ic("down", 12), title: "Bajar", onclick: () => {
+                  if (i < rows.length - 1) {
+                    [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+                    serialize();
+                  }
+                } }),
+                el("button", { class: "btn btn-ic danger", html: ic("close", 12), title: "Quitar", onclick: () => {
+                  rows.splice(i, 1);
+                  serialize();
+                } })
+              ]),
+              el("input", { class: "input", value: row.t, placeholder: "T\xEDtulo del recuerdo", onchange: (e) => {
+                row.t = e.target.value;
+                serialize();
+              } }),
+              el("input", { class: "input", value: row.b, placeholder: "Qu\xE9 pas\xF3 ese d\xEDa\u2026", onchange: (e) => {
+                row.b = e.target.value;
+                serialize();
+              } }),
+              el("select", { class: "input", onchange: (e) => {
+                row.ph = e.target.value;
+                serialize();
+              } }, [
+                el("option", { value: "", text: "Sin foto", selected: !row.ph ? "true" : null }),
+                ...photos.map((a2) => el("option", { value: a2.id, text: a2.name, selected: row.ph === a2.id ? "true" : null }))
+              ])
+            ])),
+            el("button", {
+              class: "btn block",
+              html: `${ic("plus", 13)}<span>A\xF1adir recuerdo</span>`,
+              onclick: () => {
+                rows.push({ d: "Hoy", t: "Un momento nuevo", b: "", ph: "" });
+                serialize();
+              }
+            })
+          ]);
+          return this.#field(field.label, wrap);
+        }
         case "navTarget": {
           const opts = ["__next", "__prev", ...this.store.project.pages.map((p) => p.id)];
           return this.#field(field.label, this.#select(
@@ -5481,8 +6328,8 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
             }
           })]),
           el("button", {
-            class: "btn danger",
-            text: "\xD7",
+            class: "btn danger btn-ic",
+            html: ic("close", 12),
             title: "Quitar acci\xF3n",
             onclick: () => {
               snap();
@@ -5507,7 +6354,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
           ),
           el("button", {
             class: "btn danger",
-            text: "\xD7 Evento",
+            html: `${ic("trash", 13)}<span>Evento</span>`,
             onclick: () => {
               snap();
               node2.events.splice(index, 1);
@@ -5798,7 +6645,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         }
       });
       const bar = el("div", { class: "draw-toolbar", style: { display: "none" } }, [
-        el("span", { text: "\u{1F4D3} Libreta:" }),
+        el("span", { class: "draw-title", html: `${ic("pen", 15)}<span>Libreta</span>` }),
         el("select", {
           class: "input mini-select",
           title: "Estilo de pincel",
@@ -5822,18 +6669,18 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         el("label", {}, ["Opacidad ", el("input", { type: "range", min: 5, max: 100, value: 100, oninput: (e) => {
           this.brush.opacity = +e.target.value / 100;
         } })]),
-        el("button", { class: "btn", text: "\u25EB Borrador", onclick: (e) => {
+        el("button", { class: "btn", html: `${ic("square", 13)}<span>Borrador</span>`, onclick: (e) => {
           this.brush.eraser = !this.brush.eraser;
           e.target.classList.toggle("active", this.brush.eraser);
         } }),
         photoInput,
-        el("button", { class: "btn", text: "\u{1F5BC} Foto", title: "A\xF1ade una fotograf\xEDa de tu galer\xEDa al dibujo", onclick: () => photoInput.click() }),
-        el("button", { class: "btn", text: "\u21B6", title: "Deshacer trazo", onclick: () => this.undoStroke() }),
-        el("button", { class: "btn", text: "\u21B7", title: "Rehacer trazo", onclick: () => this.redoStroke() }),
-        el("button", { class: "btn", text: "\u{1F5D1} Limpiar", onclick: () => this.clear() }),
-        el("button", { class: "btn", text: "\u2B07 PNG", title: "Descargar la hoja", onclick: () => this.downloadPNG() }),
-        el("button", { class: "btn primary", text: "\u2713 Convertir en componente", onclick: () => this.toComponent() }),
-        el("button", { class: "btn", text: "\xD7 Salir", onclick: () => this.store.setTool("select") })
+        el("button", { class: "btn", html: `${ic("image", 13)}<span>Foto</span>`, title: "A\xF1ade una fotograf\xEDa de tu galer\xEDa al dibujo", onclick: () => photoInput.click() }),
+        el("button", { class: "btn btn-ic", html: ic("undo", 14), title: "Deshacer trazo", onclick: () => this.undoStroke() }),
+        el("button", { class: "btn btn-ic", html: ic("redo", 14), title: "Rehacer trazo", onclick: () => this.redoStroke() }),
+        el("button", { class: "btn", html: `${ic("trash", 13)}<span>Limpiar</span>`, onclick: () => this.clear() }),
+        el("button", { class: "btn", html: `${ic("download", 13)}<span>PNG</span>`, title: "Descargar la hoja", onclick: () => this.downloadPNG() }),
+        el("button", { class: "btn primary", html: `${ic("check", 13)}<span>Convertir en componente</span>`, onclick: () => this.toComponent() }),
+        el("button", { class: "btn btn-ic", html: ic("close", 14), title: "Salir", onclick: () => this.store.setTool("select") })
       ]);
       return bar;
     }
@@ -7101,9 +7948,10 @@ self.addEventListener('fetch', function (e) {
       savedDot.classList.add("flash");
       setTimeout(() => savedDot.classList.remove("flash"), 600);
     });
+    const DEVICE_IC = { desktop: "desktop", tablet: "tablet", mobile: "mobile" };
     const deviceButtons = el("div", { class: "seg" }, Object.entries(DEVICES).map(([key, meta]) => el("button", {
       class: `seg-btn${store.device === key ? " active" : ""}`,
-      text: `${meta.icon} ${meta.label}`,
+      html: `${ic(DEVICE_IC[key], 15)}<span>${meta.label}</span>`,
       dataset: { device: key },
       title: `${meta.width}px`,
       onclick: () => store.setDevice(key)
@@ -7149,28 +7997,28 @@ self.addEventListener('fetch', function (e) {
       }
     });
     bar.append(
-      el("div", { class: "brand", text: "\u25C6 Builder" }),
+      el("div", { class: "brand", html: `${ic("heart", 15)}<span>BuilderYNTHN<small>_M-Beta</small></span>` }),
       savedDot,
       el("div", { class: "sep" }),
-      el("button", { class: "btn", text: "\u21B6", title: "Deshacer (Ctrl+Z)", onclick: () => store.undo() }),
-      el("button", { class: "btn", text: "\u21B7", title: "Rehacer (Ctrl+Y)", onclick: () => store.redo() }),
+      el("button", { class: "btn btn-ic", html: ic("undo"), title: "Deshacer (Ctrl+Z)", onclick: () => store.undo() }),
+      el("button", { class: "btn btn-ic", html: ic("redo"), title: "Rehacer (Ctrl+Y)", onclick: () => store.redo() }),
       el("div", { class: "sep" }),
       deviceButtons,
       el("div", { class: "sep" }),
-      el("button", { class: "btn", text: "\u2212", title: "Alejar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
+      el("button", { class: "btn btn-ic", html: ic("minus"), title: "Alejar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
       zoomLabel,
-      el("button", { class: "btn", text: "+", title: "Acercar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
-      el("button", { class: "btn", text: "\u2922", title: "Ajustar a pantalla", onclick: () => view.fit() }),
+      el("button", { class: "btn btn-ic", html: ic("plus"), title: "Acercar", onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
+      el("button", { class: "btn btn-ic", html: ic("fit"), title: "Ajustar a pantalla", onclick: () => view.fit() }),
       el("div", { class: "sep" }),
-      el("button", { class: "btn", text: "\u270E Dibujar", onclick: () => store.setTool(store.tool === "draw" ? "select" : "draw") }),
+      el("button", { class: "btn", html: `${ic("pen")}<span>Dibujar</span>`, onclick: () => store.setTool(store.tool === "draw" ? "select" : "draw") }),
       el("span", { class: "spacer" }),
-      el("button", { class: "btn", text: "\u25B6 Vista previa", onclick: () => togglePreview(store, view, repaint, assets) }),
+      el("button", { class: "btn", html: `${ic("play")}<span>Vista previa</span>`, onclick: () => togglePreview(store, view, repaint, assets) }),
       el("div", { class: "sep" }),
       fileInput,
-      el("button", { class: "btn", text: "\u2B71 Importar", title: "Importar proyecto .json", onclick: () => fileInput.click() }),
+      el("button", { class: "btn", html: `${ic("upload")}<span>Importar</span>`, title: "Importar proyecto (.json/.html) o p\xE1gina externa", onclick: () => fileInput.click() }),
       el("button", {
         class: "btn",
-        text: "\u2B73 Guardar .json",
+        html: `${ic("download")}<span>Guardar</span>`,
         title: "Descarga el proyecto COMPLETO (incluye tus GIFs, im\xE1genes y v\xEDdeos)",
         onclick: () => {
           const data = { ...store.exportJSON(), assetsData: assets.exportData() };
@@ -7182,7 +8030,7 @@ self.addEventListener('fetch', function (e) {
       }),
       el("button", {
         class: "btn primary",
-        text: "\u{1F4F1} HTML (1 archivo)",
+        html: `${ic("file")}<span>HTML (1 archivo)</span>`,
         title: "Todo el sitio en un \xFAnico archivo autocontenido: \xE1brelo directamente en el m\xF3vil",
         onclick: async (e) => {
           e.target.disabled = true;
@@ -7197,11 +8045,10 @@ self.addEventListener('fetch', function (e) {
       }),
       el("button", {
         class: "btn primary",
-        text: "\u2B07 Sitio (.zip)",
+        html: `${ic("archive")}<span>Sitio (.zip)</span>`,
         title: "Carpeta de proyecto completa para subir a un hosting",
         onclick: async (e) => {
           e.target.disabled = true;
-          e.target.textContent = "Empaquetando\u2026";
           try {
             await exporter.export();
           } catch (err) {
@@ -7209,12 +8056,11 @@ self.addEventListener('fetch', function (e) {
             console.error(err);
           }
           e.target.disabled = false;
-          e.target.textContent = "\u2B07 Sitio (.zip)";
         }
       }),
       el("button", {
         class: "btn danger",
-        text: "\u{1F5D1} Nuevo",
+        html: `${ic("trash")}<span>Nuevo</span>`,
         title: "Proyecto nuevo (borra el actual)",
         onclick: () => {
           if (!confirm("\xBFEmpezar un proyecto nuevo? El actual se descartar\xE1.")) return;
@@ -7258,7 +8104,7 @@ ${extraJS}`;
           btn.classList.add("active");
         }
       }
-    }, [el("span", { class: "mn-icon", text: icon }), el("span", { class: "mn-label", text: label })]);
+    }, [el("span", { class: "mn-icon", html: ic(icon, 20) }), el("span", { class: "mn-label", text: label })]);
     const fab = el("button", {
       id: "fab-add",
       title: "A\xF1adir elemento",
@@ -7271,30 +8117,31 @@ ${extraJS}`;
           if (navigator.vibrate) navigator.vibrate(10);
         }
       }
-    }, ["\uFF0B"]);
+    });
+    fab.innerHTML = ic("plus", 26);
     document.body.append(fab);
     const nav = el("nav", { id: "mobile-nav" }, [
-      item("\u25A6", "Piezas", () => {
+      item("grid", "Piezas", () => {
         panels.openTab("componentes");
         left.classList.add("open");
       }),
-      item("\u{1F5BC}", "Assets", () => {
+      item("image", "Assets", () => {
         panels.openTab("assets");
         left.classList.add("open");
       }),
-      item("\u266B", "M\xFAsica", () => {
+      item("music", "M\xFAsica", () => {
         panels.openTab("musica");
         left.classList.add("open");
       }),
-      item("\u{1F4C4}", "P\xE1ginas", () => {
+      item("pages", "P\xE1ginas", () => {
         panels.openTab("paginas");
         left.classList.add("open");
       }),
-      item("\u2263", "Capas", () => {
+      item("layers", "Capas", () => {
         panels.openTab("capas");
         left.classList.add("open");
       }),
-      item("\u2726", "Dise\xF1o", () => {
+      item("sliders", "Dise\xF1o", () => {
         right.classList.add("open");
       })
     ]);
@@ -7303,6 +8150,48 @@ ${extraJS}`;
     store.on("tool", () => {
       if (store.tool === "draw") closeAll();
     });
+    document.addEventListener("wb:open-design", () => {
+      if (getComputedStyle(nav).display !== "none") {
+        closeAll();
+        right.classList.add("open");
+      }
+    });
+    makeSheetDismissable(left, closeAll);
+    makeSheetDismissable(right, closeAll);
+  }
+  function makeSheetDismissable(sheet, close) {
+    let startY = 0, delta = 0, dragging = false;
+    sheet.addEventListener("pointerdown", (e) => {
+      if (!sheet.classList.contains("open")) return;
+      const rect = sheet.getBoundingClientRect();
+      if (e.clientY - rect.top > 90) return;
+      if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName)) return;
+      dragging = true;
+      startY = e.clientY;
+      delta = 0;
+      sheet.style.transition = "none";
+      try {
+        sheet.setPointerCapture(e.pointerId);
+      } catch {
+      }
+    });
+    sheet.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      delta = Math.max(0, e.clientY - startY);
+      sheet.style.transform = `translateY(${delta}px)`;
+    });
+    const finish = () => {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = "";
+      sheet.style.transform = "";
+      if (delta > 110) {
+        close();
+        if (navigator.vibrate) navigator.vibrate(8);
+      }
+    };
+    sheet.addEventListener("pointerup", finish);
+    sheet.addEventListener("pointercancel", finish);
   }
   var previewCleanup = null;
   function togglePreview(store, view, repaint, assets) {

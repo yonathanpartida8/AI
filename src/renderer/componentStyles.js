@@ -25,19 +25,35 @@ export const COMPONENT_CSS = `
 .wb-menu-links{display:flex;gap:22px}
 .wb-menu a{color:inherit;text-decoration:none;opacity:.85;cursor:pointer}
 .wb-menu a:hover{opacity:1;text-decoration:underline}
-.wb-player{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit}
-.wb-player-disc{display:flex;width:56px;height:56px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15);font-size:24px;animation:wb-spin 6s linear infinite;animation-play-state:paused;transition:box-shadow .4s}
-.wb-player.playing .wb-player-disc{animation-play-state:running;box-shadow:0 0 22px rgba(255,143,171,.65)}
+/* ── Reproductor de música (limpio, sin controles nativos) ── */
+.wb-mp{display:flex;gap:14px;align-items:center;width:100%;height:100%;padding:14px;border-radius:inherit;background:inherit;color:inherit;position:relative;overflow:hidden}
+.wb-mp audio{display:none}
+.wb-mp-cover{width:64px;height:64px;flex:none;border-radius:14px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .5s}
+.wb-mp.playing .wb-mp-cover{animation:wb-spin 9s linear infinite;border-radius:50%}
+.wb-mp-cover-icon{display:grid;place-items:center;background:rgba(255,255,255,.14)}
 @keyframes wb-spin{to{transform:rotate(360deg)}}
-.wb-eq{display:flex;align-items:flex-end;gap:3px;height:34px;flex:none;padding-right:4px}
+.wb-mp-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.wb-mp-meta{display:flex;flex-direction:column;min-width:0}
+.wb-mp-meta strong{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wb-mp-meta span{opacity:.7;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wb-mp-empty{opacity:.6;font-size:12px}
+.wb-mp-controls{display:flex;align-items:center;gap:10px}
+.wb-mp-play{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;display:grid;place-items:center;cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.25,1);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.wb-mp-play:active{transform:scale(.88)}
+.wb-mp-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.22);cursor:pointer;position:relative}
+.wb-mp-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:3px;background:#fff;transition:width .25s linear}
+.wb-mp-time{font-size:11px;opacity:.75;font-variant-numeric:tabular-nums;flex:none}
+.wb-mp-mini{padding:8px 12px;gap:10px}
+.wb-mp-mini .wb-mp-cover{width:40px;height:40px;border-radius:10px}
+.wb-mp-mini .wb-mp-meta span,.wb-mp-mini .wb-eq{display:none}
+.wb-mp-yt{padding:0}
+.wb-eq{display:flex;align-items:flex-end;gap:3px;height:30px;flex:none}
 .wb-eq i{width:4px;height:8px;border-radius:2px;background:rgba(255,255,255,.75);transition:height .3s}
-.wb-player.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
-.wb-player.playing .wb-eq i:nth-child(2){animation-delay:.18s}
-.wb-player.playing .wb-eq i:nth-child(3){animation-delay:.36s}
-.wb-player.playing .wb-eq i:nth-child(4){animation-delay:.54s}
-@keyframes wb-eqbar{0%,100%{height:8px}50%{height:30px}}
-.wb-player-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.wb-player-info span,.wb-player-info small{opacity:.75;font-size:13px}
+.wb-mp.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}
+.wb-mp.playing .wb-eq i:nth-child(2){animation-delay:.18s}
+.wb-mp.playing .wb-eq i:nth-child(3){animation-delay:.36s}
+.wb-mp.playing .wb-eq i:nth-child(4){animation-delay:.54s}
+@keyframes wb-eqbar{0%,100%{height:8px}50%{height:26px}}
 .wb-3d,.wb-particles{width:100%;height:100%;border-radius:inherit;display:block}
 .wb-3d canvas{border-radius:inherit}
 .wb-gallery img{border-radius:6px}
@@ -64,6 +80,7 @@ export const COMPONENT_CSS = `
 .wb-timeline li{position:relative;list-style:none;margin:0 0 22px;opacity:0;transform:translateY(22px);transition:opacity .6s,transform .6s;transition-delay:calc(var(--i)*180ms)}
 .wb-timeline.wb-play li{opacity:1;transform:none}
 .wb-timeline li::before{content:'♥';position:absolute;left:-27px;top:2px;color:#f472b6;font-size:13px;text-shadow:0 0 10px rgba(244,114,182,.8)}
+.wb-tl-photo{width:100%;max-height:130px;object-fit:cover;border-radius:12px;margin-bottom:8px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .wb-timeline b{display:block;font-size:.8em;color:#f472b6;letter-spacing:.06em;text-transform:uppercase}
 .wb-timeline strong{display:block;font-size:1.05em;margin:2px 0}
 .wb-timeline p{opacity:.8;font-size:.92em;line-height:1.5}

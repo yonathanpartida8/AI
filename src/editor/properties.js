@@ -10,6 +10,8 @@
  * ============================================================ */
 
 import { el, getPath, setPath, debounce } from '../utils/helpers.js';
+import { ic } from './icons.js';
+import { openColorPicker } from './colorPicker.js';
 import { componentDef, FONTS } from '../components/registry.js';
 import { PRESET_NAMES, EXIT_PRESET_NAMES, TRIGGERS, EASINGS, playAnimation, playExitAnimation } from '../animations/engine.js';
 
@@ -22,6 +24,10 @@ const GRADIENT_SWATCHES = [
   'linear-gradient(135deg,#10b981,#0ea5e9)',
   'linear-gradient(160deg,#0f0c29,#302b63,#24243e)',
   'radial-gradient(circle at 30% 30%,#f472b6,#7c3aed)',
+  /* Texturas */
+  'repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0 2px,transparent 2px 12px), #17121f',
+  'radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.4px) 0 0/16px 16px, #141019',
+  'repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px), repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px), #100c16',
 ];
 
 /** Disparadores del sistema de lógica visual. */
@@ -49,6 +55,8 @@ const EVENT_ACTIONS = {
   burstHearts: { label: 'Estallido de corazones', targetKind: 'none', valueLabel: 'Emoji (ej: 💖)' },
   showMessage: { label: 'Mostrar mensaje flotante', targetKind: 'none', valueLabel: 'Texto del mensaje 💌' },
   vibrate: { label: 'Vibrar (móvil)', targetKind: 'none', valueLabel: 'Milisegundos' },
+  setVar: { label: 'Definir variable', targetKind: 'none', valueLabel: 'toques = toques + 1' },
+  ifVar: { label: 'Continuar solo si…', targetKind: 'none', valueLabel: 'toques >= 5' },
   openUrl: { label: 'Abrir URL', targetKind: 'none', valueLabel: 'https://…' },
   runJS: { label: 'Ejecutar JavaScript', targetKind: 'none', valueLabel: 'código JS (recibe `el`)' },
 };
@@ -123,8 +131,8 @@ export class PropertiesPanel {
         ['left', '⇤'], ['centerX', '⇹'], ['right', '⇥'], ['top', '⤒'], ['centerY', '⇕'],
       ].map(([mode, label]) => el('button', { class: 'btn', text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', text: '⧉ Duplicar', onclick: () => this.store.duplicateNodes() }),
-        el('button', { class: 'btn danger', text: '× Eliminar', onclick: () => this.store.removeNodes() }),
+        el('button', { class: 'btn', html: `${ic('duplicate', 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes() }),
+        el('button', { class: 'btn danger', html: `${ic('trash', 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes() }),
       ]),
     );
   }
@@ -252,27 +260,26 @@ export class PropertiesPanel {
     /* Herramientas rápidas */
     this.root.append(this.#section('Herramientas', [
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', text: '⇤', title: 'Alinear a la izquierda de la página', onclick: () => this.store.alignSelection('left') }),
-        el('button', { class: 'btn', text: '⇹', title: 'Centrar horizontalmente', onclick: () => this.store.alignSelection('centerX') }),
-        el('button', { class: 'btn', text: '⇥', title: 'Alinear a la derecha', onclick: () => this.store.alignSelection('right') }),
-        el('button', { class: 'btn', text: '⤒', title: 'Alinear arriba', onclick: () => this.store.alignSelection('top') }),
-        el('button', { class: 'btn', text: '⇕', title: 'Centrar verticalmente', onclick: () => this.store.alignSelection('centerY') }),
+        el('button', { class: 'btn btn-ic', html: ic('back'), title: 'Alinear a la izquierda', onclick: () => this.store.alignSelection('left'), style: { transform: 'rotate(90deg)' } }),
+        el('button', { class: 'btn', text: 'Centrar', title: 'Centrar horizontalmente', onclick: () => this.store.alignSelection('centerX') }),
+        el('button', { class: 'btn btn-ic', html: ic('front'), title: 'Alinear a la derecha', onclick: () => this.store.alignSelection('right'), style: { transform: 'rotate(90deg)' } }),
+        el('button', { class: 'btn', text: 'Medio', title: 'Centrar verticalmente', onclick: () => this.store.alignSelection('centerY') }),
       ]),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', text: '⬆ Al frente', title: 'Traer encima de todo', onclick: () => this.store.bringToFront(node.id) }),
-        el('button', { class: 'btn', text: '⬇ Al fondo', title: 'Enviar detrás de todo', onclick: () => this.store.sendToBack(node.id) }),
+        el('button', { class: 'btn', html: `${ic('front', 14)}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node.id) }),
+        el('button', { class: 'btn', html: `${ic('back', 14)}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node.id) }),
       ]),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', text: '⎘ Copiar estilo', title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
-        el('button', { class: 'btn', text: '⎗ Pegar estilo', title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
+        el('button', { class: 'btn', html: `${ic('copy', 14)}<span>Copiar estilo</span>`, title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
+        el('button', { class: 'btn', html: `${ic('check', 14)}<span>Pegar estilo</span>`, title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
       ]),
     ]));
 
     /* Acciones */
     this.root.append(el('div', { class: 'btn-row' }, [
-      el('button', { class: 'btn', text: '⧉ Duplicar', onclick: () => this.store.duplicateNodes([node.id]) }),
-      el('button', { class: 'btn', text: node.locked ? '🔒' : '🔓', onclick: () => this.store.toggleFlag(node.id, 'locked') }),
-      el('button', { class: 'btn danger', text: '× Eliminar', onclick: () => this.store.removeNodes([node.id]) }),
+      el('button', { class: 'btn', html: `${ic('duplicate', 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes([node.id]) }),
+      el('button', { class: 'btn btn-ic', html: ic(node.locked ? 'lock' : 'unlock'), title: node.locked ? 'Desbloquear' : 'Bloquear', onclick: () => this.store.toggleFlag(node.id, 'locked') }),
+      el('button', { class: 'btn danger', html: `${ic('trash', 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node.id]) }),
     ]));
   }
 
@@ -302,11 +309,18 @@ export class PropertiesPanel {
           onchange: (e) => commit(+e.target.value),
         }));
       case 'color': {
-        const isHex = /^#[0-9a-f]{3,8}$/i.test(value || '');
-        const controls = [el('div', { class: 'color-field' }, [
-          el('input', { type: 'color', value: isHex ? value : '#6366f1', oninput: (e) => commit(e.target.value) }),
-          el('input', { class: 'input', value: value ?? '', placeholder: 'color / gradiente CSS', onchange: (e) => commit(e.target.value) }),
-        ])];
+        // Selector profesional: rueda de tono, alfa, cuentagotas y favoritos
+        const textInput = el('input', { class: 'input', value: value ?? '', placeholder: 'color / gradiente CSS', onchange: (e) => commit(e.target.value) });
+        const swatchBtn = el('button', {
+          class: 'cp-open', title: 'Abrir selector de color',
+          style: { background: value || 'transparent' },
+          onclick: (e) => openColorPicker(e.currentTarget, value, (css) => {
+            swatchBtn.style.background = css;
+            textInput.value = css;
+            commit(css);
+          }),
+        });
+        const controls = [el('div', { class: 'color-field' }, [swatchBtn, textInput])];
         // Gradientes de un toque para los campos de fondo
         if (/background/i.test(field.key)) {
           controls.push(el('div', { class: 'swatch-row' }, GRADIENT_SWATCHES.map((g) =>
@@ -316,6 +330,35 @@ export class PropertiesPanel {
       }
       case 'select':
         return this.#field(field.label, this.#select(field.options, value, commit));
+      case 'timelineItems': {
+        // Editor visual de la línea de tiempo: eventos con fecha, título,
+        // texto y foto, reordenables — sin tocar texto plano.
+        const rows = String(value || '').split(';').map((r2) => r2.trim()).filter(Boolean)
+          .map((r2) => { const [d = '', t = '', b2 = '', ph = ''] = r2.split('|').map((x) => x.trim()); return { d, t, b: b2, ph }; });
+        const serialize = () => commit(rows.map((r2) => [r2.d, r2.t, r2.b, r2.ph].join(' | ')).join(' ; '));
+        const photos = this.assets.list({ kind: 'image' });
+        const wrap = el('div', { class: 'tl-editor' }, [
+          ...rows.map((row, i) => el('div', { class: 'tl-row' }, [
+            el('div', { class: 'tl-row-head' }, [
+              el('input', { class: 'input', value: row.d, placeholder: 'Fecha', onchange: (e) => { row.d = e.target.value; serialize(); } }),
+              el('button', { class: 'btn btn-ic', html: ic('up', 12), title: 'Subir', onclick: () => { if (i > 0) { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; serialize(); } } }),
+              el('button', { class: 'btn btn-ic', html: ic('down', 12), title: 'Bajar', onclick: () => { if (i < rows.length - 1) { [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]]; serialize(); } } }),
+              el('button', { class: 'btn btn-ic danger', html: ic('close', 12), title: 'Quitar', onclick: () => { rows.splice(i, 1); serialize(); } }),
+            ]),
+            el('input', { class: 'input', value: row.t, placeholder: 'Título del recuerdo', onchange: (e) => { row.t = e.target.value; serialize(); } }),
+            el('input', { class: 'input', value: row.b, placeholder: 'Qué pasó ese día…', onchange: (e) => { row.b = e.target.value; serialize(); } }),
+            el('select', { class: 'input', onchange: (e) => { row.ph = e.target.value; serialize(); } }, [
+              el('option', { value: '', text: 'Sin foto', selected: !row.ph ? 'true' : null }),
+              ...photos.map((a2) => el('option', { value: a2.id, text: a2.name, selected: row.ph === a2.id ? 'true' : null })),
+            ]),
+          ])),
+          el('button', {
+            class: 'btn block', html: `${ic('plus', 13)}<span>Añadir recuerdo</span>`,
+            onclick: () => { rows.push({ d: 'Hoy', t: 'Un momento nuevo', b: '', ph: '' }); serialize(); },
+          }),
+        ]);
+        return this.#field(field.label, wrap);
+      }
       case 'navTarget': {
         const opts = ['__next', '__prev', ...this.store.project.pages.map((p) => p.id)];
         return this.#field(field.label, this.#select(opts, value || '__next', commit,
@@ -398,7 +441,7 @@ export class PropertiesPanel {
           onchange: (e) => { snap(); action.delay = +e.target.value; commit(); },
         })]),
         el('button', {
-          class: 'btn danger', text: '×', title: 'Quitar acción',
+          class: 'btn danger btn-ic', html: ic('close', 12), title: 'Quitar acción',
           onclick: () => { snap(); event.actions.splice(ai, 1); commit(); },
         }),
       ]));
@@ -410,7 +453,7 @@ export class PropertiesPanel {
         this.#select(Object.keys(EVENT_TRIGGERS), event.on,
           (v) => { snap(); event.on = v; commit(); }, (k) => EVENT_TRIGGERS[k]),
         el('button', {
-          class: 'btn danger', text: '× Evento',
+          class: 'btn danger', html: `${ic('trash', 13)}<span>Evento</span>`,
           onclick: () => { snap(); node.events.splice(index, 1); commit(); },
         }),
       ]),

@@ -17,8 +17,9 @@
  *  - doble clic en texto    → edición inline
  * ============================================================ */
 
-import { clamp, throttleRAF } from '../utils/helpers.js';
+import { clamp, throttleRAF, el } from '../utils/helpers.js';
 import { syncNodeEl } from '../renderer/renderer.js';
+import { ic } from './icons.js';
 
 const SNAP_THRESHOLD = 6;
 
@@ -395,7 +396,29 @@ export class Interactions {
         label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
         box.append(label);
       }
+      if (single) box.append(this.#buildQuickbar(node));
       overlay.append(box);
     }
+  }
+
+  /** Barra rápida contextual: acciones al alcance del pulgar. */
+  #buildQuickbar(node) {
+    const store = this.store;
+    const btn = (icon, title, onclick, cls = '') => el('button', {
+      class: cls, title, html: ic(icon, 15),
+      onpointerdown: (e) => e.stopPropagation(), // no inicia drag del nodo
+      onclick,
+    });
+    const bar = el('div', { class: 'quickbar', style: { left: '0', bottom: '100%', marginBottom: '6px' } }, [
+      btn('duplicate', 'Duplicar', () => store.duplicateNodes([node.id])),
+      btn('copy', 'Copiar', () => { store.select([node.id]); store.copy(); }),
+      btn(node.locked ? 'lock' : 'unlock', node.locked ? 'Desbloquear' : 'Bloquear', () => store.toggleFlag(node.id, 'locked')),
+      btn(node.hidden ? 'eyeOff' : 'eye', node.hidden ? 'Mostrar' : 'Ocultar', () => store.toggleFlag(node.id, 'hidden')),
+      btn('front', 'Traer al frente', () => store.bringToFront(node.id)),
+      btn('back', 'Enviar al fondo', () => store.sendToBack(node.id)),
+      btn('sliders', 'Diseño y lógica', () => document.dispatchEvent(new CustomEvent('wb:open-design'))),
+      btn('trash', 'Eliminar', () => store.removeNodes([node.id]), 'danger'),
+    ]);
+    return bar;
   }
 }

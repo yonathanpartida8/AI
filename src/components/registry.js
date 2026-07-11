@@ -200,12 +200,14 @@ export const Components = {
   musicPlayer: {
     label: 'Reproductor', icon: '🎵', cat: 'Avanzados', size: [360, 110], accepts: ['audio'],
     defaults: {
-      props: { assetId: null, srcUrl: '', title: 'Mi canción', artist: 'Artista' },
+      props: { assetId: null, srcUrl: '', coverId: null, variant: 'tarjeta', title: 'Nuestra canción', artist: 'La que lo dice todo' },
       styles: { background: 'linear-gradient(135deg,#4c1d95,#be185d)', radius: 18, color: '#fff' },
     },
     schema: [
       asset('props.assetId', 'Pista de audio (asset)', 'audio'),
-      text('props.srcUrl', 'o URL externa (GitHub, etc.)'),
+      text('props.srcUrl', 'o URL (GitHub / directa / YouTube)'),
+      asset('props.coverId', 'Portada del álbum', 'image'),
+      select('props.variant', 'Estilo', ['tarjeta', 'mini']),
       text('props.title', 'Título'), text('props.artist', 'Artista'),
       ...STYLE_COMMON,
     ],
@@ -312,7 +314,7 @@ export const Components = {
       styles: { color: '#e2e8f0', fontSize: 16, background: 'rgba(15,23,42,.55)', radius: 18 },
     },
     schema: [
-      { key: 'props.items', label: 'Recuerdos (fecha | título | texto ; …)', type: 'textarea' },
+      { key: 'props.items', label: 'Nuestros recuerdos', type: 'timelineItems' },
       ...TEXT_STYLE.slice(0, 4),
       ...STYLE_COMMON,
     ],

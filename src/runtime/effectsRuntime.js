@@ -76,13 +76,36 @@ export function wbEffects(root, opts) {
     });
   });
 
-  /* ── Reproductor: disco y ecualizador solo cuando suena ── */
-  qa('.wb-player audio').forEach(function (audio) {
-    var player = audio.closest('.wb-player');
-    if (!player) return;
-    on(audio, 'play', function () { player.classList.add('playing'); });
-    on(audio, 'pause', function () { player.classList.remove('playing'); });
-    on(audio, 'ended', function () { player.classList.remove('playing'); });
+  /* ── Reproductor propio: play/pausa, progreso, seek, ecualizador ── */
+  var PAUSE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>';
+  var PLAY_SVG2 = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5z"/></svg>';
+  function fmtTime(sec) {
+    if (!isFinite(sec)) return '0:00';
+    var m = Math.floor(sec / 60), s2 = Math.floor(sec % 60);
+    return m + ':' + (s2 < 10 ? '0' : '') + s2;
+  }
+  qa('.wb-mp').forEach(function (player) {
+    var audio = player.querySelector('audio');
+    var playBtn = player.querySelector('.wb-mp-play');
+    if (!audio || !playBtn) return;
+    var fill = player.querySelector('.wb-mp-fill');
+    var time = player.querySelector('.wb-mp-time');
+    var track = player.querySelector('.wb-mp-track');
+    on(playBtn, 'click', function () {
+      if (audio.paused) audio.play().catch(function () {});
+      else audio.pause();
+    });
+    on(audio, 'play', function () { player.classList.add('playing'); playBtn.innerHTML = PAUSE_SVG; });
+    on(audio, 'pause', function () { player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2; });
+    on(audio, 'ended', function () { player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2; });
+    on(audio, 'timeupdate', function () {
+      if (fill && audio.duration) fill.style.width = (audio.currentTime / audio.duration * 100) + '%';
+      if (time) time.textContent = fmtTime(audio.currentTime);
+    });
+    if (track) on(track, 'pointerdown', function (e) {
+      var r = track.getBoundingClientRect();
+      if (audio.duration) audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+    });
   });
 
   /* ── Mensaje oculto ── */

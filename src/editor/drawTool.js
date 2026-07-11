@@ -11,6 +11,7 @@
  * ============================================================ */
 
 import { el, download, fileToDataURL } from '../utils/helpers.js';
+import { ic } from './icons.js';
 
 /** Texturas de papel de la libreta (fondo visual del lienzo de dibujo). */
 const PAPERS = {
@@ -265,7 +266,7 @@ export class DrawTool {
       onchange: async (e) => { if (e.target.files[0]) await this.addPhoto(e.target.files[0]); e.target.value = ''; },
     });
     const bar = el('div', { class: 'draw-toolbar', style: { display: 'none' } }, [
-      el('span', { text: '📓 Libreta:' }),
+      el('span', { class: 'draw-title', html: `${ic('pen', 15)}<span>Libreta</span>` }),
       el('select', {
         class: 'input mini-select', title: 'Estilo de pincel',
         onchange: (e) => { this.brush.type = e.target.value; this.brush.eraser = false; },
@@ -277,15 +278,15 @@ export class DrawTool {
       el('input', { type: 'color', value: this.brush.color, title: 'Color', oninput: (e) => { this.brush.color = e.target.value; this.brush.eraser = false; } }),
       el('label', {}, ['Tamaño ', el('input', { type: 'range', min: 1, max: 80, value: this.brush.size, oninput: (e) => { this.brush.size = +e.target.value; } })]),
       el('label', {}, ['Opacidad ', el('input', { type: 'range', min: 5, max: 100, value: 100, oninput: (e) => { this.brush.opacity = +e.target.value / 100; } })]),
-      el('button', { class: 'btn', text: '◫ Borrador', onclick: (e) => { this.brush.eraser = !this.brush.eraser; e.target.classList.toggle('active', this.brush.eraser); } }),
+      el('button', { class: 'btn', html: `${ic('square', 13)}<span>Borrador</span>`, onclick: (e) => { this.brush.eraser = !this.brush.eraser; e.target.classList.toggle('active', this.brush.eraser); } }),
       photoInput,
-      el('button', { class: 'btn', text: '🖼 Foto', title: 'Añade una fotografía de tu galería al dibujo', onclick: () => photoInput.click() }),
-      el('button', { class: 'btn', text: '↶', title: 'Deshacer trazo', onclick: () => this.undoStroke() }),
-      el('button', { class: 'btn', text: '↷', title: 'Rehacer trazo', onclick: () => this.redoStroke() }),
-      el('button', { class: 'btn', text: '🗑 Limpiar', onclick: () => this.clear() }),
-      el('button', { class: 'btn', text: '⬇ PNG', title: 'Descargar la hoja', onclick: () => this.downloadPNG() }),
-      el('button', { class: 'btn primary', text: '✓ Convertir en componente', onclick: () => this.toComponent() }),
-      el('button', { class: 'btn', text: '× Salir', onclick: () => this.store.setTool('select') }),
+      el('button', { class: 'btn', html: `${ic('image', 13)}<span>Foto</span>`, title: 'Añade una fotografía de tu galería al dibujo', onclick: () => photoInput.click() }),
+      el('button', { class: 'btn btn-ic', html: ic('undo', 14), title: 'Deshacer trazo', onclick: () => this.undoStroke() }),
+      el('button', { class: 'btn btn-ic', html: ic('redo', 14), title: 'Rehacer trazo', onclick: () => this.redoStroke() }),
+      el('button', { class: 'btn', html: `${ic('trash', 13)}<span>Limpiar</span>`, onclick: () => this.clear() }),
+      el('button', { class: 'btn', html: `${ic('download', 13)}<span>PNG</span>`, title: 'Descargar la hoja', onclick: () => this.downloadPNG() }),
+      el('button', { class: 'btn primary', html: `${ic('check', 13)}<span>Convertir en componente</span>`, onclick: () => this.toComponent() }),
+      el('button', { class: 'btn btn-ic', html: ic('close', 14), title: 'Salir', onclick: () => this.store.setTool('select') }),
     ]);
     return bar;
   }

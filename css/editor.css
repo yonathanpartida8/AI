@@ -38,7 +38,22 @@ body::before {
   to   { transform: translate(-2.5%, -2%) scale(1.06); }
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+/* Sin azules del navegador: selección, foco y toques con estilo propio */
+::selection { background: rgba(255, 143, 171, .35); color: #fff; }
+button, [draggable], .palette-item, .block-item, .tab-btn, .seg-btn { user-select: none; -webkit-user-select: none; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid rgba(255, 255, 255, .55); outline-offset: 2px; border-radius: 6px; }
+
+.ic { display: inline-block; vertical-align: -3px; flex: none; }
+.btn .ic + span, .brand .ic + span { margin-left: 6px; }
+.btn-ic { padding: 7px 9px; display: inline-flex; align-items: center; }
+.btn { display: inline-flex; align-items: center; }
+.seg-btn { display: inline-flex; align-items: center; gap: 5px; }
+.brand { display: inline-flex; align-items: center; }
+.brand small { font-weight: 500; color: var(--text-dim); }
+.draw-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 
 html, body {
   height: 100%;
@@ -313,7 +328,7 @@ button { font: inherit; color: inherit; }
    con el export; #artboard da la especificidad para ganar aquí.) */
 #artboard .wb-node { user-select: none; }
 #artboard .wb-node .wb-text { outline: none; }
-#artboard .wb-btn, #artboard .wb-heartbtn, #artboard .wb-nav { cursor: default; pointer-events: none; }
+#artboard .wb-btn, #artboard .wb-heartbtn, #artboard .wb-nav, #artboard .wb-mp-play, #artboard .wb-mp-track { cursor: default; pointer-events: none; }
 #artboard .wb-embed iframe { pointer-events: none; } /* editable como objeto */
 #artboard .wb-form input, #artboard .wb-form textarea, #artboard .wb-form button { pointer-events: none; }
 #artboard .wb-menu a { pointer-events: none; }
@@ -391,7 +406,8 @@ body.preview #ruler-corner { display: none; }
 body.preview #stage-area { grid-template: 0 1fr / 0 1fr; }
 body.preview .wb-btn, body.preview .wb-menu a, body.preview .wb-form input,
 body.preview .wb-form textarea, body.preview .wb-form button,
-body.preview .wb-nav, body.preview .wb-heartbtn { pointer-events: auto; cursor: pointer; }
+body.preview .wb-nav, body.preview .wb-heartbtn,
+body.preview .wb-mp-play, body.preview .wb-mp-track { pointer-events: auto; cursor: pointer; }
 body.preview #artboard .wb-embed iframe { pointer-events: auto; } /* gana al bloqueo de edición */
 body.preview .wb-node { user-select: text; }
 body.preview .wb-placeholder { opacity: .25; }
@@ -522,6 +538,92 @@ body.preview #fab-add { display: none !important; }
   .h-rotate { top: -34px; border-radius: 50%; }
   .sel-label { margin-bottom: 40px; }
 }
+
+/* ── Color Picker profesional ───────────────────────── */
+
+.cp-open {
+  width: 34px; height: 32px; flex: none; border: 1px solid var(--edge);
+  border-radius: 9px; cursor: pointer; padding: 0;
+  background-image: linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%);
+  background-size: 10px 10px;
+}
+.cp-pop {
+  position: fixed; z-index: 300; width: 236px; padding: 14px;
+  background: rgba(18, 18, 22, .92);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: .5px solid var(--edge); border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255,255,255,.12);
+  animation: cp-in .22s cubic-bezier(.2, .9, .25, 1) both;
+  display: flex; flex-direction: column; gap: 10px;
+}
+@keyframes cp-in { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+.cp-wheel-wrap { position: relative; width: 168px; height: 168px; margin: 0 auto; touch-action: none; }
+.cp-wheel { display: block; }
+.cp-sv {
+  position: absolute; left: 50%; top: 50%; width: 116px; height: 116px;
+  transform: translate(-50%, -50%); border-radius: 12px; cursor: crosshair;
+}
+.cp-cursor {
+  position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  border: 2.5px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.55);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.cp-cursor-hue { width: 12px; height: 12px; }
+.cp-row { display: flex; align-items: center; gap: 8px; }
+.cp-preview {
+  width: 34px; height: 34px; flex: none; border: 1px solid var(--edge);
+  border-radius: 10px; cursor: pointer; position: relative;
+}
+.cp-preview::after {
+  content: '+'; position: absolute; right: -4px; top: -6px; width: 15px; height: 15px;
+  background: #fff; color: #000; border-radius: 50%; font: 800 11px/15px sans-serif; text-align: center;
+}
+.cp-hex { flex: 1; font-family: monospace; font-size: 12px; }
+.cp-label { font-size: 11px; color: var(--text-dim); width: 30px; }
+.cp-alpha {
+  flex: 1; appearance: none; height: 12px; border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent, var(--cp-c, #fff)),
+    repeating-conic-gradient(#777 0 25%, #444 0 50%) 0 0/10px 10px;
+}
+.cp-alpha::-webkit-slider-thumb {
+  appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; border: 2px solid rgba(0,0,0,.5); cursor: pointer;
+}
+.cp-favs { display: flex; flex-wrap: wrap; gap: 6px; min-height: 4px; }
+.cp-fav { width: 22px; height: 22px; border: 1px solid var(--edge); border-radius: 7px; cursor: pointer; }
+.cp-fav:hover { transform: scale(1.15); }
+
+/* ── Barra rápida contextual (elemento seleccionado) ── */
+
+.quickbar {
+  position: absolute; display: flex; gap: 2px; padding: 4px;
+  background: rgba(18, 18, 22, .92);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: .5px solid var(--edge); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+  pointer-events: auto;
+  transform: scale(var(--izoom, 1)); transform-origin: bottom left;
+  animation: cp-in .18s cubic-bezier(.2, .9, .25, 1) both;
+}
+.quickbar button {
+  width: 30px; height: 30px; border: none; border-radius: 8px;
+  background: none; color: var(--text); cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .12s, transform .12s;
+}
+.quickbar button:hover { background: rgba(255, 255, 255, .12); }
+.quickbar button:active { transform: scale(.88); }
+.quickbar button.danger:hover { background: var(--danger); }
+
+/* ── Editor de línea de tiempo ──────────────────────── */
+
+.tl-editor { display: flex; flex-direction: column; gap: 10px; }
+.tl-row { display: flex; flex-direction: column; gap: 5px; padding: 8px; border: .5px solid var(--border); border-radius: 12px; background: var(--panel-2); }
+.tl-row-head { display: flex; gap: 4px; }
+.tl-row-head .input { flex: 1; }
+.layer-grip { color: var(--text-dim); cursor: grab; flex: none; display: inline-flex; }
+.layer-item.drop-hint { border-color: var(--pink); box-shadow: 0 0 0 1px var(--pink); }
 
 /* ── Scrollbars ─────────────────────────────────────── */
 

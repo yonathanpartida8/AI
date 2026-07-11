@@ -34,7 +34,7 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Amor Builder — Creador de experiencias románticas</title>
+  <title>BuilderYNTHN_M-Beta</title>
   <link rel="icon" href="icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#16101e">

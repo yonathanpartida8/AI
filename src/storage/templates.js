@@ -33,7 +33,7 @@ const load = (preset, delay = 0, extra = {}) => ({ preset, trigger: 'load', dura
 function heroBlock(y) {
   const nodes = [
     node('section', { x: 0, y, w: W, h: 780 }, {
-      name: 'Fondo héroe',
+      name: 'Pulsa para cambiar este recuerdo :>',
       styles: { background: 'linear-gradient(160deg,#0f0c29 0%,#1c1548 45%,#0b1020 100%)' },
     }),
     node('particles', { x: 0, y, w: W, h: 780 }, {
@@ -124,7 +124,7 @@ function quoteBlock(y) {
     height: 360,
     nodes: [
       node('section', { x: 0, y, w: W, h: 360 }, {
-        name: 'Fondo cita',
+        name: 'Un pensamiento bonito',
         styles: { background: 'linear-gradient(90deg,#0b1020,#1e1b4b,#0b1020)' },
       }),
       node('icon', { x: 600, y: y + 48, w: 80, h: 64 }, {
@@ -201,7 +201,7 @@ function footerBlock(y) {
   return {
     height: 300,
     nodes: [
-      node('section', { x: 0, y, w: W, h: 300 }, { name: 'Fondo pie', styles: { background: '#080b14' } }),
+      node('section', { x: 0, y, w: W, h: 300 }, { name: 'El cierre con cariño', styles: { background: '#080b14' } }),
       node('text', { x: 90, y: y + 66, w: 320, h: 44 }, {
         name: 'Marca pie', props: { text: '◆ Mi Sitio', tag: 'h3' },
         styles: { fontSize: 24, fontWeight: '800', textAlign: 'left', color: '#e2e8f0' },
@@ -232,27 +232,27 @@ function romanticHeroBlock(y) {
     height: 820,
     nodes: [
       node('section', { x: 0, y, w: W, h: 820 }, {
-        name: 'Cielo romántico',
+        name: 'Pulsa para cambiar este cielo :>',
         styles: { background: 'linear-gradient(175deg,#1e0a2e 0%,#3b0f3f 45%,#180b2b 100%)' },
       }),
       node('particles', { x: 0, y, w: W, h: 820 }, {
-        name: 'Corazones flotando',
+        name: 'Corazones que flotan por ti',
         styles: { background: 'transparent', radius: 0 },
         props: { count: 90, color: '#f472b6', speed: 0.7, size: 3, mode: 'corazones' },
       }),
       node('particles', { x: 0, y, w: W, h: 820 }, {
-        name: 'Estrellas titilando',
+        name: 'Estrellitas de nuestras noches',
         styles: { background: 'transparent', radius: 0 },
         props: { count: 160, color: '#fbcfe8', speed: 0.6, size: 1.6, mode: 'estrellas' },
       }),
       node('text', { x: 240, y: y + 210, w: 800, h: 150 }, {
-        name: 'Título romántico',
+        name: 'Estas palabras son para ti',
         props: { text: 'Para ti, mi amor', tag: 'h1', textFx: 'brillo' },
         styles: { fontSize: 64, fontWeight: '900', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia', textGlow: 'rosa' },
         animation: load('zoomIn', 200, { duration: 1400 }),
       }),
       node('typewriter', { x: 290, y: y + 390, w: 700, h: 60 }, {
-        name: 'Dedicatoria',
+        name: 'Lo que quiero decirte',
         props: { text: 'Hice esta página solo para ti… cada rincón guarda algo nuestro 💌', speed: 70, loop: true },
         styles: { fontSize: 21, color: '#f9a8d4', textAlign: 'center', fontFamily: 'Georgia' },
       }),
@@ -310,7 +310,7 @@ function countdownBlock(y) {
     height: 320,
     nodes: [
       node('section', { x: 0, y, w: W, h: 320 }, {
-        name: 'Fondo contador',
+        name: 'El tiempo que llevamos brillando',
         styles: { background: 'linear-gradient(90deg,#180b2b,#4a1042,#180b2b)' },
       }),
       node('text', { x: 340, y: y + 55, w: 600, h: 50 }, {
@@ -373,7 +373,7 @@ function chapterBlock(y) {
     height: 520,
     nodes: [
       node('section', { x: 0, y, w: W, h: 520 }, {
-        name: 'Fondo capítulo',
+        name: 'El fondo de este capítulo',
         styles: { background: 'linear-gradient(160deg,#0f0a1e,#2a0f35)' },
       }),
       node('text', { x: 440, y: y + 90, w: 400, h: 40 }, {
@@ -464,7 +464,7 @@ function contactBlock(y) {
     height: 620,
     nodes: [
       node('section', { x: 0, y, w: W, h: 620 }, {
-        name: 'Fondo contacto',
+        name: 'Donde me encuentras',
         styles: { background: 'linear-gradient(180deg,#0b1020,#151233,#0b1020)' },
       }),
       node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
@@ -631,10 +631,109 @@ function questionBlock(y) {
   };
 }
 
+function giftBlock(y) {
+  const gifts = [['Un deseo', 'Pide lo que quieras'], ['Una promesa', 'Te la debo'], ['Una sorpresa', 'Muy pronto…']];
+  const nodes = [
+    node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
+      name: 'Regalos para ti', props: { text: 'Tienes regalos por abrir', tag: 'h2' },
+      styles: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+      animation: scroll('fadeInUp'),
+    }),
+  ];
+  gifts.forEach(([title, sub], i) => {
+    const box = node('container', { x: 150 + i * 350, y: y + 170, w: 290, h: 200 }, {
+      name: `Regalo ${i + 1}`,
+      styles: { background: 'linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04))', radius: 22, borderWidth: 1, borderColor: 'rgba(255,143,171,.4)', shadow: 'media' },
+      animation: scroll('caida', i * 160),
+    });
+    box.effects = { parallax: 0, tilt: true, press: 'rebote', hoverFx: 'elevar' };
+    box.events = [{
+      on: 'click',
+      actions: [
+        { action: 'burstHearts', target: '', value: '🎁', delay: 0 },
+        { action: 'showMessage', target: '', value: `${title}: ${sub}`, delay: 250 },
+        { action: 'vibrate', target: '', value: '60', delay: 0 },
+      ],
+    }];
+    nodes.push(box,
+      node('text', { x: 150 + i * 350 + 20, y: y + 230, w: 250, h: 40 }, {
+        name: `Título regalo ${i + 1}`, props: { text: title, tag: 'h3' },
+        styles: { fontSize: 20, fontWeight: '700', textAlign: 'center', color: '#fecdd3' },
+        animation: scroll('fadeIn', i * 160 + 120),
+      }),
+      node('text', { x: 150 + i * 350 + 20, y: y + 280, w: 250, h: 30 }, {
+        name: `Pista regalo ${i + 1}`, props: { text: 'Toca para abrirlo', tag: 'p' },
+        styles: { fontSize: 12, color: 'rgba(253,242,248,.55)', textAlign: 'center' },
+      }),
+    );
+  });
+  return { height: 440, nodes };
+}
+
+function calendarBlock(y) {
+  return {
+    height: 400,
+    nodes: [
+      node('text', { x: 340, y: y + 55, w: 600, h: 55 }, {
+        name: 'Fecha para recordar', props: { text: 'Una fecha para no olvidar', tag: 'h2' },
+        styles: { fontSize: 32, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      node('container', { x: 460, y: y + 135, w: 360, h: 210 }, {
+        name: 'Hoja de calendario',
+        styles: { background: '#fdf6ec', radius: 22, shadow: 'fuerte' },
+        animation: scroll('giro3d', 150),
+      }),
+      node('shape', { x: 460, y: y + 135, w: 360, h: 54 }, {
+        name: 'Cabecera calendario',
+        styles: { background: 'linear-gradient(90deg,#f43f5e,#ec4899)', radius: 0 },
+        animation: scroll('fadeIn', 200),
+      }),
+      node('text', { x: 470, y: y + 147, w: 340, h: 32 }, {
+        name: 'Mes especial', props: { text: 'FEBRERO', tag: 'p' },
+        styles: { fontSize: 17, fontWeight: '800', textAlign: 'center', color: '#fff', letterSpacing: 6 },
+        animation: scroll('fadeIn', 250),
+      }),
+      node('text', { x: 470, y: y + 195, w: 340, h: 100 }, {
+        name: 'El día', props: { text: '14', tag: 'h2' },
+        styles: { fontSize: 84, fontWeight: '900', textAlign: 'center', color: '#1c1024' },
+        animation: scroll('zoomIn', 320),
+      }),
+      node('text', { x: 470, y: y + 300, w: 340, h: 30 }, {
+        name: 'Por qué importa', props: { text: 'El día que empezó todo', tag: 'p' },
+        styles: { fontSize: 14, textAlign: 'center', color: '#8b5f6b', fontFamily: 'Georgia' },
+        animation: scroll('fadeIn', 400),
+      }),
+    ],
+  };
+}
+
+function gameBlock(y) {
+  const game = node('customHTML', { x: 240, y: y + 150, w: 800, h: 380 }, {
+    name: 'Atrapa mi corazón (juego)',
+    props: {
+      html: '<div class="cazacorazon"><div class="cc-marcador">Atrapa mi corazón · <b>0</b>/5</div><button class="cc-heart" aria-label="corazón"><svg viewBox="0 0 24 24" width="34" height="34" fill="#ff5f8f"><path d="M12 20s-7.5-4.9-9.3-9.1C1.3 7.6 3.6 4.5 6.8 4.5c2 0 3.6 1.1 4.4 2.7l.8 1.6.8-1.6c.8-1.6 2.4-2.7 4.4-2.7 3.2 0 5.5 3.1 4.1 6.4C19.5 15.1 12 20 12 20z"/></svg></button><div class="cc-final">¡Me atrapaste! Ya era tuyo desde el principio.</div></div>',
+      css: '.cazacorazon{position:relative;width:100%;height:100%;border-radius:22px;background:linear-gradient(160deg,#1c1024,#2a1535);overflow:hidden;font-family:system-ui;color:#fff}.cc-marcador{position:absolute;top:14px;left:0;right:0;text-align:center;opacity:.85;font-size:14px;letter-spacing:.06em}.cc-heart{position:absolute;left:45%;top:45%;background:none;border:none;cursor:pointer;transition:left .25s cubic-bezier(.2,.9,.3,1.4),top .25s cubic-bezier(.2,.9,.3,1.4),transform .15s;filter:drop-shadow(0 6px 16px rgba(255,95,143,.5))}.cc-heart:active{transform:scale(.8)}.cc-final{position:absolute;inset:0;display:grid;place-items:center;font:700 22px Georgia,serif;text-align:center;padding:20px;background:rgba(28,16,36,.9);opacity:0;pointer-events:none;transition:opacity .6s}.cazacorazon.fin .cc-final{opacity:1}',
+      js: "const caja=document.currentScript.closest('.wb-custom').querySelector('.cazacorazon');const h=caja.querySelector('.cc-heart');const m=caja.querySelector('.cc-marcador b');let n=0;function huye(){h.style.left=(8+Math.random()*78)+'%';h.style.top=(18+Math.random()*66)+'%';}h.addEventListener('pointerenter',()=>{if(n<4)huye();});h.addEventListener('click',()=>{n++;m.textContent=n;if(navigator.vibrate)navigator.vibrate(25);if(n>=5){caja.classList.add('fin');}else huye();});",
+    },
+  });
+  return {
+    height: 600,
+    nodes: [
+      node('text', { x: 340, y: y + 55, w: 600, h: 55 }, {
+        name: 'Título del juego', props: { text: '¿Podrás atraparlo?', tag: 'h2' },
+        styles: { fontSize: 32, fontWeight: '800', textAlign: 'center', color: '#fdf2f8', fontFamily: 'Georgia' },
+        animation: scroll('fadeInUp'),
+      }),
+      game,
+    ],
+  };
+}
+
 /* ── API pública ─────────────────────────────────────── */
 
 export const BLOCKS = {
-  romanticHero: { label: 'Portada romántica 💘', icon: '💘', build: romanticHeroBlock },
+  romanticHero: { label: 'Portada romántica', icon: '💘', build: romanticHeroBlock },
   letter: { label: 'Carta de amor', icon: '💌', build: letterBlock },
   timelineB: { label: 'Nuestra historia (línea de tiempo)', icon: '🕰', build: timelineBlock },
   countdownB: { label: 'Contador de amor', icon: '⏳', build: countdownBlock },
@@ -645,6 +744,9 @@ export const BLOCKS = {
   reasons: { label: 'Razones por las que te amo', icon: '💝', build: reasonsBlock },
   coupons: { label: 'Cupones de amor', icon: '🎟', build: couponsBlock },
   question: { label: 'La gran pregunta (Sí/No)', icon: '💍', build: questionBlock },
+  gift: { label: 'Regalos por abrir', icon: '🎁', build: giftBlock },
+  calendar: { label: 'Fecha para recordar', icon: '📅', build: calendarBlock },
+  game: { label: 'Juego: atrapa mi corazón', icon: '🕹', build: gameBlock },
   hero: { label: 'Héroe con partículas', icon: '✨', build: heroBlock },
   features: { label: 'Características (3 tarjetas)', icon: '🃏', build: featuresBlock },
   quote: { label: 'Cita destacada', icon: '❝', build: quoteBlock },
