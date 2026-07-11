@@ -363,6 +363,29 @@ contenido/
 Cada carpeta tiene un `index.js` con instrucciones: crear un archivo,
 añadirlo a la lista y `npm run build`.
 
+## Multi-HTML sin conflictos (v5)
+
+Cada HTML importado vive en un **iframe con srcdoc**: CSS, JavaScript,
+variables globales y eventos totalmente aislados entre sí y del editor
+(verificado con documentos en conflicto deliberado: cada uno conserva su
+propio `window` y estado). En el sitio exportado el documento viaja en
+`data-doc` y el runtime lo monta con **carga diferida escalonada**: al
+acercarse al viewport (margen 160%) y UN documento por frame — varios HTML
+pesados conviven sin picos de CPU ni caídas de FPS.
+
+## Optimizaciones v5
+
+- **Historial coalescido**: las ráfagas de una misma operación (flechas,
+  arrastres) comparten un solo snapshot → sin clones del proyecto por
+  pulsación y un único deshacer por gesto.
+- **Pausa en gesto**: mientras arrastras/redimensionas, todas las
+  simulaciones WebGL se pausan (`body.wb-gesturing`) → el gesto tiene el
+  frame entero para sí.
+- Panel de propiedades/capas con reconstrucción diferida (100 ms tras el
+  último cambio): 13 ms/commit en ráfagas con HTML pesado + WebGL.
+- Fugas corregidas: listeners de ventana del motor 3D retirados en
+  dispose + geometrías/materiales liberados; `setPointerCapture` blindado.
+
 ## Rendimiento (aplicado, no prometido)
 
 - `requestAnimationFrame` + throttle en overlay de selección y reglas.

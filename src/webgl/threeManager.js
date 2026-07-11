@@ -199,16 +199,20 @@ export class ThreeManager {
     const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; });
     io.observe(elem);
 
+    // Listeners de ventana registrados con nombre → se retiran en dispose
+    // (antes quedaban vivos para siempre: fuga de memoria y eventos duplicados)
     let dragging = false, lastX = 0, lastY = 0;
+    const onWinMove = (e) => {
+      if (!dragging) return;
+      pivot.rotation.y += (e.clientX - lastX) * 0.01;
+      pivot.rotation.x += (e.clientY - lastY) * 0.01;
+      lastX = e.clientX; lastY = e.clientY;
+    };
+    const onWinUp = () => { dragging = false; };
     if (interactive) {
       renderer.domElement.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
-      window.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        pivot.rotation.y += (e.clientX - lastX) * 0.01;
-        pivot.rotation.x += (e.clientY - lastY) * 0.01;
-        lastX = e.clientX; lastY = e.clientY;
-      });
-      window.addEventListener('pointerup', () => { dragging = false; });
+      window.addEventListener('pointermove', onWinMove);
+      window.addEventListener('pointerup', onWinUp);
     }
 
     const tick = () => {
@@ -237,6 +241,9 @@ export class ThreeManager {
       disposed = true;
       cancelAnimationFrame(raf);
       io.disconnect(); ro.disconnect();
+      window.removeEventListener('pointermove', onWinMove);
+      window.removeEventListener('pointerup', onWinUp);
+      scene.traverse((obj) => { obj.geometry?.dispose?.(); obj.material?.dispose?.(); });
       renderer.dispose();
       renderer.domElement.remove();
     });

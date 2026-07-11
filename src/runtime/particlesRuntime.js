@@ -22,6 +22,9 @@ export function wbParticles(canvas) {
   var count = Math.min(+d.count || 400, 8000);
   var speed = +d.speed || 1;
   var baseSize = +d.size || 2;
+  var globalAlpha = d.opacity !== undefined && d.opacity !== '' ? Math.max(0, Math.min(1, +d.opacity)) : 1;
+  var shapeOverride = d.shape || 'auto'; // auto | disco | corazón | estrella
+  var glow = d.glow !== 'false'; // brillo aditivo configurable
   var gl = canvas.getContext('webgl2', { alpha: true, powerPreference: 'high-performance' });
   if (!gl) return function () {};
   var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -65,7 +68,7 @@ export function wbParticles(canvas) {
     /* ── Fondos procedurales a pantalla completa ── */
     var qp = program(
       '#version 300 es\nin vec2 aPos;void main(){gl_Position=vec4(aPos,0.,1.);}',
-      '#version 300 es\nprecision highp float;uniform vec2 uRes;uniform float uTime;uniform vec3 uColor;uniform int uKind;out vec4 o;\n' +
+      '#version 300 es\nprecision highp float;uniform vec2 uRes;uniform float uTime;uniform vec3 uColor;uniform int uKind;uniform float uA;out vec4 o;\n' +
       'void main(){vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;vec3 col=vec3(0.);float alpha=0.;\n' +
       'if(uKind==0){\n' + // aurora: bandas de luz onduladas
       ' for(int i=0;i<3;i++){float fi=float(i);\n' +
@@ -89,6 +92,7 @@ export function wbParticles(canvas) {
     gl.vertexAttribPointer(qa, 2, gl.FLOAT, false, 0, 0);
     gl.uniform3fv(gl.getUniformLocation(qp, 'uColor'), rgb);
     gl.uniform1i(gl.getUniformLocation(qp, 'uKind'), mode === 'aurora' ? 0 : 1);
+    gl.uniform1f(gl.getUniformLocation(qp, 'uA'), globalAlpha);
     var quRes = gl.getUniformLocation(qp, 'uRes');
     var quTime = gl.getUniformLocation(qp, 'uTime');
     gl.enable(gl.BLEND);
@@ -97,7 +101,7 @@ export function wbParticles(canvas) {
     var stepQ = function (now) {
       if (disposed) return;
       raf = requestAnimationFrame(stepQ);
-      if (!visible) { last = now; return; }
+      if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now; t += dt * speed;
       gl.uniform2f(quRes, canvas.width, canvas.height);
@@ -107,23 +111,32 @@ export function wbParticles(canvas) {
     };
     raf = requestAnimationFrame(stepQ);
   } else {
-    /* ── Point sprites (con forma de corazón por SDF) ── */
+    /* ── Point sprites (formas por SDF: disco, corazón, estrella) ── */
     var isHeart = mode === 'corazones';
-    var soft = mode === 'nieve' || isHeart; // blending normal, no aditivo
+    var shapeId = shapeOverride === 'corazón' ? 1 : shapeOverride === 'estrella' ? 2
+      : shapeOverride === 'disco' ? 0 : (isHeart ? 1 : 0);
+    var soft = !glow || mode === 'nieve' || shapeId === 1; // blending normal
     var pp = program(
       '#version 300 es\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;\n' +
       'void main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);\n' +
       'gl_PointSize=uSize*(0.45+aLife*0.9);vLife=aLife;}',
-      '#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;in float vLife;out vec4 o;\n' +
+      '#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;uniform float uAlpha;in float vLife;out vec4 o;\n' +
+      'float sdStar(vec2 p){const float an=0.6283;const float en=1.0472;\n' +
+      ' vec2 acs=vec2(cos(an),sin(an));vec2 ecs=vec2(cos(en),sin(en));\n' +
+      ' float bn=mod(atan(p.x,p.y),2.0*an)-an;p=length(p)*vec2(cos(bn),abs(sin(bn)));\n' +
+      ' p-=acs*0.5;p+=ecs*clamp(-dot(p,ecs),0.0,0.5*acs.y);return length(p)*sign(p.x);}\n' +
       'void main(){float alpha;vec3 col=uColor;\n' +
       'if(uShape==1){vec2 p=(gl_PointCoord-vec2(0.5,0.42))*2.6;p.y=-p.y;\n' +
       ' float a=p.x*p.x+p.y*p.y-0.55;float f=a*a*a-p.x*p.x*p.y*p.y*p.y;\n' +
       ' alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\n' +
+      'else if(uShape==2){vec2 p=(gl_PointCoord-vec2(0.5))*2.3;\n' +
+      ' alpha=smoothstep(0.06,-0.04,sdStar(p))*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.3);}\n' +
       'else{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\n' +
-      'o=vec4(col,alpha);}');
+      'o=vec4(col,alpha*uAlpha);}');
     gl.uniform3fv(gl.getUniformLocation(pp, 'uColor'), rgb);
-    gl.uniform1i(gl.getUniformLocation(pp, 'uShape'), isHeart ? 1 : 0);
-    gl.uniform1f(gl.getUniformLocation(pp, 'uSize'), baseSize * dpr * (isHeart ? 7 : 2.2));
+    gl.uniform1i(gl.getUniformLocation(pp, 'uShape'), shapeId);
+    gl.uniform1f(gl.getUniformLocation(pp, 'uAlpha'), globalAlpha);
+    gl.uniform1f(gl.getUniformLocation(pp, 'uSize'), baseSize * dpr * (shapeId > 0 ? 7 : 2.2));
     var puRes = gl.getUniformLocation(pp, 'uRes');
     var W = function () { return canvas.width; }, H = function () { return canvas.height; };
     var pos = new Float32Array(count * 2), vel = new Float32Array(count * 2);
@@ -145,7 +158,7 @@ export function wbParticles(canvas) {
     var stepP = function (now) {
       if (disposed) return;
       raf = requestAnimationFrame(stepP);
-      if (!visible) { last = now; return; }
+      if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now;
       var k = dt * 60 * speed;

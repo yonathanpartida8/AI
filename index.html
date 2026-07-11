@@ -960,7 +960,7 @@ body.preview #fab-add { display: none !important; }
       cat: "Avanzados",
       size: [640, 400],
       defaults: {
-        props: { count: 400, color: "#818cf8", speed: 1, size: 2, mode: "nebulosa" },
+        props: { count: 400, color: "#818cf8", speed: 1, size: 2, mode: "nebulosa", opacity: 1, shape: "auto", glow: true },
         styles: { background: "#020617", radius: 12 }
       },
       schema: [
@@ -969,6 +969,9 @@ body.preview #fab-add { display: none !important; }
         color("props.color", "Color"),
         num("props.speed", "Velocidad", 0.1, 10, 0.1),
         num("props.size", "Tama\xF1o", 0.5, 20, 0.5),
+        num("props.opacity", "Opacidad de part\xEDculas", 0, 1, 0.05),
+        select("props.shape", "Forma", ["auto", "disco", "coraz\xF3n", "estrella"]),
+        check("props.glow", "Brillo aditivo (resplandor)"),
         ...STYLE_COMMON
       ]
     },
@@ -2061,6 +2064,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     #history = [];
     #future = [];
     #autosave = debounce(() => this.persist(), 800);
+    #lastSnapAt = 0;
+    #lastSnapLabel = "";
     /* ── Ciclo de vida ─────────────────────────────────── */
     async init() {
       const saved = localStorage.getItem(LS_KEY);
@@ -2118,7 +2123,20 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       this.emit("saved");
     }
     /* ── Historial ─────────────────────────────────────── */
-    snapshot() {
+    /**
+     * Guarda un punto de deshacer. Las ráfagas de la MISMA operación
+     * (flechas, arrastres de sliders…) se COALESCEN: clonar el proyecto
+     * entero en cada pulsación era el mayor coste oculto de la edición,
+     * y además llenaba el historial de micro-pasos inútiles.
+     */
+    snapshot(label = "op") {
+      const now = Date.now();
+      if (label === this.#lastSnapLabel && now - this.#lastSnapAt < 450) {
+        this.#lastSnapAt = now;
+        return;
+      }
+      this.#lastSnapAt = now;
+      this.#lastSnapLabel = label;
       this.#history.push(deepClone(this.project));
       if (this.#history.length > HISTORY_LIMIT) this.#history.shift();
       this.#future = [];
@@ -2211,7 +2229,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     }
     /* ── Nodos ─────────────────────────────────────────── */
     addNode(type, at = {}, extra = {}) {
-      this.snapshot();
+      this.snapshot("add");
       const def = componentDef(type);
       const id = uid("nd");
       const data = createNodeData(type, extra);
@@ -2241,7 +2259,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     }
     removeNodes(ids = this.selection) {
       if (!ids.length) return;
-      this.snapshot();
+      this.snapshot("remove");
       for (const id of ids) {
         delete this.project.nodes[id];
         for (const page of this.project.pages) {
@@ -2255,7 +2273,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     }
     duplicateNodes(ids = this.selection) {
       if (!ids.length) return;
-      this.snapshot();
+      this.snapshot("dup");
       const newIds = [];
       for (const id of ids) {
         const src = this.node(id);
@@ -2293,7 +2311,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     }
     nudge(dx, dy) {
       if (!this.selection.length) return;
-      this.snapshot();
+      this.snapshot("nudge");
       for (const node2 of this.selectedNodes) {
         if (node2.locked) continue;
         const f = this.frame(node2);
@@ -2846,10 +2864,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         const html = (ctx.htmlText ? ctx.htmlText(p.assetId) : "") || "";
         const doc = html.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
         const FULL = "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock";
-        const sandbox = ctx.editor && !p.liveInEditor ? "allow-same-origin" : FULL;
         const inert = !ctx.editor && p.interactive === false ? "pointer-events:none;" : "";
+        if (ctx.editor) {
+          const sandbox = p.liveInEditor ? FULL : "allow-same-origin";
+          return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
+          <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy"></iframe></div>`;
+        }
         return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
-        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy" style="${inert}"></iframe></div>`;
+        <iframe data-doc="${doc}" sandbox="${FULL}" style="${inert}"></iframe></div>`;
       }
       case "custom3D":
         return `<div class="wb-3d" data-kind="custom" data-cameraz="${p.cameraZ ?? 4}"><script type="text/wb-3d">${String(p.code || "").replaceAll("<\/script", "<\\/script")}<\/script></div>`;
@@ -2909,7 +2931,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }
       case "particles":
         return `<canvas class="wb-particles" data-count="${p.count ?? 400}" data-color="${p.color || "#818cf8"}"
-        data-speed="${p.speed ?? 1}" data-size="${p.size ?? 2}" data-mode="${p.mode || "nebulosa"}"></canvas>`;
+        data-speed="${p.speed ?? 1}" data-size="${p.size ?? 2}" data-mode="${p.mode || "nebulosa"}"
+        data-opacity="${p.opacity ?? 1}" data-shape="${p.shape || "auto"}" data-glow="${p.glow !== false}"></canvas>`;
       default:
         return `<div class="wb-placeholder">${esc(node2.type)}</div>`;
     }
@@ -3613,6 +3636,41 @@ ${steps.join("\n")}
         applyPx();
       }
     }
+    (function() {
+      var pending = qa(".wb-embed iframe[data-doc]");
+      if (!pending.length) return;
+      var queue = [], loading = false;
+      function pump() {
+        if (loading || !queue.length) return;
+        loading = true;
+        var frame = queue.shift();
+        requestAnimationFrame(function() {
+          frame.srcdoc = frame.getAttribute("data-doc");
+          frame.removeAttribute("data-doc");
+          frame.addEventListener("load", function() {
+            loading = false;
+            pump();
+          }, { once: true });
+          later(function() {
+            loading = false;
+            pump();
+          }, 1500);
+        });
+      }
+      var lio = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting && entry.target.hasAttribute("data-doc")) {
+            lio.unobserve(entry.target);
+            queue.push(entry.target);
+            pump();
+          }
+        });
+      }, { rootMargin: "160% 0px" });
+      pending.forEach(function(frame) {
+        lio.observe(frame);
+      });
+      observers.push(lio);
+    })();
     qa("audio[data-bgmusic]").forEach(function(audio) {
       audio.play().catch(function() {
         var kick = function() {
@@ -4037,7 +4095,10 @@ ${steps.join("\n")}
       if (this.store.tool === "draw") return;
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.pointers.size === 2) {
-        this.view.viewport.setPointerCapture(e.pointerId);
+        try {
+          this.view.viewport.setPointerCapture(e.pointerId);
+        } catch {
+        }
         const [a, b] = [...this.pointers.values()];
         this.gesture = {
           kind: "pinch",
@@ -4060,7 +4121,10 @@ ${steps.join("\n")}
         };
         return;
       }
-      this.view.viewport.setPointerCapture(e.pointerId);
+      try {
+        this.view.viewport.setPointerCapture(e.pointerId);
+      } catch {
+      }
       if (this.spaceDown || e.button === 1 || this.store.tool === "pan") {
         this.gesture = { kind: "pan", startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan } };
         return;
@@ -4097,7 +4161,8 @@ ${steps.join("\n")}
       }
     }
     #startMove(e) {
-      this.store.snapshot();
+      this.store.snapshot("gesture");
+      document.body.classList.add("wb-gesturing");
       const nodes = this.store.selectedNodes.filter((n) => !n.locked);
       this.gesture = {
         kind: "move",
@@ -4109,8 +4174,9 @@ ${steps.join("\n")}
     #startHandle(e, handle) {
       const node2 = this.store.selectedNodes[0];
       if (!node2 || node2.locked) return;
-      this.store.snapshot();
+      this.store.snapshot("gesture");
       const frame = this.store.frame(node2);
+      document.body.classList.add("wb-gesturing");
       if (handle === "rotate") {
         const elem = this.#nodeEl(node2.id);
         const rect = elem.getBoundingClientRect();
@@ -4145,7 +4211,10 @@ ${steps.join("\n")}
         if (g.lazy && !g.captured) {
           if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < 8) return;
           g.captured = true;
-          this.view.viewport.setPointerCapture(g.pointerId);
+          try {
+            this.view.viewport.setPointerCapture(g.pointerId);
+          } catch {
+          }
         }
         this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
         return;
@@ -4221,6 +4290,7 @@ ${steps.join("\n")}
       if (!g) return;
       if (g.kind === "pinch" && this.pointers.size > 0) return;
       this.gesture = null;
+      document.body.classList.remove("wb-gesturing");
       this.view.clearGuides();
       document.getElementById("marquee")?.remove();
       if (g.kind === "marquee" && g.x1 != null) {
@@ -4697,7 +4767,14 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         el("h4", { class: "panel-heading", text: "\u266B Tu m\xFAsica desde GitHub" }),
         el("p", { class: "panel-hint", html: "Estas pistas se leen de <b>src/config/musicLibrary.js</b> \u2014 cambia ah\xED los nombres de archivo (musica1.mp3, musica2.mp3\u2026) y tu repositorio." })
       );
-      this.previewAudio ||= new Audio();
+      if (!this.previewAudio) {
+        this.previewAudio = new Audio();
+        this.previewAudio.addEventListener("ended", () => {
+          this.root.querySelectorAll(".music-play").forEach((b) => {
+            b.textContent = "\u25B6";
+          });
+        });
+      }
       const list = el("div", { class: "music-list" });
       MUSIC_TRACKS.forEach((track) => {
         const url = trackURL(track);
@@ -4717,9 +4794,6 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               playBtn.textContent = "\u275A\u275A";
             }
           }
-        });
-        this.previewAudio.addEventListener("ended", () => {
-          playBtn.textContent = "\u25B6";
         });
         list.append(el("div", { class: "music-row" }, [
           playBtn,
@@ -5545,7 +5619,10 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     #start(e) {
       if (this.store.tool !== "draw") return;
       e.preventDefault();
-      this.canvas.setPointerCapture(e.pointerId);
+      try {
+        this.canvas.setPointerCapture(e.pointerId);
+      } catch {
+      }
       this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
       if (this.strokes.length > 24) this.strokes.shift();
       this.redoStack = [];
@@ -5769,6 +5846,9 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     var count = Math.min(+d.count || 400, 8e3);
     var speed = +d.speed || 1;
     var baseSize = +d.size || 2;
+    var globalAlpha = d.opacity !== void 0 && d.opacity !== "" ? Math.max(0, Math.min(1, +d.opacity)) : 1;
+    var shapeOverride = d.shape || "auto";
+    var glow = d.glow !== "false";
     var gl = canvas.getContext("webgl2", { alpha: true, powerPreference: "high-performance" });
     if (!gl) return function() {
     };
@@ -5811,7 +5891,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
     if (isQuad) {
       var qp = program(
         "#version 300 es\nin vec2 aPos;void main(){gl_Position=vec4(aPos,0.,1.);}",
-        "#version 300 es\nprecision highp float;uniform vec2 uRes;uniform float uTime;uniform vec3 uColor;uniform int uKind;out vec4 o;\nvoid main(){vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;vec3 col=vec3(0.);float alpha=0.;\nif(uKind==0){\n for(int i=0;i<3;i++){float fi=float(i);\n  float w=sin(uv.x*(4.0+fi*2.0)+uTime*(0.35+fi*0.22)+fi*2.1)*0.16;\n  float band=smoothstep(0.30,0.0,abs(uv.y-(0.30+fi*0.18)-w));\n  vec3 tint=mix(uColor,vec3(uColor.g,uColor.b,uColor.r),fi*0.45);\n  col+=tint*band*(0.65-fi*0.12);alpha=max(alpha,band*0.85);}\n}else{\n for(int i=0;i<3;i++){float fi=float(i);\n  float lvl=0.55+fi*0.14;\n  float w=sin(uv.x*(7.0+fi*4.0)-uTime*(1.1+fi*0.5)+fi)*0.035;\n  float line=smoothstep(0.012,0.0,abs(uv.y-lvl-w));\n  float fill=smoothstep(0.0,0.45,uv.y-lvl-w)*0.28;\n  col+=uColor*(line*0.9+fill);alpha=max(alpha,line*0.9+fill);}\n}\no=vec4(col,alpha);}"
+        "#version 300 es\nprecision highp float;uniform vec2 uRes;uniform float uTime;uniform vec3 uColor;uniform int uKind;uniform float uA;out vec4 o;\nvoid main(){vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;vec3 col=vec3(0.);float alpha=0.;\nif(uKind==0){\n for(int i=0;i<3;i++){float fi=float(i);\n  float w=sin(uv.x*(4.0+fi*2.0)+uTime*(0.35+fi*0.22)+fi*2.1)*0.16;\n  float band=smoothstep(0.30,0.0,abs(uv.y-(0.30+fi*0.18)-w));\n  vec3 tint=mix(uColor,vec3(uColor.g,uColor.b,uColor.r),fi*0.45);\n  col+=tint*band*(0.65-fi*0.12);alpha=max(alpha,band*0.85);}\n}else{\n for(int i=0;i<3;i++){float fi=float(i);\n  float lvl=0.55+fi*0.14;\n  float w=sin(uv.x*(7.0+fi*4.0)-uTime*(1.1+fi*0.5)+fi)*0.035;\n  float line=smoothstep(0.012,0.0,abs(uv.y-lvl-w));\n  float fill=smoothstep(0.0,0.45,uv.y-lvl-w)*0.28;\n  col+=uColor*(line*0.9+fill);alpha=max(alpha,line*0.9+fill);}\n}\no=vec4(col,alpha);}"
       );
       var qbuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, qbuf);
@@ -5821,6 +5901,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       gl.vertexAttribPointer(qa, 2, gl.FLOAT, false, 0, 0);
       gl.uniform3fv(gl.getUniformLocation(qp, "uColor"), rgb);
       gl.uniform1i(gl.getUniformLocation(qp, "uKind"), mode === "aurora" ? 0 : 1);
+      gl.uniform1f(gl.getUniformLocation(qp, "uA"), globalAlpha);
       var quRes = gl.getUniformLocation(qp, "uRes");
       var quTime = gl.getUniformLocation(qp, "uTime");
       gl.enable(gl.BLEND);
@@ -5828,7 +5909,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       var stepQ = function(now) {
         if (disposed) return;
         raf = requestAnimationFrame(stepQ);
-        if (!visible) {
+        if (!visible || document.body.classList.contains("wb-gesturing")) {
           last = now;
           return;
         }
@@ -5844,14 +5925,16 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       raf = requestAnimationFrame(stepQ);
     } else {
       var isHeart = mode === "corazones";
-      var soft = mode === "nieve" || isHeart;
+      var shapeId = shapeOverride === "coraz\xF3n" ? 1 : shapeOverride === "estrella" ? 2 : shapeOverride === "disco" ? 0 : isHeart ? 1 : 0;
+      var soft = !glow || mode === "nieve" || shapeId === 1;
       var pp = program(
         "#version 300 es\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;\nvoid main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);\ngl_PointSize=uSize*(0.45+aLife*0.9);vLife=aLife;}",
-        "#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;in float vLife;out vec4 o;\nvoid main(){float alpha;vec3 col=uColor;\nif(uShape==1){vec2 p=(gl_PointCoord-vec2(0.5,0.42))*2.6;p.y=-p.y;\n float a=p.x*p.x+p.y*p.y-0.55;float f=a*a*a-p.x*p.x*p.y*p.y*p.y;\n alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\nelse{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\no=vec4(col,alpha);}"
+        "#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;uniform float uAlpha;in float vLife;out vec4 o;\nfloat sdStar(vec2 p){const float an=0.6283;const float en=1.0472;\n vec2 acs=vec2(cos(an),sin(an));vec2 ecs=vec2(cos(en),sin(en));\n float bn=mod(atan(p.x,p.y),2.0*an)-an;p=length(p)*vec2(cos(bn),abs(sin(bn)));\n p-=acs*0.5;p+=ecs*clamp(-dot(p,ecs),0.0,0.5*acs.y);return length(p)*sign(p.x);}\nvoid main(){float alpha;vec3 col=uColor;\nif(uShape==1){vec2 p=(gl_PointCoord-vec2(0.5,0.42))*2.6;p.y=-p.y;\n float a=p.x*p.x+p.y*p.y-0.55;float f=a*a*a-p.x*p.x*p.y*p.y*p.y;\n alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\nelse if(uShape==2){vec2 p=(gl_PointCoord-vec2(0.5))*2.3;\n alpha=smoothstep(0.06,-0.04,sdStar(p))*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.3);}\nelse{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\no=vec4(col,alpha*uAlpha);}"
       );
       gl.uniform3fv(gl.getUniformLocation(pp, "uColor"), rgb);
-      gl.uniform1i(gl.getUniformLocation(pp, "uShape"), isHeart ? 1 : 0);
-      gl.uniform1f(gl.getUniformLocation(pp, "uSize"), baseSize * dpr * (isHeart ? 7 : 2.2));
+      gl.uniform1i(gl.getUniformLocation(pp, "uShape"), shapeId);
+      gl.uniform1f(gl.getUniformLocation(pp, "uAlpha"), globalAlpha);
+      gl.uniform1f(gl.getUniformLocation(pp, "uSize"), baseSize * dpr * (shapeId > 0 ? 7 : 2.2));
       var puRes = gl.getUniformLocation(pp, "uRes");
       var W2 = function() {
         return canvas.width;
@@ -5880,7 +5963,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       var stepP = function(now) {
         if (disposed) return;
         raf = requestAnimationFrame(stepP);
-        if (!visible) {
+        if (!visible || document.body.classList.contains("wb-gesturing")) {
           last = now;
           return;
         }
@@ -6166,22 +6249,24 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       });
       io.observe(elem);
       let dragging = false, lastX = 0, lastY = 0;
+      const onWinMove = (e) => {
+        if (!dragging) return;
+        pivot.rotation.y += (e.clientX - lastX) * 0.01;
+        pivot.rotation.x += (e.clientY - lastY) * 0.01;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      };
+      const onWinUp = () => {
+        dragging = false;
+      };
       if (interactive) {
         renderer.domElement.addEventListener("pointerdown", (e) => {
           dragging = true;
           lastX = e.clientX;
           lastY = e.clientY;
         });
-        window.addEventListener("pointermove", (e) => {
-          if (!dragging) return;
-          pivot.rotation.y += (e.clientX - lastX) * 0.01;
-          pivot.rotation.x += (e.clientY - lastY) * 0.01;
-          lastX = e.clientX;
-          lastY = e.clientY;
-        });
-        window.addEventListener("pointerup", () => {
-          dragging = false;
-        });
+        window.addEventListener("pointermove", onWinMove);
+        window.addEventListener("pointerup", onWinUp);
       }
       const tick = () => {
         if (disposed) return;
@@ -6213,6 +6298,12 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         cancelAnimationFrame(raf);
         io.disconnect();
         ro.disconnect();
+        window.removeEventListener("pointermove", onWinMove);
+        window.removeEventListener("pointerup", onWinUp);
+        scene.traverse((obj) => {
+          obj.geometry?.dispose?.();
+          obj.material?.dispose?.();
+        });
         renderer.dispose();
         renderer.domElement.remove();
       });

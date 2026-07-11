@@ -237,10 +237,17 @@ export function contentHTML(node, ctx) {
       const html = (ctx.htmlText ? ctx.htmlText(p.assetId) : '') || '';
       const doc = html.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
       const FULL = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock';
-      const sandbox = ctx.editor && !p.liveInEditor ? 'allow-same-origin' : FULL;
       const inert = !ctx.editor && p.interactive === false ? 'pointer-events:none;' : '';
+      if (ctx.editor) {
+        const sandbox = p.liveInEditor ? FULL : 'allow-same-origin';
+        return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
+          <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy"></iframe></div>`;
+      }
+      // EXPORT: carga diferida — el documento viaja en data-doc y el runtime
+      // lo monta al acercarse al viewport, ESCALONADO (uno por frame). Así
+      // varios HTML pesados conviven sin picos de CPU ni caídas de FPS.
       return `<div class="wb-embed" style="width:100%;height:100%;border-radius:inherit;overflow:hidden;position:relative">
-        <iframe srcdoc="${doc}" sandbox="${sandbox}" loading="lazy" style="${inert}"></iframe></div>`;
+        <iframe data-doc="${doc}" sandbox="${FULL}" style="${inert}"></iframe></div>`;
     }
 
     case 'custom3D':
@@ -321,7 +328,8 @@ export function contentHTML(node, ctx) {
 
     case 'particles':
       return `<canvas class="wb-particles" data-count="${p.count ?? 400}" data-color="${p.color || '#818cf8'}"
-        data-speed="${p.speed ?? 1}" data-size="${p.size ?? 2}" data-mode="${p.mode || 'nebulosa'}"></canvas>`;
+        data-speed="${p.speed ?? 1}" data-size="${p.size ?? 2}" data-mode="${p.mode || 'nebulosa'}"
+        data-opacity="${p.opacity ?? 1}" data-shape="${p.shape || 'auto'}" data-glow="${p.glow !== false}"></canvas>`;
 
     default:
       return `<div class="wb-placeholder">${esc(node.type)}</div>`;

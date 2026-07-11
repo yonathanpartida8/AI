@@ -58,7 +58,7 @@ export class Interactions {
     // Dos dedos → zoom (pinch) + desplazamiento (pan) simultáneos,
     // también en vista previa: el gesto de scroll SIEMPRE disponible.
     if (this.pointers.size === 2) {
-      this.view.viewport.setPointerCapture(e.pointerId);
+      try { this.view.viewport.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
       const [a, b] = [...this.pointers.values()];
       this.gesture = {
         kind: 'pinch',
@@ -82,7 +82,7 @@ export class Interactions {
       return;
     }
 
-    this.view.viewport.setPointerCapture(e.pointerId);
+    try { this.view.viewport.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
 
     // Pan: espacio, botón medio o herramienta mano
     if (this.spaceDown || e.button === 1 || this.store.tool === 'pan') {
@@ -121,7 +121,8 @@ export class Interactions {
   }
 
   #startMove(e) {
-    this.store.snapshot();
+    this.store.snapshot('gesture');
+    document.body.classList.add('wb-gesturing'); // pausa simulaciones WebGL
     const nodes = this.store.selectedNodes.filter((n) => !n.locked);
     this.gesture = {
       kind: 'move',
@@ -134,8 +135,9 @@ export class Interactions {
   #startHandle(e, handle) {
     const node = this.store.selectedNodes[0];
     if (!node || node.locked) return;
-    this.store.snapshot();
+    this.store.snapshot('gesture');
     const frame = this.store.frame(node);
+    document.body.classList.add('wb-gesturing');
     if (handle === 'rotate') {
       const elem = this.#nodeEl(node.id);
       const rect = elem.getBoundingClientRect();
@@ -175,7 +177,7 @@ export class Interactions {
       if (g.lazy && !g.captured) {
         if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < 8) return;
         g.captured = true;
-        this.view.viewport.setPointerCapture(g.pointerId);
+        try { this.view.viewport.setPointerCapture(g.pointerId); } catch { /* puntero sintético */ }
       }
       this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
       return;
@@ -250,6 +252,7 @@ export class Interactions {
     if (!g) return;
     if (g.kind === 'pinch' && this.pointers.size > 0) return;
     this.gesture = null;
+    document.body.classList.remove('wb-gesturing');
     this.view.clearGuides();
     document.getElementById('marquee')?.remove();
 

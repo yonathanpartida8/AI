@@ -94,7 +94,7 @@ export class DrawTool {
   #start(e) {
     if (this.store.tool !== 'draw') return;
     e.preventDefault(); // ni scroll ni gestos del navegador: solo tinta
-    this.canvas.setPointerCapture(e.pointerId);
+    try { this.canvas.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
     this.strokes.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
     if (this.strokes.length > 24) this.strokes.shift();
     this.redoStack = []; // un trazo nuevo invalida los rehacer

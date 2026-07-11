@@ -235,7 +235,7 @@ export const Components = {
   particles: {
     label: 'Partículas', icon: '✦', cat: 'Avanzados', size: [640, 400],
     defaults: {
-      props: { count: 400, color: '#818cf8', speed: 1, size: 2, mode: 'nebulosa' },
+      props: { count: 400, color: '#818cf8', speed: 1, size: 2, mode: 'nebulosa', opacity: 1, shape: 'auto', glow: true },
       styles: { background: '#020617', radius: 12 },
     },
     schema: [
@@ -244,6 +244,9 @@ export const Components = {
       color('props.color', 'Color'),
       num('props.speed', 'Velocidad', 0.1, 10, 0.1),
       num('props.size', 'Tamaño', 0.5, 20, 0.5),
+      num('props.opacity', 'Opacidad de partículas', 0, 1, 0.05),
+      select('props.shape', 'Forma', ['auto', 'disco', 'corazón', 'estrella']),
+      check('props.glow', 'Brillo aditivo (resplandor)'),
       ...STYLE_COMMON,
     ],
   },

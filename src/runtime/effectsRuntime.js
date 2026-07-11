@@ -215,6 +215,35 @@ export function wbEffects(root, opts) {
     }
   }
 
+  /* ── HTML importados: montaje diferido y ESCALONADO ── */
+  (function () {
+    var pending = qa('.wb-embed iframe[data-doc]');
+    if (!pending.length) return;
+    var queue = [], loading = false;
+    function pump() {
+      if (loading || !queue.length) return;
+      loading = true;
+      var frame = queue.shift();
+      requestAnimationFrame(function () { // un documento por frame: sin picos
+        frame.srcdoc = frame.getAttribute('data-doc');
+        frame.removeAttribute('data-doc');
+        frame.addEventListener('load', function () { loading = false; pump(); }, { once: true });
+        later(function () { loading = false; pump(); }, 1500); // red de seguridad
+      });
+    }
+    var lio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting && entry.target.hasAttribute('data-doc')) {
+          lio.unobserve(entry.target);
+          queue.push(entry.target);
+          pump();
+        }
+      });
+    }, { rootMargin: '160% 0px' }); // se monta antes de llegar a pantalla
+    pending.forEach(function (frame) { lio.observe(frame); });
+    observers.push(lio);
+  })();
+
   /* ── Música de fondo (autoplay compatible con móvil) ── */
   qa('audio[data-bgmusic]').forEach(function (audio) {
     audio.play().catch(function () {

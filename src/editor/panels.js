@@ -220,7 +220,13 @@ export class Panels {
       el('h4', { class: 'panel-heading', text: '♫ Tu música desde GitHub' }),
       el('p', { class: 'panel-hint', html: 'Estas pistas se leen de <b>src/config/musicLibrary.js</b> — cambia ahí los nombres de archivo (musica1.mp3, musica2.mp3…) y tu repositorio.' }),
     );
-    this.previewAudio ||= new Audio();
+    if (!this.previewAudio) {
+      this.previewAudio = new Audio();
+      // listener único (los re-render del panel no lo duplican)
+      this.previewAudio.addEventListener('ended', () => {
+        this.root.querySelectorAll('.music-play').forEach((b) => { b.textContent = '▶'; });
+      });
+    }
     const list = el('div', { class: 'music-list' });
     MUSIC_TRACKS.forEach((track) => {
       const url = trackURL(track);
@@ -238,7 +244,6 @@ export class Panels {
           }
         },
       });
-      this.previewAudio.addEventListener('ended', () => { playBtn.textContent = '▶'; });
       list.append(el('div', { class: 'music-row' }, [
         playBtn,
         el('div', { class: 'music-meta' }, [

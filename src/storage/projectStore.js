@@ -42,6 +42,8 @@ export class ProjectStore extends EventBus {
   #history = [];
   #future = [];
   #autosave = debounce(() => this.persist(), 800);
+  #lastSnapAt = 0;
+  #lastSnapLabel = '';
 
   /* ── Ciclo de vida ─────────────────────────────────── */
 
@@ -102,7 +104,20 @@ export class ProjectStore extends EventBus {
 
   /* ── Historial ─────────────────────────────────────── */
 
-  snapshot() {
+  /**
+   * Guarda un punto de deshacer. Las ráfagas de la MISMA operación
+   * (flechas, arrastres de sliders…) se COALESCEN: clonar el proyecto
+   * entero en cada pulsación era el mayor coste oculto de la edición,
+   * y además llenaba el historial de micro-pasos inútiles.
+   */
+  snapshot(label = 'op') {
+    const now = Date.now();
+    if (label === this.#lastSnapLabel && now - this.#lastSnapAt < 450) {
+      this.#lastSnapAt = now; // misma ráfaga: reutiliza el snapshot previo
+      return;
+    }
+    this.#lastSnapAt = now;
+    this.#lastSnapLabel = label;
     this.#history.push(deepClone(this.project));
     if (this.#history.length > HISTORY_LIMIT) this.#history.shift();
     this.#future = [];
@@ -188,7 +203,7 @@ export class ProjectStore extends EventBus {
   /* ── Nodos ─────────────────────────────────────────── */
 
   addNode(type, at = {}, extra = {}) {
-    this.snapshot();
+    this.snapshot('add');
     const def = componentDef(type);
     const id = uid('nd');
     const data = createNodeData(type, extra);
@@ -218,7 +233,7 @@ export class ProjectStore extends EventBus {
 
   removeNodes(ids = this.selection) {
     if (!ids.length) return;
-    this.snapshot();
+    this.snapshot('remove');
     for (const id of ids) {
       delete this.project.nodes[id];
       for (const page of this.project.pages) {
@@ -232,7 +247,7 @@ export class ProjectStore extends EventBus {
 
   duplicateNodes(ids = this.selection) {
     if (!ids.length) return;
-    this.snapshot();
+    this.snapshot('dup');
     const newIds = [];
     for (const id of ids) {
       const src = this.node(id);
@@ -266,7 +281,7 @@ export class ProjectStore extends EventBus {
 
   nudge(dx, dy) {
     if (!this.selection.length) return;
-    this.snapshot();
+    this.snapshot('nudge');
     for (const node of this.selectedNodes) {
       if (node.locked) continue;
       const f = this.frame(node);
