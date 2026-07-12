@@ -55,19 +55,19 @@ function heroBlock(y) {
     }),
     node('text', { x: 190, y: y + 230, w: 900, h: 160 }, {
       name: 'Título héroe',
-      props: { text: 'Diseños que enamoran\na primera vista', tag: 'h1' },
+      props: { text: 'Bajo este cielo\nempezó todo', tag: 'h1' },
       styles: { fontSize: 58, fontWeight: '900', textAlign: 'center', color: '#f8fafc', letterSpacing: -1 },
       animation: load('fadeInUp'),
     }),
     node('text', { x: 320, y: y + 420, w: 640, h: 64 }, {
       name: 'Subtítulo héroe',
-      props: { text: 'Crea sitios espectaculares arrastrando y soltando.\nSin escribir una sola línea de código.', tag: 'p' },
+      props: { text: 'Un pequeño universo armado pieza a pieza\npara contarte lo que siento.', tag: 'p' },
       styles: { fontSize: 19, fontWeight: '400', textAlign: 'center', color: '#c7d2fe' },
       animation: load('fadeInUp', 250),
     }),
     node('button', { x: 530, y: y + 540, w: 220, h: 58 }, {
       name: 'Botón héroe',
-      props: { text: 'Empezar ahora' },
+      props: { text: 'Ven a verlo' },
       styles: { fontSize: 17, fontWeight: '800', textAlign: 'center', color: '#ffffff', background: 'linear-gradient(90deg,#8b5cf6,#ec4899)', radius: 29, shadow: 'neón' },
       animation: load('zoomIn', 500),
     }),
@@ -77,14 +77,14 @@ function heroBlock(y) {
 
 function featuresBlock(y) {
   const cards = [
-    ['🎨', 'Diseño visual', 'Arrastra, suelta y personaliza cada detalle con libertad total.'],
-    ['⚡', 'Animaciones', 'Efectos y transiciones fluidas a 60 fps con un solo clic.'],
-    ['📱', 'Responsive', 'Tu sitio se ve perfecto en móvil, tablet y escritorio.'],
+    ['💌', 'Detalles', 'Cada rincón de esta página esconde algo pensado solo para ti.'],
+    ['✨', 'Momentos', 'Sorpresas que cobran vida cuando las tocas, como nosotros.'],
+    ['💞', 'Nosotros', 'Una historia que se ve bonita en cualquier pantalla y a cualquier hora.'],
   ];
   const nodes = [
     node('text', { x: 340, y: y + 70, w: 600, h: 60 }, {
       name: 'Título características',
-      props: { text: 'Todo lo que necesitas', tag: 'h2' },
+      props: { text: 'Hecho de pequeños detalles', tag: 'h2' },
       styles: { fontSize: 38, fontWeight: '800', textAlign: 'center', color: '#f1f5f9' },
       animation: scroll('fadeInUp'),
     }),
@@ -133,7 +133,7 @@ function quoteBlock(y) {
       }),
       node('text', { x: 240, y: y + 140, w: 800, h: 110 }, {
         name: 'Cita',
-        props: { text: '“Una herramienta que convierte ideas\nen sitios reales en cuestión de minutos.”', tag: 'p' },
+        props: { text: '“De todos mis lugares favoritos,\nel mejor sigue siendo a tu lado.”', tag: 'p' },
         styles: { fontSize: 28, fontWeight: '400', textAlign: 'center', color: '#e0e7ff', fontFamily: 'Georgia' },
         animation: scroll('blurIn', 150, { duration: 1200 }),
       }),
@@ -177,19 +177,19 @@ function ctaBlock(y) {
     height: 430,
     nodes: [
       node('container', { x: 100, y: y + 65, w: 1080, h: 300 }, {
-        name: 'Panel CTA',
+        name: 'Panel invitación',
         styles: { background: 'linear-gradient(120deg,#4f46e5,#9333ea,#db2777)', radius: 30, shadow: 'fuerte' },
         animation: scroll('zoomIn'),
       }),
       node('text', { x: 240, y: y + 135, w: 800, h: 66 }, {
-        name: 'Título CTA',
-        props: { text: '¿Listo para crear algo increíble?', tag: 'h2' },
+        name: 'Título invitación',
+        props: { text: '¿Seguimos escribiendo esta historia?', tag: 'h2' },
         styles: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: '#ffffff' },
         animation: scroll('fadeInUp', 150),
       }),
       node('button', { x: 530, y: y + 235, w: 220, h: 54 }, {
-        name: 'Botón CTA',
-        props: { text: 'Comienza gratis' },
+        name: 'Botón invitación',
+        props: { text: 'Sí, contigo' },
         styles: { fontSize: 16, fontWeight: '800', textAlign: 'center', color: '#4f46e5', background: '#ffffff', radius: 27, shadow: 'media' },
         animation: load('pulse', 0, { loop: true, duration: 1800, easing: 'ease-in-out' }),
       }),
@@ -202,23 +202,23 @@ function footerBlock(y) {
     height: 300,
     nodes: [
       node('section', { x: 0, y, w: W, h: 300 }, { name: 'El cierre con cariño', styles: { background: '#080b14' } }),
-      node('text', { x: 90, y: y + 66, w: 320, h: 44 }, {
-        name: 'Marca pie', props: { text: '◆ Mi Sitio', tag: 'h3' },
-        styles: { fontSize: 24, fontWeight: '800', textAlign: 'left', color: '#e2e8f0' },
+      node('text', { x: 90, y: y + 66, w: 380, h: 44 }, {
+        name: 'Firma del pie', props: { text: 'Para ti, con amor', tag: 'h3' },
+        styles: { fontSize: 24, fontWeight: '800', textAlign: 'left', color: '#e2e8f0', fontFamily: 'Georgia' },
       }),
       node('text', { x: 90, y: y + 118, w: 420, h: 30 }, {
-        name: 'Lema pie', props: { text: 'Hecho con ◆ No-Code Builder', tag: 'p' },
+        name: 'Lema pie', props: { text: 'Hecho a mano, de principio a fin', tag: 'p' },
         styles: { fontSize: 14, fontWeight: '400', textAlign: 'left', color: '#64748b' },
       }),
       node('text', { x: 830, y: y + 78, w: 360, h: 30 }, {
-        name: 'Enlaces pie', props: { text: 'Inicio · Servicios · Galería · Contacto', tag: 'p' },
+        name: 'Enlaces pie', props: { text: 'Nuestra historia · Recuerdos · Canciones', tag: 'p' },
         styles: { fontSize: 15, fontWeight: '400', textAlign: 'right', color: '#94a3b8' },
       }),
       node('shape', { x: 90, y: y + 182, w: 1100, h: 2 }, {
         name: 'Separador pie', styles: { background: 'rgba(148,163,184,.15)', radius: 0 },
       }),
       node('text', { x: 340, y: y + 218, w: 600, h: 30 }, {
-        name: 'Copyright', props: { text: '© 2026 — Todos los derechos reservados', tag: 'p' },
+        name: 'Copyright', props: { text: '© Nosotros — todos mis latidos reservados', tag: 'p' },
         styles: { fontSize: 13, fontWeight: '400', textAlign: 'center', color: '#475569' },
       }),
     ],
@@ -339,7 +339,7 @@ function polaroidsBlock(y) {
     nodes.push(node('polaroid', { x: 155 + i * 340, y: y + 170, w: 300, h: 360, rotation: [-4, 2, -2][i] }, {
       name: `Polaroid ${i + 1}`,
       props: { assetId: null, caption, rotate: [-3, 2, -2][i] },
-      animation: scroll('caida', i * 200),
+      animation: scroll('resorte', i * 200, { duration: 1000 }),
       // Sustituye por tus fotos desde Assets; con tilt 3D se sienten vivas
     }));
     nodes[nodes.length - 1].effects = { parallax: 0, tilt: true };
@@ -362,7 +362,7 @@ function secretBlock(y) {
       }),
       node('hiddenMessage', { x: 390, y: y + 150, w: 500, h: 170 }, {
         name: 'Mensaje secreto',
-        animation: scroll('zoomIn', 200),
+        animation: scroll('expandir', 200, { duration: 1100 }),
       }),
     ],
   };
@@ -425,13 +425,13 @@ function musicBlock(y) {
 
 function faqBlock(y) {
   const faqs = [
-    ['¿Necesito saber programar?', 'No. Todo se hace de forma visual, arrastrando y soltando.'],
-    ['¿Puedo usar mis propios GIFs y vídeos?', 'Sí: súbelos desde tu galería y quedan guardados con el proyecto.'],
-    ['¿El sitio funciona en móviles?', 'Sí, el diseño se adapta automáticamente a cualquier pantalla.'],
+    ['¿Desde cuándo lo supe?', 'Desde la primera vez que me hiciste reír sin siquiera intentarlo.'],
+    ['¿Qué es lo que más me gusta?', 'Tu voz cuando me cuentas cómo estuvo tu día.'],
+    ['¿Hasta cuándo?', 'Hasta que se acaben los atardeceres… y un día más.'],
   ];
   const nodes = [
     node('text', { x: 340, y: y + 70, w: 600, h: 60 }, {
-      name: 'Título FAQ', props: { text: 'Preguntas frecuentes', tag: 'h2' },
+      name: 'Título preguntas', props: { text: 'Cosas que me preguntas', tag: 'h2' },
       styles: { fontSize: 38, fontWeight: '800', textAlign: 'center', color: '#f1f5f9' },
       animation: scroll('fadeInUp'),
     }),
@@ -468,18 +468,18 @@ function contactBlock(y) {
         styles: { background: 'linear-gradient(180deg,#0b1020,#151233,#0b1020)' },
       }),
       node('text', { x: 340, y: y + 60, w: 600, h: 60 }, {
-        name: 'Título contacto', props: { text: 'Hablemos', tag: 'h2' },
+        name: 'Título contacto', props: { text: 'Déjame un mensajito', tag: 'h2' },
         styles: { fontSize: 38, fontWeight: '800', textAlign: 'center', color: '#f1f5f9' },
         animation: scroll('fadeInUp'),
       }),
       node('text', { x: 390, y: y + 128, w: 500, h: 34 }, {
-        name: 'Subtítulo contacto', props: { text: 'Cuéntanos tu proyecto y te respondemos hoy mismo', tag: 'p' },
+        name: 'Subtítulo contacto', props: { text: 'Escríbeme algo bonito y me llegará directo al corazón', tag: 'p' },
         styles: { fontSize: 15, fontWeight: '400', textAlign: 'center', color: '#94a3b8' },
         animation: scroll('fadeIn', 150),
       }),
       node('form', { x: 380, y: y + 190, w: 520, h: 380 }, {
-        name: 'Formulario contacto',
-        props: { title: '', fields: 'Nombre,Email,Mensaje', buttonText: 'Enviar mensaje' },
+        name: 'Formulario del corazón',
+        props: { title: '', fields: 'Nombre,Email,Mensaje', buttonText: 'Enviar con cariño' },
         styles: { background: 'rgba(15,23,42,.85)', radius: 22, color: '#e2e8f0', borderWidth: 1, borderColor: 'rgba(139,92,246,.35)', shadow: 'media' },
         animation: scroll('zoomIn', 200),
       }),
@@ -489,10 +489,9 @@ function contactBlock(y) {
 
 function reasonsBlock(y) {
   const reasons = [
-    ['😊', 'Tu sonrisa'], ['🎧', 'Nuestras canciones'], ['�full', 'Cómo me cuidas'],
+    ['😊', 'Tu sonrisa'], ['🎧', 'Nuestras canciones'], ['🌙', 'Cómo me cuidas'],
     ['😂', 'Tus locuras'], ['🫶', 'Tu forma de amar'], ['∞', 'Todo lo que viene'],
   ];
-  reasons[2][0] = '🌙';
   const nodes = [
     node('text', { x: 290, y: y + 60, w: 700, h: 60 }, {
       name: 'Título razones', props: { text: 'Razones por las que te amo', tag: 'h2' },
@@ -747,13 +746,13 @@ export const BLOCKS = {
   gift: { label: 'Regalos por abrir', icon: '🎁', build: giftBlock },
   calendar: { label: 'Fecha para recordar', icon: '📅', build: calendarBlock },
   game: { label: 'Juego: atrapa mi corazón', icon: '🕹', build: gameBlock },
-  hero: { label: 'Héroe con partículas', icon: '✨', build: heroBlock },
-  features: { label: 'Características (3 tarjetas)', icon: '🃏', build: featuresBlock },
-  quote: { label: 'Cita destacada', icon: '❝', build: quoteBlock },
+  hero: { label: 'Portada estrellada', icon: '✨', build: heroBlock },
+  features: { label: 'Tres detalles (tarjetas)', icon: '🃏', build: featuresBlock },
+  quote: { label: 'Frase para enmarcar', icon: '❝', build: quoteBlock },
   gallery: { label: 'Galería', icon: '⊞', build: galleryBlock },
-  faq: { label: 'Preguntas frecuentes', icon: '❓', build: faqBlock },
-  contact: { label: 'Contacto con formulario', icon: '✉', build: contactBlock },
-  cta: { label: 'Llamada a la acción', icon: '📣', build: ctaBlock },
+  faq: { label: 'Cosas que me preguntas', icon: '❓', build: faqBlock },
+  contact: { label: 'Mensajito para mí', icon: '✉', build: contactBlock },
+  cta: { label: 'Invitación especial', icon: '📣', build: ctaBlock },
   footer: { label: 'Pie de página', icon: '⚓', build: footerBlock },
 };
 

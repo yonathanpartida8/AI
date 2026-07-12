@@ -196,6 +196,9 @@ button { font: inherit; color: inherit; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+/* Con cientos de fotos/GIFs la galería sigue ligera: las tarjetas fuera
+   de pantalla no se pintan ni decodifican su miniatura. */
+.asset-card { content-visibility: auto; contain-intrinsic-size: auto 104px; }
 .asset-card {
   position: relative; background: var(--panel-2); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden; cursor: grab;
@@ -231,6 +234,50 @@ button { font: inherit; color: inherit; }
   color: var(--text-dim); cursor: pointer; border-radius: 4px; font-size: 11px;
 }
 .page-actions button:hover, .layer-actions button:hover { background: var(--border); color: var(--text); }
+
+/* Listas largas SIEMPRE ligeras: las filas fuera de pantalla no se
+   renderizan (content-visibility) y cada fila aísla su layout/pintura.
+   Durante un deslizamiento se levanta el aislamiento para que la franja
+   roja (::after, fuera de la caja) pueda pintarse. */
+.page-item, .layer-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 34px;
+}
+.swipeable.swiping { content-visibility: visible; contain: none; }
+
+/* Desliza a la izquierda para eliminar (táctil): franja roja tras la fila */
+.page-list, .layer-list { overflow-x: clip; }
+.swipeable { position: relative; touch-action: pan-y; will-change: auto; }
+.swipeable.swiping { transition: none; z-index: 1; }
+.swipeable::after {
+  content: 'Eliminar'; position: absolute; left: 100%; top: 0; bottom: 0; width: 100%;
+  display: flex; align-items: center; padding-left: 16px; border-radius: inherit;
+  font: 700 12px/1 -apple-system, system-ui, sans-serif; letter-spacing: .04em;
+  color: #fff; background: linear-gradient(90deg, #e11d48, #9f1239);
+  opacity: 0; pointer-events: none;
+}
+.swipeable.swiping::after { opacity: 1; }
+.swipeable.will-delete::after { background: #dc2626; }
+
+/* Snackbar del editor: "Capa eliminada · Deshacer" */
+.wb-snack {
+  position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) translateY(16px) scale(.96); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 14px; z-index: 360;
+  max-width: min(88vw, 420px); padding: 11px 16px 11px 18px; border-radius: 16px;
+  background: rgba(24, 24, 27, .88); color: #fafafa;
+  font: 500 13px/1.35 -apple-system, system-ui, sans-serif;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .12);
+  transition: opacity .28s cubic-bezier(.2,.8,.25,1), transform .28s cubic-bezier(.2,.8,.25,1);
+}
+.wb-snack.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
+.wb-snack-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wb-snack-act {
+  border: none; background: none; padding: 4px 6px; border-radius: 8px; cursor: pointer;
+  color: #a5b4fc; font: 700 13px/1 -apple-system, system-ui, sans-serif; letter-spacing: .02em;
+}
+.wb-snack-act:active { background: rgba(165, 180, 252, .18); transform: scale(.95); }
 
 /* ── Panel de propiedades ───────────────────────────── */
 
@@ -630,3 +677,14 @@ body.preview #fab-add { display: none !important; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Accesibilidad: respeta "reducir movimiento" del sistema ──
+   Las animaciones decorativas de la INTERFAZ se acortan a un frame;
+   el contenido del lienzo (obra del usuario) no se toca. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .fab, .wb-snack, .quickbar, .quickbar button, .btn, .btn-ic,
+  .swipeable, .page-item, .layer-item, .cp-pop, .saved-dot {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}

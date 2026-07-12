@@ -50,11 +50,16 @@ export class CanvasView {
   syncSize() {
     const width = this.store.project.settings.breakpoints[this.store.device];
     const height = this.store.page.height;
-    for (const layer of [this.guides, this.drawLayer, this.overlay]) {
-      layer.style.width = `${width}px`;
-      layer.style.height = `${height}px`;
+    // Solo toca el DOM si las medidas cambiaron: se llama en cada commit
+    // y reescribir estilos idénticos invalida estilo/layout sin motivo.
+    if (this.lastW !== width || this.lastH !== height) {
+      this.lastW = width; this.lastH = height;
+      for (const layer of [this.guides, this.drawLayer, this.overlay]) {
+        layer.style.width = `${width}px`;
+        layer.style.height = `${height}px`;
+      }
+      this.guides.setAttribute('viewBox', `0 0 ${width} ${height}`);
     }
-    this.guides.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const grid = this.store.project.settings.grid;
     this.artboard.classList.toggle('show-grid', !!grid.visible);
     this.artboard.style.setProperty('--grid-size', `${grid.size}px`);

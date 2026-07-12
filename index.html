@@ -211,6 +211,9 @@ button { font: inherit; color: inherit; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+/* Con cientos de fotos/GIFs la galería sigue ligera: las tarjetas fuera
+   de pantalla no se pintan ni decodifican su miniatura. */
+.asset-card { content-visibility: auto; contain-intrinsic-size: auto 104px; }
 .asset-card {
   position: relative; background: var(--panel-2); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden; cursor: grab;
@@ -246,6 +249,50 @@ button { font: inherit; color: inherit; }
   color: var(--text-dim); cursor: pointer; border-radius: 4px; font-size: 11px;
 }
 .page-actions button:hover, .layer-actions button:hover { background: var(--border); color: var(--text); }
+
+/* Listas largas SIEMPRE ligeras: las filas fuera de pantalla no se
+   renderizan (content-visibility) y cada fila aísla su layout/pintura.
+   Durante un deslizamiento se levanta el aislamiento para que la franja
+   roja (::after, fuera de la caja) pueda pintarse. */
+.page-item, .layer-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 34px;
+}
+.swipeable.swiping { content-visibility: visible; contain: none; }
+
+/* Desliza a la izquierda para eliminar (táctil): franja roja tras la fila */
+.page-list, .layer-list { overflow-x: clip; }
+.swipeable { position: relative; touch-action: pan-y; will-change: auto; }
+.swipeable.swiping { transition: none; z-index: 1; }
+.swipeable::after {
+  content: 'Eliminar'; position: absolute; left: 100%; top: 0; bottom: 0; width: 100%;
+  display: flex; align-items: center; padding-left: 16px; border-radius: inherit;
+  font: 700 12px/1 -apple-system, system-ui, sans-serif; letter-spacing: .04em;
+  color: #fff; background: linear-gradient(90deg, #e11d48, #9f1239);
+  opacity: 0; pointer-events: none;
+}
+.swipeable.swiping::after { opacity: 1; }
+.swipeable.will-delete::after { background: #dc2626; }
+
+/* Snackbar del editor: "Capa eliminada · Deshacer" */
+.wb-snack {
+  position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) translateY(16px) scale(.96); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 14px; z-index: 360;
+  max-width: min(88vw, 420px); padding: 11px 16px 11px 18px; border-radius: 16px;
+  background: rgba(24, 24, 27, .88); color: #fafafa;
+  font: 500 13px/1.35 -apple-system, system-ui, sans-serif;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .12);
+  transition: opacity .28s cubic-bezier(.2,.8,.25,1), transform .28s cubic-bezier(.2,.8,.25,1);
+}
+.wb-snack.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
+.wb-snack-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wb-snack-act {
+  border: none; background: none; padding: 4px 6px; border-radius: 8px; cursor: pointer;
+  color: #a5b4fc; font: 700 13px/1 -apple-system, system-ui, sans-serif; letter-spacing: .02em;
+}
+.wb-snack-act:active { background: rgba(165, 180, 252, .18); transform: scale(.95); }
 
 /* ── Panel de propiedades ───────────────────────────── */
 
@@ -646,6 +693,17 @@ body.preview #fab-add { display: none !important; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* ── Accesibilidad: respeta "reducir movimiento" del sistema ──
+   Las animaciones decorativas de la INTERFAZ se acortan a un frame;
+   el contenido del lienzo (obra del usuario) no se toca. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .fab, .wb-snack, .quickbar, .quickbar button, .btn, .btn-ic,
+  .swipeable, .page-item, .layer-item, .cp-pop, .saved-dot {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -741,6 +799,30 @@ body.preview #fab-add { display: none !important; }
       node2.append(child instanceof Node ? child : document.createTextNode(child));
     }
     return node2;
+  }
+  var _snack = null;
+  var _snackTimer = 0;
+  function showSnack(message, actionLabel, onAction) {
+    if (!_snack) {
+      _snack = el("div", { class: "wb-snack", role: "status" });
+      document.body.append(_snack);
+    }
+    clearTimeout(_snackTimer);
+    _snack.replaceChildren(
+      el("span", { class: "wb-snack-msg", text: message }),
+      actionLabel ? el("button", {
+        class: "wb-snack-act",
+        text: actionLabel,
+        onclick: () => {
+          _snack.classList.remove("show");
+          onAction?.();
+        }
+      }) : null
+    );
+    _snack.classList.remove("show");
+    void _snack.offsetWidth;
+    _snack.classList.add("show");
+    _snackTimer = setTimeout(() => _snack.classList.remove("show"), 4200);
   }
   function download(filename, blob) {
     const url = URL.createObjectURL(blob);
@@ -1214,13 +1296,13 @@ body.preview #fab-add { display: none !important; }
         styles: { background: "#020617", radius: 12 }
       },
       schema: [
-        select("props.mode", "Modo", ["nebulosa", "corazones", "nieve", "estrellas", "luci\xE9rnagas", "aurora", "ondas", "lluvia", "\xF3rbita"]),
+        select("props.mode", "Modo", ["nebulosa", "corazones", "p\xE9talos", "burbujas", "nieve", "estrellas", "luci\xE9rnagas", "aurora", "ondas", "lluvia", "\xF3rbita"]),
         num("props.count", "Cantidad", 10, 5e3, 10),
         color("props.color", "Color"),
         num("props.speed", "Velocidad", 0.1, 10, 0.1),
         num("props.size", "Tama\xF1o", 0.5, 20, 0.5),
         num("props.opacity", "Opacidad de part\xEDculas", 0, 1, 0.05),
-        select("props.shape", "Forma", ["auto", "disco", "coraz\xF3n", "estrella"]),
+        select("props.shape", "Forma", ["auto", "disco", "coraz\xF3n", "estrella", "anillo"]),
         check("props.glow", "Brillo aditivo (resplandor)"),
         ...STYLE_COMMON
       ]
@@ -1550,7 +1632,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       // Salida elegante al ocultarse mediante acciones
       animationOut: { preset: "fadeOut", duration: 450, easing: "ease-in" },
       // Efectos de interacción: presión al tocar, hover y scroll
-      effects: { parallax: 0, tilt: false, press: type === "button" || type === "heartButton" ? "escala" : "ninguno", hoverFx: "ninguno" },
+      effects: { parallax: 0, tilt: false, press: type === "button" || type === "heartButton" ? "ondas" : "ninguno", hoverFx: "ninguno" },
       events: [],
       // [{ on:'click', actions:[{action,target,value,delay}] }]
       locked: false,
@@ -1598,19 +1680,19 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       }),
       node("text", { x: 190, y: y + 230, w: 900, h: 160 }, {
         name: "T\xEDtulo h\xE9roe",
-        props: { text: "Dise\xF1os que enamoran\na primera vista", tag: "h1" },
+        props: { text: "Bajo este cielo\nempez\xF3 todo", tag: "h1" },
         styles: { fontSize: 58, fontWeight: "900", textAlign: "center", color: "#f8fafc", letterSpacing: -1 },
         animation: load("fadeInUp")
       }),
       node("text", { x: 320, y: y + 420, w: 640, h: 64 }, {
         name: "Subt\xEDtulo h\xE9roe",
-        props: { text: "Crea sitios espectaculares arrastrando y soltando.\nSin escribir una sola l\xEDnea de c\xF3digo.", tag: "p" },
+        props: { text: "Un peque\xF1o universo armado pieza a pieza\npara contarte lo que siento.", tag: "p" },
         styles: { fontSize: 19, fontWeight: "400", textAlign: "center", color: "#c7d2fe" },
         animation: load("fadeInUp", 250)
       }),
       node("button", { x: 530, y: y + 540, w: 220, h: 58 }, {
         name: "Bot\xF3n h\xE9roe",
-        props: { text: "Empezar ahora" },
+        props: { text: "Ven a verlo" },
         styles: { fontSize: 17, fontWeight: "800", textAlign: "center", color: "#ffffff", background: "linear-gradient(90deg,#8b5cf6,#ec4899)", radius: 29, shadow: "ne\xF3n" },
         animation: load("zoomIn", 500)
       })
@@ -1619,14 +1701,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
   }
   function featuresBlock(y) {
     const cards = [
-      ["\u{1F3A8}", "Dise\xF1o visual", "Arrastra, suelta y personaliza cada detalle con libertad total."],
-      ["\u26A1", "Animaciones", "Efectos y transiciones fluidas a 60 fps con un solo clic."],
-      ["\u{1F4F1}", "Responsive", "Tu sitio se ve perfecto en m\xF3vil, tablet y escritorio."]
+      ["\u{1F48C}", "Detalles", "Cada rinc\xF3n de esta p\xE1gina esconde algo pensado solo para ti."],
+      ["\u2728", "Momentos", "Sorpresas que cobran vida cuando las tocas, como nosotros."],
+      ["\u{1F49E}", "Nosotros", "Una historia que se ve bonita en cualquier pantalla y a cualquier hora."]
     ];
     const nodes = [
       node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
         name: "T\xEDtulo caracter\xEDsticas",
-        props: { text: "Todo lo que necesitas", tag: "h2" },
+        props: { text: "Hecho de peque\xF1os detalles", tag: "h2" },
         styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
         animation: scroll("fadeInUp")
       })
@@ -1677,7 +1759,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         }),
         node("text", { x: 240, y: y + 140, w: 800, h: 110 }, {
           name: "Cita",
-          props: { text: "\u201CUna herramienta que convierte ideas\nen sitios reales en cuesti\xF3n de minutos.\u201D", tag: "p" },
+          props: { text: "\u201CDe todos mis lugares favoritos,\nel mejor sigue siendo a tu lado.\u201D", tag: "p" },
           styles: { fontSize: 28, fontWeight: "400", textAlign: "center", color: "#e0e7ff", fontFamily: "Georgia" },
           animation: scroll("blurIn", 150, { duration: 1200 })
         })
@@ -1722,19 +1804,19 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 430,
       nodes: [
         node("container", { x: 100, y: y + 65, w: 1080, h: 300 }, {
-          name: "Panel CTA",
+          name: "Panel invitaci\xF3n",
           styles: { background: "linear-gradient(120deg,#4f46e5,#9333ea,#db2777)", radius: 30, shadow: "fuerte" },
           animation: scroll("zoomIn")
         }),
         node("text", { x: 240, y: y + 135, w: 800, h: 66 }, {
-          name: "T\xEDtulo CTA",
-          props: { text: "\xBFListo para crear algo incre\xEDble?", tag: "h2" },
+          name: "T\xEDtulo invitaci\xF3n",
+          props: { text: "\xBFSeguimos escribiendo esta historia?", tag: "h2" },
           styles: { fontSize: 34, fontWeight: "800", textAlign: "center", color: "#ffffff" },
           animation: scroll("fadeInUp", 150)
         }),
         node("button", { x: 530, y: y + 235, w: 220, h: 54 }, {
-          name: "Bot\xF3n CTA",
-          props: { text: "Comienza gratis" },
+          name: "Bot\xF3n invitaci\xF3n",
+          props: { text: "S\xED, contigo" },
           styles: { fontSize: 16, fontWeight: "800", textAlign: "center", color: "#4f46e5", background: "#ffffff", radius: 27, shadow: "media" },
           animation: load("pulse", 0, { loop: true, duration: 1800, easing: "ease-in-out" })
         })
@@ -1746,19 +1828,19 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       height: 300,
       nodes: [
         node("section", { x: 0, y, w: W, h: 300 }, { name: "El cierre con cari\xF1o", styles: { background: "#080b14" } }),
-        node("text", { x: 90, y: y + 66, w: 320, h: 44 }, {
-          name: "Marca pie",
-          props: { text: "\u25C6 Mi Sitio", tag: "h3" },
-          styles: { fontSize: 24, fontWeight: "800", textAlign: "left", color: "#e2e8f0" }
+        node("text", { x: 90, y: y + 66, w: 380, h: 44 }, {
+          name: "Firma del pie",
+          props: { text: "Para ti, con amor", tag: "h3" },
+          styles: { fontSize: 24, fontWeight: "800", textAlign: "left", color: "#e2e8f0", fontFamily: "Georgia" }
         }),
         node("text", { x: 90, y: y + 118, w: 420, h: 30 }, {
           name: "Lema pie",
-          props: { text: "Hecho con \u25C6 No-Code Builder", tag: "p" },
+          props: { text: "Hecho a mano, de principio a fin", tag: "p" },
           styles: { fontSize: 14, fontWeight: "400", textAlign: "left", color: "#64748b" }
         }),
         node("text", { x: 830, y: y + 78, w: 360, h: 30 }, {
           name: "Enlaces pie",
-          props: { text: "Inicio \xB7 Servicios \xB7 Galer\xEDa \xB7 Contacto", tag: "p" },
+          props: { text: "Nuestra historia \xB7 Recuerdos \xB7 Canciones", tag: "p" },
           styles: { fontSize: 15, fontWeight: "400", textAlign: "right", color: "#94a3b8" }
         }),
         node("shape", { x: 90, y: y + 182, w: 1100, h: 2 }, {
@@ -1767,7 +1849,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         }),
         node("text", { x: 340, y: y + 218, w: 600, h: 30 }, {
           name: "Copyright",
-          props: { text: "\xA9 2026 \u2014 Todos los derechos reservados", tag: "p" },
+          props: { text: "\xA9 Nosotros \u2014 todos mis latidos reservados", tag: "p" },
           styles: { fontSize: 13, fontWeight: "400", textAlign: "center", color: "#475569" }
         })
       ]
@@ -1885,7 +1967,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       nodes.push(node("polaroid", { x: 155 + i * 340, y: y + 170, w: 300, h: 360, rotation: [-4, 2, -2][i] }, {
         name: `Polaroid ${i + 1}`,
         props: { assetId: null, caption, rotate: [-3, 2, -2][i] },
-        animation: scroll("caida", i * 200)
+        animation: scroll("resorte", i * 200, { duration: 1e3 })
         // Sustituye por tus fotos desde Assets; con tilt 3D se sienten vivas
       }));
       nodes[nodes.length - 1].effects = { parallax: 0, tilt: true };
@@ -1908,7 +1990,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         }),
         node("hiddenMessage", { x: 390, y: y + 150, w: 500, h: 170 }, {
           name: "Mensaje secreto",
-          animation: scroll("zoomIn", 200)
+          animation: scroll("expandir", 200, { duration: 1100 })
         })
       ]
     };
@@ -1969,14 +2051,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
   }
   function faqBlock(y) {
     const faqs = [
-      ["\xBFNecesito saber programar?", "No. Todo se hace de forma visual, arrastrando y soltando."],
-      ["\xBFPuedo usar mis propios GIFs y v\xEDdeos?", "S\xED: s\xFAbelos desde tu galer\xEDa y quedan guardados con el proyecto."],
-      ["\xBFEl sitio funciona en m\xF3viles?", "S\xED, el dise\xF1o se adapta autom\xE1ticamente a cualquier pantalla."]
+      ["\xBFDesde cu\xE1ndo lo supe?", "Desde la primera vez que me hiciste re\xEDr sin siquiera intentarlo."],
+      ["\xBFQu\xE9 es lo que m\xE1s me gusta?", "Tu voz cuando me cuentas c\xF3mo estuvo tu d\xEDa."],
+      ["\xBFHasta cu\xE1ndo?", "Hasta que se acaben los atardeceres\u2026 y un d\xEDa m\xE1s."]
     ];
     const nodes = [
       node("text", { x: 340, y: y + 70, w: 600, h: 60 }, {
-        name: "T\xEDtulo FAQ",
-        props: { text: "Preguntas frecuentes", tag: "h2" },
+        name: "T\xEDtulo preguntas",
+        props: { text: "Cosas que me preguntas", tag: "h2" },
         styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
         animation: scroll("fadeInUp")
       })
@@ -2015,19 +2097,19 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
         }),
         node("text", { x: 340, y: y + 60, w: 600, h: 60 }, {
           name: "T\xEDtulo contacto",
-          props: { text: "Hablemos", tag: "h2" },
+          props: { text: "D\xE9jame un mensajito", tag: "h2" },
           styles: { fontSize: 38, fontWeight: "800", textAlign: "center", color: "#f1f5f9" },
           animation: scroll("fadeInUp")
         }),
         node("text", { x: 390, y: y + 128, w: 500, h: 34 }, {
           name: "Subt\xEDtulo contacto",
-          props: { text: "Cu\xE9ntanos tu proyecto y te respondemos hoy mismo", tag: "p" },
+          props: { text: "Escr\xEDbeme algo bonito y me llegar\xE1 directo al coraz\xF3n", tag: "p" },
           styles: { fontSize: 15, fontWeight: "400", textAlign: "center", color: "#94a3b8" },
           animation: scroll("fadeIn", 150)
         }),
         node("form", { x: 380, y: y + 190, w: 520, h: 380 }, {
-          name: "Formulario contacto",
-          props: { title: "", fields: "Nombre,Email,Mensaje", buttonText: "Enviar mensaje" },
+          name: "Formulario del coraz\xF3n",
+          props: { title: "", fields: "Nombre,Email,Mensaje", buttonText: "Enviar con cari\xF1o" },
           styles: { background: "rgba(15,23,42,.85)", radius: 22, color: "#e2e8f0", borderWidth: 1, borderColor: "rgba(139,92,246,.35)", shadow: "media" },
           animation: scroll("zoomIn", 200)
         })
@@ -2038,12 +2120,11 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     const reasons = [
       ["\u{1F60A}", "Tu sonrisa"],
       ["\u{1F3A7}", "Nuestras canciones"],
-      ["\uFFFDfull", "C\xF3mo me cuidas"],
+      ["\u{1F319}", "C\xF3mo me cuidas"],
       ["\u{1F602}", "Tus locuras"],
       ["\u{1FAF6}", "Tu forma de amar"],
       ["\u221E", "Todo lo que viene"]
     ];
-    reasons[2][0] = "\u{1F319}";
     const nodes = [
       node("text", { x: 290, y: y + 60, w: 700, h: 60 }, {
         name: "T\xEDtulo razones",
@@ -2314,13 +2395,13 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     gift: { label: "Regalos por abrir", icon: "\u{1F381}", build: giftBlock },
     calendar: { label: "Fecha para recordar", icon: "\u{1F4C5}", build: calendarBlock },
     game: { label: "Juego: atrapa mi coraz\xF3n", icon: "\u{1F579}", build: gameBlock },
-    hero: { label: "H\xE9roe con part\xEDculas", icon: "\u2728", build: heroBlock },
-    features: { label: "Caracter\xEDsticas (3 tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
-    quote: { label: "Cita destacada", icon: "\u275D", build: quoteBlock },
+    hero: { label: "Portada estrellada", icon: "\u2728", build: heroBlock },
+    features: { label: "Tres detalles (tarjetas)", icon: "\u{1F0CF}", build: featuresBlock },
+    quote: { label: "Frase para enmarcar", icon: "\u275D", build: quoteBlock },
     gallery: { label: "Galer\xEDa", icon: "\u229E", build: galleryBlock },
-    faq: { label: "Preguntas frecuentes", icon: "\u2753", build: faqBlock },
-    contact: { label: "Contacto con formulario", icon: "\u2709", build: contactBlock },
-    cta: { label: "Llamada a la acci\xF3n", icon: "\u{1F4E3}", build: ctaBlock },
+    faq: { label: "Cosas que me preguntas", icon: "\u2753", build: faqBlock },
+    contact: { label: "Mensajito para m\xED", icon: "\u2709", build: contactBlock },
+    cta: { label: "Invitaci\xF3n especial", icon: "\u{1F4E3}", build: ctaBlock },
     footer: { label: "Pie de p\xE1gina", icon: "\u2693", build: footerBlock }
   };
   function buildBlock(key, y) {
@@ -3116,7 +3197,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     const fit = node2.props.fit || "cover";
     if (!src) return `<div class="wb-placeholder">${esc(node2.name)}<small>Toca para poner aqu\xED un recuerdo</small></div>`;
     const filter = IMG_FILTERS[node2.props.filter || "ninguno"](node2.props.filterAmount ?? 100);
-    return `<img src="${src}" alt="${esc(node2.props.alt || node2.name)}" draggable="false"
+    return `<img src="${src}" alt="${esc(node2.props.alt || node2.name)}" draggable="false" loading="lazy" decoding="async"
     style="width:100%;height:100%;object-fit:${fit};filter:${filter};border-radius:inherit;pointer-events:none">`;
   }
   function contentHTML(node2, ctx) {
@@ -3147,7 +3228,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       case "gif": {
         const src = p.assetId ? ctx.resolve(p.assetId) : "";
         if (!src) return `<div class="wb-placeholder">GIF<small>Un momento en movimiento va aqu\xED</small></div>`;
-        return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false"
+        return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false" decoding="async"
         style="width:100%;height:100%;object-fit:${p.fit || "cover"};border-radius:inherit;pointer-events:none">`;
       }
       case "video": {
@@ -3159,6 +3240,8 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
           p.muted ? "muted" : "",
           p.controls ? "controls" : "",
           "playsinline",
+          // Sin autoplay solo se lee la cabecera del vídeo hasta que se toca
+          p.autoplay || p.playOnScroll ? "" : 'preload="metadata"',
           p.playOnScroll ? 'data-scrollplay="1"' : ""
         ].filter(Boolean).join(" ");
         return `<video src="${src}" ${attrs} style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></video>`;
@@ -3581,6 +3664,14 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
 [data-press="sacudida"].wb-pressing{animation:wb-shake-fx .4s ease!important}
 @keyframes wb-shake-fx{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
 [data-press="hundir"].wb-pressing{transform:scale(.96) translateY(3px)!important;filter:brightness(.85)}
+[data-press="elevar"].wb-pressing{transform:translateY(-4px) scale(1.02)!important;box-shadow:0 18px 38px rgba(0,0,0,.42)!important}
+[data-press="ondas"].wb-pressing{transform:scale(.97)!important}
+/* Ripple (ondas): span reutilizable dentro del elemento pulsado */
+.wb-ripple-clip{position:relative;overflow:hidden}
+.wb-ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:3;transform:scale(0);opacity:0;
+  background:radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(255,255,255,.16) 55%,transparent 72%)}
+.wb-ripple.on{animation:wb-ripple-fx .55s ease-out forwards}
+@keyframes wb-ripple-fx{0%{transform:scale(0);opacity:1}100%{transform:scale(1);opacity:0}}
 
 /* \u2500\u2500 Efectos al pasar el cursor (data-hover) \u2500\u2500 */
 [data-hover]{transition:transform .25s cubic-bezier(.2,.8,.25,1),filter .25s,box-shadow .25s}
@@ -3733,7 +3824,40 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
       { transform: "translateY(-16px)", offset: 0.8 },
       { transform: "translateY(0)" }
     ],
-    respirar: [{ transform: "scale(1)", opacity: 0.9 }, { transform: "scale(1.045)", opacity: 1, offset: 0.5 }, { transform: "scale(1)", opacity: 0.9 }]
+    respirar: [{ transform: "scale(1)", opacity: 0.9 }, { transform: "scale(1.045)", opacity: 1, offset: 0.5 }, { transform: "scale(1)", opacity: 0.9 }],
+    /* ── Premium (v7): cristal, elástico, resorte, revelados… ── */
+    cristal: [
+      { opacity: 0, filter: "blur(18px) saturate(.55)", transform: "scale(1.06)" },
+      { opacity: 1, filter: "blur(0) saturate(1)", transform: "scale(1)" }
+    ],
+    elastico: [
+      { opacity: 0, transform: "scale(.3)" },
+      { opacity: 1, transform: "scale(1.16)", offset: 0.5 },
+      { transform: "scale(.94)", offset: 0.72 },
+      { transform: "scale(1.04)", offset: 0.86 },
+      { opacity: 1, transform: "scale(1)" }
+    ],
+    resorte: [
+      { opacity: 0, transform: "translateY(70px)" },
+      { opacity: 1, transform: "translateY(-16px)", offset: 0.55 },
+      { transform: "translateY(8px)", offset: 0.75 },
+      { transform: "translateY(-4px)", offset: 0.88 },
+      { opacity: 1, transform: "translateY(0)" }
+    ],
+    ondulacion: [
+      { opacity: 0, transform: "scale(.86)", boxShadow: "0 0 0 0 rgba(255,255,255,.35)" },
+      { opacity: 1, transform: "scale(1)", boxShadow: "0 0 0 26px rgba(255,255,255,0)" }
+    ],
+    revelar: [{ clipPath: "inset(0 100% 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 0)", opacity: 1 }],
+    expandir: [
+      { clipPath: "circle(0% at 50% 50%)", opacity: 0.5 },
+      { clipPath: "circle(75% at 50% 50%)", opacity: 1 }
+    ],
+    morph: [
+      { opacity: 0, borderRadius: "62% 38% 56% 44% / 48% 62% 38% 52%", transform: "scale(.6)" },
+      { opacity: 1, borderRadius: "38% 62% 44% 56% / 60% 40% 58% 42%", transform: "scale(1.06)", offset: 0.55 },
+      { opacity: 1, transform: "scale(1)" }
+    ]
   };
   var PRESET_NAMES = Object.keys(PRESETS);
   var EXIT_PRESETS = {
@@ -3745,7 +3869,22 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     slideOutLeft: [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(-90px)" }],
     slideOutRight: [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(90px)" }],
     flipOut: [{ opacity: 1, transform: "perspective(700px) rotateY(0)" }, { opacity: 0, transform: "perspective(700px) rotateY(90deg)" }],
-    disolver: [{ opacity: 1, filter: "blur(0)" }, { opacity: 0, filter: "blur(14px)" }]
+    disolver: [{ opacity: 1, filter: "blur(0)" }, { opacity: 0, filter: "blur(14px)" }],
+    colapsar: [
+      { opacity: 1, clipPath: "inset(0 0 0 0 round 12px)", transform: "scale(1)" },
+      { opacity: 0, clipPath: "inset(50% 50% 50% 50% round 40px)", transform: "scale(.9)" }
+    ],
+    elasticoOut: [
+      { opacity: 1, transform: "scale(1)" },
+      { transform: "scale(1.12)", offset: 0.3 },
+      { opacity: 0, transform: "scale(.3)" }
+    ],
+    resorteOut: [
+      { opacity: 1, transform: "translateY(0)" },
+      { transform: "translateY(-18px)", offset: 0.35 },
+      { opacity: 0, transform: "translateY(80px)" }
+    ],
+    revelarOut: [{ clipPath: "inset(0 0 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 100%)", opacity: 0.9 }]
   };
   var EXIT_PRESET_NAMES = Object.keys(EXIT_PRESETS);
   function playExitAnimation(elem, animOut) {
@@ -3758,18 +3897,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
     });
   }
   function exitToKeyframesCSS(name) {
-    const frames = EXIT_PRESETS[name];
-    if (!frames) return "";
-    const steps = frames.map((frame, i) => {
-      const rules = [];
-      if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
-      if (frame.transform) rules.push(`transform:${frame.transform}`);
-      if (frame.filter) rules.push(`filter:${frame.filter}`);
-      return `  ${Math.round(i / (frames.length - 1) * 100)}% { ${rules.join(";")} }`;
-    });
-    return `@keyframes wb-out-${name} {
-${steps.join("\n")}
-}`;
+    return framesToKeyframesCSS(`wb-out-${name}`, EXIT_PRESETS[name]);
   }
   function playAnimation(elem, anim) {
     if (!anim || !PRESETS[anim.preset]) return null;
@@ -3788,19 +3916,24 @@ ${steps.join("\n")}
     if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
     if (frame.transform) rules.push(`transform:${frame.transform}`);
     if (frame.filter) rules.push(`filter:${frame.filter}`);
+    if (frame.clipPath) rules.push(`clip-path:${frame.clipPath}`);
+    if (frame.borderRadius) rules.push(`border-radius:${frame.borderRadius}`);
+    if (frame.boxShadow) rules.push(`box-shadow:${frame.boxShadow}`);
     return rules.join(";");
   }
-  function presetToKeyframesCSS(name) {
-    const frames = PRESETS[name];
+  function framesToKeyframesCSS(cssName, frames) {
     if (!frames) return "";
     const n = frames.length;
     const steps = frames.map((frame, i) => {
       const pct = frame.offset != null ? frame.offset * 100 : i / (n - 1) * 100;
       return `  ${Math.round(pct)}% { ${kfToCSS(frame)} }`;
     });
-    return `@keyframes wb-${name} {
+    return `@keyframes ${cssName} {
 ${steps.join("\n")}
 }`;
+  }
+  function presetToKeyframesCSS(name) {
+    return framesToKeyframesCSS(`wb-${name}`, PRESETS[name]);
   }
 
   // src/runtime/effectsRuntime.js
@@ -3832,13 +3965,15 @@ ${steps.join("\n")}
       var i = 0;
       el2.textContent = "";
       el2.classList.add("typing");
-      every(function() {
+      var twId = every(function() {
         i++;
         if (i > text2.length + 12) {
           if (loop) i = 0;
           else {
             el2.classList.remove("typing");
-            i = text2.length;
+            el2.textContent = text2;
+            clearInterval(twId);
+            return;
           }
         }
         el2.textContent = text2.slice(0, Math.min(i, text2.length));
@@ -4005,9 +4140,28 @@ ${steps.join("\n")}
     qa("[data-press]").forEach(function(el2) {
       var kind = el2.getAttribute("data-press");
       if (!kind || kind === "ninguno") return;
-      on(el2, "pointerdown", function() {
+      if (kind === "ondas") (el2.firstElementChild || el2).classList.add("wb-ripple-clip");
+      on(el2, "pointerdown", function(e) {
         el2.classList.add("wb-pressing");
         if (kind === "chispas" && root.wbBurst) root.wbBurst(el2, "\u2728", 7);
+        if (kind === "ondas") {
+          var host = el2.firstElementChild || el2;
+          var rip = host.__wbRipple;
+          if (!rip) {
+            rip = document.createElement("span");
+            rip.className = "wb-ripple";
+            host.appendChild(rip);
+            host.__wbRipple = rip;
+          }
+          var r = el2.getBoundingClientRect();
+          var d = Math.max(host.offsetWidth, host.offsetHeight) * 2.2;
+          rip.style.width = rip.style.height = d + "px";
+          rip.style.left = (e.clientX - r.left) * (host.offsetWidth / (r.width || 1)) - d / 2 + "px";
+          rip.style.top = (e.clientY - r.top) * (host.offsetHeight / (r.height || 1)) - d / 2 + "px";
+          rip.classList.remove("on");
+          void rip.offsetWidth;
+          rip.classList.add("on");
+        }
         if (navigator.vibrate) navigator.vibrate(8);
       });
       var release = function() {
@@ -4023,14 +4177,23 @@ ${steps.join("\n")}
       var target = el2.firstElementChild || el2;
       target.style.transition = "transform .18s ease-out";
       target.style.willChange = "transform";
+      var tiltPending = false, tiltEv = null;
       function move(e) {
-        var r = el2.getBoundingClientRect();
-        var x = ((e.clientX - r.left) / r.width - 0.5) * 2;
-        var y = ((e.clientY - r.top) / r.height - 0.5) * 2;
-        target.style.transform = "perspective(700px) rotateY(" + x * 12 + "deg) rotateX(" + -y * 12 + "deg) scale(1.03)";
+        tiltEv = e;
+        if (tiltPending) return;
+        tiltPending = true;
+        requestAnimationFrame(function() {
+          if (!tiltPending) return;
+          tiltPending = false;
+          var r = el2.getBoundingClientRect();
+          var x = ((tiltEv.clientX - r.left) / r.width - 0.5) * 2;
+          var y = ((tiltEv.clientY - r.top) / r.height - 0.5) * 2;
+          target.style.transform = "perspective(700px) rotateY(" + x * 12 + "deg) rotateX(" + -y * 12 + "deg) scale(1.03)";
+        });
       }
       on(el2, "pointermove", move);
       on(el2, "pointerleave", function() {
+        tiltPending = false;
         target.style.transform = "";
       });
     });
@@ -4427,11 +4590,15 @@ ${steps.join("\n")}
     syncSize() {
       const width = this.store.project.settings.breakpoints[this.store.device];
       const height = this.store.page.height;
-      for (const layer of [this.guides, this.drawLayer, this.overlay]) {
-        layer.style.width = `${width}px`;
-        layer.style.height = `${height}px`;
+      if (this.lastW !== width || this.lastH !== height) {
+        this.lastW = width;
+        this.lastH = height;
+        for (const layer of [this.guides, this.drawLayer, this.overlay]) {
+          layer.style.width = `${width}px`;
+          layer.style.height = `${height}px`;
+        }
+        this.guides.setAttribute("viewBox", `0 0 ${width} ${height}`);
       }
-      this.guides.setAttribute("viewBox", `0 0 ${width} ${height}`);
       const grid = this.store.project.settings.grid;
       this.artboard.classList.toggle("show-grid", !!grid.visible);
       this.artboard.style.setProperty("--grid-size", `${grid.size}px`);
@@ -4525,6 +4692,7 @@ ${steps.join("\n")}
       this.view = view;
       this.gesture = null;
       this.pointers = /* @__PURE__ */ new Map();
+      this.momentum = null;
       this.updateOverlay = throttleRAF(() => this.#renderOverlay());
       const vp = view.viewport;
       vp.addEventListener("pointerdown", (e) => this.#onDown(e));
@@ -4536,6 +4704,8 @@ ${steps.join("\n")}
       store.on("selection", () => this.updateOverlay());
       store.on("change", () => this.updateOverlay());
       store.on("view", () => this.updateOverlay());
+      store.on("page", () => this.#stopMomentum());
+      store.on("device", () => this.#stopMomentum());
       window.addEventListener("keydown", (e) => {
         if (e.code === "Space" && !e.repeat && !this.#isTyping(e)) {
           this.spaceDown = true;
@@ -4556,6 +4726,7 @@ ${steps.join("\n")}
     #onDown(e) {
       const preview = document.body.classList.contains("preview");
       if (this.store.tool === "draw") return;
+      this.#stopMomentum();
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.pointers.size === 2) {
         try {
@@ -4679,7 +4850,25 @@ ${steps.join("\n")}
           } catch {
           }
         }
-        this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
+        if (g.lastT != null) {
+          const dt = Math.max(1, e.timeStamp - g.lastT);
+          const nvx = (e.clientX - g.lastX) / dt, nvy = (e.clientY - g.lastY) / dt;
+          g.vx = g.vx == null ? nvx : g.vx * 0.7 + nvx * 0.3;
+          g.vy = g.vy == null ? nvy : g.vy * 0.7 + nvy * 0.3;
+        }
+        g.lastX = e.clientX;
+        g.lastY = e.clientY;
+        g.lastT = e.timeStamp;
+        let x = g.startPan.x + e.clientX - g.startX;
+        let y = g.startPan.y + e.clientY - g.startY;
+        if (g.lazy) {
+          const b = this.#panBounds();
+          if (x < b.minX) x = b.minX + (x - b.minX) * 0.35;
+          if (x > b.maxX) x = b.maxX + (x - b.maxX) * 0.35;
+          if (y < b.minY) y = b.minY + (y - b.minY) * 0.35;
+          if (y > b.maxY) y = b.maxY + (y - b.maxY) * 0.35;
+        }
+        this.store.setView(null, { x, y });
         return;
       }
       if (g.kind === "marquee") {
@@ -4774,9 +4963,78 @@ ${steps.join("\n")}
         this.store.commit();
         if (e.pointerType === "touch" && navigator.vibrate) navigator.vibrate(12);
       }
+      if (g.kind === "pan" && g.vx != null && e.timeStamp - g.lastT < 120 && !(g.lazy && !g.captured)) {
+        this.#startMomentum(g.vx, g.vy, !!g.lazy);
+      }
+    }
+    /* ── Inercia del lienzo (fricción exponencial + rebote suave) ── */
+    #stopMomentum() {
+      if (this.momentum) {
+        cancelAnimationFrame(this.momentum.raf);
+        this.momentum = null;
+      }
+    }
+    /** Límites del pan en vista previa: la página se comporta como un scroll. */
+    #panBounds() {
+      const zoom = this.store.zoom;
+      const width = this.store.project.settings.breakpoints[this.store.device] * zoom;
+      const height = this.store.page.height * zoom;
+      const vw = this.view.viewport.clientWidth, vh = this.view.viewport.clientHeight;
+      const cx = (vw - width) / 2;
+      return {
+        minX: width <= vw ? cx : vw - width - 24,
+        maxX: width <= vw ? cx : 24,
+        minY: Math.min(vh - height - 24, 24),
+        maxY: 24
+      };
+    }
+    #startMomentum(vx, vy, bounded) {
+      if (Math.hypot(vx, vy) < 0.08 && !bounded) return;
+      this.#stopMomentum();
+      let last = performance.now();
+      const m = this.momentum = { vx, vy, raf: 0 };
+      const step = (now) => {
+        if (this.momentum !== m) return;
+        const dt = Math.min(50, now - last);
+        last = now;
+        const friction = Math.exp(-dt / 300);
+        m.vx *= friction;
+        m.vy *= friction;
+        let x = this.store.pan.x + m.vx * dt;
+        let y = this.store.pan.y + m.vy * dt;
+        let settled = Math.hypot(m.vx, m.vy) < 0.02;
+        if (bounded) {
+          const b = this.#panBounds();
+          const pull = 1 - Math.exp(-dt / 110);
+          const damp = Math.exp(-dt / 55);
+          if (x < b.minX) {
+            x += (b.minX - x) * pull;
+            m.vx *= damp;
+            settled = settled && b.minX - x < 0.5;
+          } else if (x > b.maxX) {
+            x += (b.maxX - x) * pull;
+            m.vx *= damp;
+            settled = settled && x - b.maxX < 0.5;
+          }
+          if (y < b.minY) {
+            y += (b.minY - y) * pull;
+            m.vy *= damp;
+            settled = settled && b.minY - y < 0.5;
+          } else if (y > b.maxY) {
+            y += (b.maxY - y) * pull;
+            m.vy *= damp;
+            settled = settled && y - b.maxY < 0.5;
+          }
+        }
+        this.store.setView(null, { x, y });
+        if (settled) this.momentum = null;
+        else m.raf = requestAnimationFrame(step);
+      };
+      m.raf = requestAnimationFrame(step);
     }
     #onWheel(e) {
       e.preventDefault();
+      this.#stopMomentum();
       if (e.ctrlKey || e.metaKey) this.view.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.1 : 0.9);
       else this.store.setView(null, { x: this.store.pan.x - e.deltaX, y: this.store.pan.y - e.deltaY });
     }
@@ -4784,7 +5042,13 @@ ${steps.join("\n")}
     #onDblClick(e) {
       if (document.body.classList.contains("preview")) return;
       const nodeEl = e.target.closest(".wb-node");
-      if (!nodeEl) return;
+      if (!nodeEl) {
+        if (e.target.closest("#artboard") || e.target === this.view.viewport || e.target.closest("#world")) {
+          this.#stopMomentum();
+          this.view.fit();
+        }
+        return;
+      }
       const node2 = this.store.node(nodeEl.dataset.id);
       if (!node2 || node2.locked || !["text", "button"].includes(node2.type)) return;
       const target = nodeEl.querySelector(".wb-text, .wb-btn") || nodeEl;
@@ -4906,6 +5170,7 @@ ${steps.join("\n")}
       const btn = (icon, title, onclick, cls = "") => el("button", {
         class: cls,
         title,
+        "aria-label": title,
         html: ic(icon, 15),
         onpointerdown: (e) => e.stopPropagation(),
         // no inicia drag del nodo
@@ -5038,6 +5303,73 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
   ];
 
   // src/editor/panels.js
+  function enableSwipeDelete(row, onDelete) {
+    let sx = 0, sy = 0, dx = 0, active = false, pid = null, justSwiped = false;
+    row.classList.add("swipeable");
+    row.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      sx = e.clientX;
+      sy = e.clientY;
+      dx = 0;
+      active = false;
+      pid = e.pointerId;
+    });
+    row.addEventListener("pointermove", (e) => {
+      if (e.pointerId !== pid) return;
+      const mx = e.clientX - sx, my = e.clientY - sy;
+      if (!active) {
+        if (Math.abs(mx) > 14 && Math.abs(mx) > Math.abs(my) * 1.4) {
+          active = true;
+          row.classList.add("swiping");
+          try {
+            row.setPointerCapture(pid);
+          } catch {
+          }
+        } else if (Math.abs(my) > 12) {
+          pid = null;
+          return;
+        } else return;
+      }
+      dx = Math.min(0, mx);
+      row.style.transform = `translateX(${dx}px)`;
+      row.classList.toggle("will-delete", -dx > row.offsetWidth * 0.42);
+      e.preventDefault();
+    });
+    const end = (e) => {
+      if (e.pointerId !== pid) return;
+      pid = null;
+      if (!active) return;
+      active = false;
+      justSwiped = true;
+      setTimeout(() => {
+        justSwiped = false;
+      }, 350);
+      row.classList.remove("swiping");
+      if (-dx > row.offsetWidth * 0.42) {
+        row.style.transition = "transform .18s ease-in, opacity .18s ease-in";
+        row.style.transform = "translateX(-105%)";
+        row.style.opacity = "0";
+        if (navigator.vibrate) navigator.vibrate(18);
+        setTimeout(onDelete, 170);
+      } else {
+        row.style.transition = "transform .28s cubic-bezier(.2,.8,.25,1)";
+        row.style.transform = "";
+        row.classList.remove("will-delete");
+        setTimeout(() => {
+          row.style.transition = "";
+        }, 300);
+      }
+    };
+    row.addEventListener("pointerup", end);
+    row.addEventListener("pointercancel", end);
+    row.addEventListener("click", (e) => {
+      if (justSwiped) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    }, true);
+    return row;
+  }
   var Panels = class {
     constructor(store, assets, view) {
       this.store = store;
@@ -5212,7 +5544,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
         return;
       }
       for (const asset2 of list) {
-        const preview = asset2.kind === "video" ? el("video", { src: asset2.data, muted: "true", class: "asset-thumb" }) : ["image", "gif", "svg"].includes(asset2.kind) ? el("img", { src: asset2.data, class: "asset-thumb", draggable: "false" }) : el("div", { class: "asset-thumb kind-icon", html: ic({ audio: "music", model: "cube", font: "type", html: "globe" }[asset2.kind] || "file", 26) });
+        const preview = asset2.kind === "video" ? el("video", { src: asset2.data, muted: "true", class: "asset-thumb" }) : ["image", "gif", "svg"].includes(asset2.kind) ? el("img", { src: asset2.data, class: "asset-thumb", draggable: "false", loading: "lazy", decoding: "async" }) : el("div", { class: "asset-thumb kind-icon", html: ic({ audio: "music", model: "cube", font: "type", html: "globe" }[asset2.kind] || "file", 26) });
         const card = el("div", {
           class: "asset-card",
           draggable: "true",
@@ -5363,7 +5695,8 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       for (const page2 of this.store.project.pages) {
         if (pq && !page2.name.toLowerCase().includes(pq)) continue;
         const active = page2.id === this.store.pageId;
-        list.append(el("div", { class: `page-item${active ? " active" : ""}`, onclick: () => this.store.setPage(page2.id) }, [
+        const canDelete = this.store.project.pages.length > 1;
+        list.append(enableSwipeDelete(el("div", { class: `page-item${active ? " active" : ""}`, onclick: () => this.store.setPage(page2.id) }, [
           el("span", {
             class: "page-name",
             text: page2.name,
@@ -5392,7 +5725,10 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               if (confirm(`\xBFEliminar "${page2.name}"?`)) this.store.deletePage(page2.id);
             } })
           ])
-        ]));
+        ]), () => {
+          if (canDelete && confirm(`\xBFEliminar "${page2.name}"?`)) this.store.deletePage(page2.id);
+          else this.render();
+        }));
       }
       body.append(list);
       const page = this.store.page;
@@ -5494,9 +5830,15 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       for (const node2 of [...nodes].reverse()) {
         if (q && !node2.name.toLowerCase().includes(q)) continue;
         const selected = this.store.selection.includes(node2.id);
-        list.append(el("div", {
+        list.append(enableSwipeDelete(el("div", {
           class: `layer-item${selected ? " active" : ""}`,
           draggable: "true",
+          // Pulsación larga (táctil) = añadir a la selección múltiple
+          oncontextmenu: (e) => {
+            e.preventDefault();
+            this.store.select(node2.id, true);
+            if (navigator.vibrate) navigator.vibrate(10);
+          },
           ondragstart: (e) => {
             e.dataTransfer.setData("text/wb-layer", node2.id);
             e.dataTransfer.effectAllowed = "move";
@@ -5545,7 +5887,10 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               this.store.removeNodes([node2.id]);
             } })
           ])
-        ]));
+        ]), () => {
+          this.store.removeNodes([node2.id]);
+          showSnack(`"${node2.name}" eliminada`, "Deshacer", () => this.store.undo());
+        }));
       }
       body.append(list);
     }
@@ -6027,7 +6372,7 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       ]));
       this.root.append(this.#section("Efectos de interacci\xF3n", [
         this.#field("Al tocar / presionar", this.#select(
-          ["ninguno", "escala", "rebote", "brillo", "latido", "sacudida", "hundir", "chispas"],
+          ["ninguno", "ondas", "escala", "rebote", "brillo", "latido", "sacudida", "hundir", "elevar", "chispas"],
           node2.effects?.press || "ninguno",
           (v) => this.store.updateNode(node2.id, "effects", { press: v })
         )),
@@ -6771,12 +7116,12 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
       };
       raf = requestAnimationFrame(stepQ);
     } else {
-      var isHeart = mode === "corazones";
-      var shapeId = shapeOverride === "coraz\xF3n" ? 1 : shapeOverride === "estrella" ? 2 : shapeOverride === "disco" ? 0 : isHeart ? 1 : 0;
-      var soft = !glow || mode === "nieve" || shapeId === 1;
+      var isHeart = mode === "corazones" || mode === "p\xE9talos";
+      var shapeId = shapeOverride === "coraz\xF3n" ? 1 : shapeOverride === "estrella" ? 2 : shapeOverride === "anillo" ? 3 : shapeOverride === "disco" ? 0 : isHeart ? 1 : mode === "burbujas" ? 3 : 0;
+      var soft = !glow || mode === "nieve" || mode === "burbujas" || shapeId === 1;
       var pp = program(
         "#version 300 es\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;\nvoid main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);\ngl_PointSize=uSize*(0.45+aLife*0.9);vLife=aLife;}",
-        "#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;uniform float uAlpha;in float vLife;out vec4 o;\nfloat sdStar(vec2 p){const float an=0.6283;const float en=1.0472;\n vec2 acs=vec2(cos(an),sin(an));vec2 ecs=vec2(cos(en),sin(en));\n float bn=mod(atan(p.x,p.y),2.0*an)-an;p=length(p)*vec2(cos(bn),abs(sin(bn)));\n p-=acs*0.5;p+=ecs*clamp(-dot(p,ecs),0.0,0.5*acs.y);return length(p)*sign(p.x);}\nvoid main(){float alpha;vec3 col=uColor;\nif(uShape==1){vec2 p=(gl_PointCoord-vec2(0.5,0.42))*2.6;p.y=-p.y;\n float a=p.x*p.x+p.y*p.y-0.55;float f=a*a*a-p.x*p.x*p.y*p.y*p.y;\n alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\nelse if(uShape==2){vec2 p=(gl_PointCoord-vec2(0.5))*2.3;\n alpha=smoothstep(0.06,-0.04,sdStar(p))*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.3);}\nelse{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\no=vec4(col,alpha*uAlpha);}"
+        "#version 300 es\nprecision mediump float;uniform vec3 uColor;uniform int uShape;uniform float uAlpha;in float vLife;out vec4 o;\nfloat sdStar(vec2 p){const float an=0.6283;const float en=1.0472;\n vec2 acs=vec2(cos(an),sin(an));vec2 ecs=vec2(cos(en),sin(en));\n float bn=mod(atan(p.x,p.y),2.0*an)-an;p=length(p)*vec2(cos(bn),abs(sin(bn)));\n p-=acs*0.5;p+=ecs*clamp(-dot(p,ecs),0.0,0.5*acs.y);return length(p)*sign(p.x);}\nvoid main(){float alpha;vec3 col=uColor;\nif(uShape==1){vec2 p=(gl_PointCoord-vec2(0.5,0.42))*2.6;p.y=-p.y;\n float a=p.x*p.x+p.y*p.y-0.55;float f=a*a*a-p.x*p.x*p.y*p.y*p.y;\n alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\nelse if(uShape==2){vec2 p=(gl_PointCoord-vec2(0.5))*2.3;\n alpha=smoothstep(0.06,-0.04,sdStar(p))*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.3);}\nelse if(uShape==3){float dd=length(gl_PointCoord-vec2(0.5));\n float band=smoothstep(0.47,0.41,dd)*smoothstep(0.29,0.36,dd);\n float hl=smoothstep(0.11,0.02,length(gl_PointCoord-vec2(0.36,0.33)));\n alpha=(band*0.8+hl*0.55)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),0.25+vLife*0.3);}\nelse{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\no=vec4(col,alpha*uAlpha);}"
       );
       gl.uniform3fv(gl.getUniformLocation(pp, "uColor"), rgb);
       gl.uniform1i(gl.getUniformLocation(pp, "uShape"), shapeId);
@@ -6837,6 +7182,22 @@ setInterval(() => { s = Math.max(1, s - 0.06); heart.style.transform = 'scale(' 
               pos[i2 * 2] = Math.random() * W2();
             }
             life[i2] = 0.4 + s * 0.6;
+          } else if (mode === "p\xE9talos") {
+            pos[i2 * 2 + 1] += (0.35 + s * 0.9) * k * dpr;
+            pos[i2 * 2] += Math.sin(t * (0.7 + s) + i2 * 1.3) * 1.1 * k;
+            life[i2] = 0.45 + 0.55 * Math.sin(t * (0.6 + s) + i2);
+            if (pos[i2 * 2 + 1] > H() + 16) {
+              pos[i2 * 2 + 1] = -16;
+              pos[i2 * 2] = Math.random() * W2();
+            }
+          } else if (mode === "burbujas") {
+            pos[i2 * 2 + 1] -= (0.4 + s * 1.1) * k * dpr;
+            pos[i2 * 2] += Math.sin(t * (1.2 + s) + i2 * 2.1) * 0.35 * k;
+            life[i2] = 0.5 + 0.5 * Math.sin(t * (0.5 + s) + i2);
+            if (pos[i2 * 2 + 1] < -14) {
+              pos[i2 * 2 + 1] = H() + 14;
+              pos[i2 * 2] = Math.random() * W2();
+            }
           } else if (mode === "estrellas") {
             life[i2] = 0.5 + 0.5 * Math.sin(t * (0.8 + s * 2.5) + i2 * 1.7);
           } else if (mode === "luci\xE9rnagas") {
@@ -7920,7 +8281,7 @@ self.addEventListener('fetch', function (e) {
     syncCustomCSS();
     const view = new CanvasView(store);
     const three = new ThreeManager(assets);
-    new Interactions(store, view);
+    const interactions = new Interactions(store, view);
     const panels = new Panels(store, assets, view);
     new PropertiesPanel(store, assets, view);
     new DrawTool(store, assets, view);
@@ -7940,6 +8301,7 @@ self.addEventListener('fetch', function (e) {
     view.syncSize();
     repaint();
     view.fit();
+    window.wb = { store, assets, view, exporter, interactions };
   }
   function buildTopbar(store, view, exporter, assets, repaint) {
     const bar = document.getElementById("topbar");
@@ -8209,6 +8571,26 @@ ${extraJS}`;
     body.classList.add("preview");
     store.clearSelection();
     repaint();
+    try {
+      const globalJS = store.project.custom?.js || "";
+      if (globalJS.trim()) new Function(globalJS)();
+    } catch (e) {
+      console.warn("JS personalizado:", e);
+    }
+    let disposeBind = null;
+    const bind = () => {
+      disposeBind?.();
+      disposeBind = bindPreviewPage(store, view, assets);
+    };
+    bind();
+    const offPage = store.on("page", () => requestAnimationFrame(bind));
+    previewCleanup = () => {
+      offPage();
+      disposeBind?.();
+      disposeBind = null;
+    };
+  }
+  function bindPreviewPage(store, view, assets) {
     const artboard = view.artboard;
     const animations = [];
     artboard.querySelectorAll(".wb-embed iframe").forEach((frame) => {
@@ -8217,6 +8599,12 @@ ${extraJS}`;
       live.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock");
       frame.replaceWith(live);
     });
+    const bound = [];
+    const scrollIOs = [];
+    const listen = (target, ev, fn) => {
+      target.addEventListener(ev, fn);
+      bound.push([target, ev, fn]);
+    };
     for (const node2 of store.pageNodes()) {
       const elem = artboard.querySelector(`[data-id="${node2.id}"]`);
       if (!elem) continue;
@@ -8232,14 +8620,14 @@ ${extraJS}`;
       };
       if (anim && (anim.custom || anim.preset && anim.preset !== "ninguna")) {
         if (anim.trigger === "load") fire();
-        else if (anim.trigger === "click") elem.addEventListener("click", fire);
-        else if (anim.trigger === "hover") elem.addEventListener("mouseenter", fire);
+        else if (anim.trigger === "click") listen(elem, "click", fire);
+        else if (anim.trigger === "hover") listen(elem, "mouseenter", fire);
         else if (anim.trigger === "hold") {
           let holdTimer = null;
-          elem.addEventListener("pointerdown", () => {
+          listen(elem, "pointerdown", () => {
             holdTimer = setTimeout(fire, 550);
           });
-          ["pointerup", "pointerleave"].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
+          ["pointerup", "pointerleave"].forEach((ev) => listen(elem, ev, () => clearTimeout(holdTimer)));
         } else if (anim.trigger === "scroll") {
           const io = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
@@ -8248,6 +8636,7 @@ ${extraJS}`;
             }
           }, { threshold: 0.25 });
           io.observe(elem);
+          scrollIOs.push(io);
         }
       }
     }
@@ -8278,16 +8667,20 @@ ${extraJS}`;
       }
     });
     try {
-      const code = `${store.project.custom?.js || ""}
-${store.page.custom?.js || ""}`;
-      if (code.trim()) new Function(code)();
+      const pageJS = store.page.custom?.js || "";
+      if (pageJS.trim()) new Function(pageJS)();
     } catch (e) {
-      console.warn("JS personalizado:", e);
+      console.warn("JS de la p\xE1gina:", e);
     }
-    previewCleanup = () => {
+    return () => {
       animations.forEach((a) => a?.cancel());
+      bound.forEach(([target, ev, fn]) => target.removeEventListener(ev, fn));
+      scrollIOs.forEach((io) => io.disconnect());
       disposeEffects();
       disposeActions();
+      artboard.querySelectorAll('.wb-node[style*="animation"]').forEach((n) => {
+        n.style.animation = "";
+      });
     };
   }
   function bindKeyboard(store, view) {

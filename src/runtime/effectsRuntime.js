@@ -31,10 +31,16 @@ export function wbEffects(root, opts) {
     var i = 0;
     el.textContent = '';
     el.classList.add('typing');
-    every(function () {
+    var twId = every(function () {
       i++;
       if (i > text.length + 12) { // pausa al final
-        if (loop) i = 0; else { el.classList.remove('typing'); i = text.length; }
+        if (loop) i = 0;
+        else { // terminado: libera el intervalo (no gira para siempre)
+          el.classList.remove('typing');
+          el.textContent = text;
+          clearInterval(twId);
+          return;
+        }
       }
       el.textContent = text.slice(0, Math.min(i, text.length));
     }, ms);
@@ -188,9 +194,28 @@ export function wbEffects(root, opts) {
   qa('[data-press]').forEach(function (el) {
     var kind = el.getAttribute('data-press');
     if (!kind || kind === 'ninguno') return;
-    on(el, 'pointerdown', function () {
+    if (kind === 'ondas') (el.firstElementChild || el).classList.add('wb-ripple-clip');
+    on(el, 'pointerdown', function (e) {
       el.classList.add('wb-pressing');
       if (kind === 'chispas' && root.wbBurst) root.wbBurst(el, '✨', 7);
+      if (kind === 'ondas') {
+        // Ripple estilo material: un único span por elemento (pool) que se
+        // reposiciona en cada toque — cero nodos nuevos por pulsación.
+        var host = el.firstElementChild || el;
+        var rip = host.__wbRipple;
+        if (!rip) {
+          rip = document.createElement('span');
+          rip.className = 'wb-ripple';
+          host.appendChild(rip);
+          host.__wbRipple = rip;
+        }
+        var r = el.getBoundingClientRect();
+        var d = Math.max(host.offsetWidth, host.offsetHeight) * 2.2;
+        rip.style.width = rip.style.height = d + 'px';
+        rip.style.left = ((e.clientX - r.left) * (host.offsetWidth / (r.width || 1)) - d / 2) + 'px';
+        rip.style.top = ((e.clientY - r.top) * (host.offsetHeight / (r.height || 1)) - d / 2) + 'px';
+        rip.classList.remove('on'); void rip.offsetWidth; rip.classList.add('on');
+      }
       if (navigator.vibrate) navigator.vibrate(8);
     });
     var release = function () { later(function () { el.classList.remove('wb-pressing'); }, kind === 'rebote' || kind === 'latido' || kind === 'sacudida' ? 480 : 40); };
@@ -204,14 +229,24 @@ export function wbEffects(root, opts) {
     var target = el.firstElementChild || el;
     target.style.transition = 'transform .18s ease-out';
     target.style.willChange = 'transform';
+    // Acotado a 1 lectura de layout por frame: pointermove puede llegar
+    // a >120 Hz en móviles y cada getBoundingClientRect fuerza layout.
+    var tiltPending = false, tiltEv = null;
     function move(e) {
-      var r = el.getBoundingClientRect();
-      var x = ((e.clientX - r.left) / r.width - 0.5) * 2;
-      var y = ((e.clientY - r.top) / r.height - 0.5) * 2;
-      target.style.transform = 'perspective(700px) rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 12) + 'deg) scale(1.03)';
+      tiltEv = e;
+      if (tiltPending) return;
+      tiltPending = true;
+      requestAnimationFrame(function () {
+        if (!tiltPending) return; // se soltó / se desmontó antes del frame
+        tiltPending = false;
+        var r = el.getBoundingClientRect();
+        var x = ((tiltEv.clientX - r.left) / r.width - 0.5) * 2;
+        var y = ((tiltEv.clientY - r.top) / r.height - 0.5) * 2;
+        target.style.transform = 'perspective(700px) rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 12) + 'deg) scale(1.03)';
+      });
     }
     on(el, 'pointermove', move);
-    on(el, 'pointerleave', function () { target.style.transform = ''; });
+    on(el, 'pointerleave', function () { tiltPending = false; target.style.transform = ''; });
   });
 
   /* ── Parallax al hacer scroll ── */

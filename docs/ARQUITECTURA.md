@@ -397,6 +397,46 @@ pesados conviven sin picos de CPU ni caídas de FPS.
 - Export: animaciones en CSS puro, `lazy loading` de imágenes, Three.js solo si
   se usa, `prefers-reduced-motion`.
 
+## Auditoría v7 (táctil premium + cero fugas)
+
+- **Inercia del lienzo**: al soltar un pan con velocidad, fricción
+  exponencial (`e^(-dt/300)`) y, en vista previa, rebote elástico contra
+  los bordes de la página (muelle + amortiguación, tacto iOS). Se frena
+  con un toque, la rueda o al cambiar de página/dispositivo.
+- **Deslizar para eliminar** en capas y páginas (táctil): la fila sigue el
+  dedo, franja roja de confirmación al 42 % y salida animada; el scroll
+  vertical nunca se bloquea (el gesto exige movimiento claramente
+  horizontal). Con snackbar «Deshacer» (elemento único reutilizado).
+- **Pulsación larga en una capa** = añadirla a la selección múltiple.
+- **Doble toque en lienzo vacío** = reencuadrar la página.
+- **Ripple «ondas»** como efecto de presión por defecto en botones: un
+  único `span` por elemento (pool) reposicionado en cada toque — cero
+  nodos nuevos por pulsación. Nuevos presets de animación (`cristal`,
+  `elastico`, `resorte`, `ondulacion`, `revelar`, `expandir`, `morph` y
+  salidas `colapsar`/`elasticoOut`/`resorteOut`/`revelarOut`) compilables
+  a CSS (incluye `clip-path`/`border-radius`/`box-shadow`).
+- **Partículas**: modos nuevos `pétalos` y `burbujas` + forma `anillo`
+  (SDF en el shader), configurables en vivo como el resto.
+- **Fugas eliminadas**: los triggers de animación de la vista previa
+  (click/hover/hold/scroll-IO) se registran y se retiran al salir — antes
+  cada entrada/salida los duplicaba. Al navegar de página DENTRO de la
+  vista previa se revincula todo (efectos, acciones, animaciones, JS de
+  página); antes la página destino quedaba muerta.
+- **Micro-rendimiento**: tilt 3D acotado a una lectura de layout por
+  frame; typewriter libera su intervalo al terminar; `syncSize` solo toca
+  el DOM si cambió; filas de listas y tarjetas de assets con
+  `content-visibility: auto` (virtualización nativa); miniaturas con
+  `loading="lazy"` + `decoding="async"`; vídeo sin autoplay con
+  `preload="metadata"`.
+- **Decisiones**: `OffscreenCanvas` se evaluó y se descartó para el módulo
+  de dibujo (el feedback síncrono en pantalla manda; un worker añade
+  latencia sin quitar trabajo real al hilo principal en este caso).
+  La división de código en chunks se descartó: el producto ES un único
+  `index.html` que funciona con doble clic (file://), y el arranque ya
+  difiere el trabajo pesado (lazy de embeds, IO en partículas).
+- Accesibilidad: `aria-label` en botones de icono, `prefers-reduced-motion`
+  respetado en la interfaz (el contenido del usuario no se toca).
+
 ## Hoja de ruta natural
 
 1. **Colaboración**: el JSON puro encaja directo con Yjs/CRDT.

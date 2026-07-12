@@ -57,7 +57,7 @@ async function boot() {
 
   const view = new CanvasView(store);
   const three = new ThreeManager(assets);
-  new Interactions(store, view);
+  const interactions = new Interactions(store, view);
   const panels = new Panels(store, assets, view);
   new PropertiesPanel(store, assets, view);
   new DrawTool(store, assets, view);
@@ -78,6 +78,10 @@ async function boot() {
   view.syncSize();
   repaint();
   view.fit();
+
+  // API de consola para usuarios avanzados y pruebas automatizadas:
+  // window.wb.store / .assets / .view permiten editar el proyecto por código.
+  window.wb = { store, assets, view, exporter, interactions };
 }
 
 /* ── Barra superior ──────────────────────────────────── */
@@ -341,6 +345,34 @@ function togglePreview(store, view, repaint, assets) {
   store.clearSelection();
   repaint();
 
+  // JavaScript personalizado GLOBAL: una sola vez por sesión de vista previa
+  try {
+    const globalJS = store.project.custom?.js || '';
+    if (globalJS.trim()) new Function(globalJS)();
+  } catch (e) { console.warn('JS personalizado:', e); }
+
+  // La página activa se vincula (efectos+acciones+animaciones) y se
+  // REVINCULA al navegar entre páginas dentro de la vista previa —
+  // sin esto, la página destino quedaba sin interactividad.
+  let disposeBind = null;
+  const bind = () => { disposeBind?.(); disposeBind = bindPreviewPage(store, view, assets); };
+  bind();
+  const offPage = store.on('page', () => requestAnimationFrame(bind));
+
+  previewCleanup = () => {
+    offPage();
+    disposeBind?.();
+    disposeBind = null;
+  };
+}
+
+/**
+ * Da vida a la PÁGINA ACTUAL de la vista previa: despierta los HTML
+ * importados, dispara animaciones por trigger y monta los runtimes
+ * compartidos. Devuelve dispose() que lo retira TODO (cero fugas y
+ * cero listeners duplicados al entrar/salir/navegar).
+ */
+function bindPreviewPage(store, view, assets) {
   const artboard = view.artboard;
   const animations = [];
 
@@ -354,7 +386,13 @@ function togglePreview(store, view, repaint, assets) {
     frame.replaceWith(live);
   });
 
-  // Animaciones por trigger (WAAPI, igual comportamiento que el CSS exportado)
+  // Animaciones por trigger (WAAPI, igual comportamiento que el CSS exportado).
+  // TODOS los listeners y observers se registran para retirarse al salir:
+  // los elementos sobreviven a la vista previa (render incremental) y sin
+  // esta limpieza cada entrada/salida DUPLICABA los eventos.
+  const bound = [];   // [elemento, evento, manejador]
+  const scrollIOs = [];
+  const listen = (target, ev, fn) => { target.addEventListener(ev, fn); bound.push([target, ev, fn]); };
   for (const node of store.pageNodes()) {
     const elem = artboard.querySelector(`[data-id="${node.id}"]`);
     if (!elem) continue;
@@ -370,18 +408,19 @@ function togglePreview(store, view, repaint, assets) {
     };
     if (anim && (anim.custom || (anim.preset && anim.preset !== 'ninguna'))) {
       if (anim.trigger === 'load') fire();
-      else if (anim.trigger === 'click') elem.addEventListener('click', fire);
-      else if (anim.trigger === 'hover') elem.addEventListener('mouseenter', fire);
+      else if (anim.trigger === 'click') listen(elem, 'click', fire);
+      else if (anim.trigger === 'hover') listen(elem, 'mouseenter', fire);
       else if (anim.trigger === 'hold') {
         let holdTimer = null;
-        elem.addEventListener('pointerdown', () => { holdTimer = setTimeout(fire, 550); });
-        ['pointerup', 'pointerleave'].forEach((ev) => elem.addEventListener(ev, () => clearTimeout(holdTimer)));
+        listen(elem, 'pointerdown', () => { holdTimer = setTimeout(fire, 550); });
+        ['pointerup', 'pointerleave'].forEach((ev) => listen(elem, ev, () => clearTimeout(holdTimer)));
       }
       else if (anim.trigger === 'scroll') {
         const io = new IntersectionObserver(([entry]) => {
           if (entry.isIntersecting) { fire(); io.disconnect(); }
         }, { threshold: 0.25 });
         io.observe(elem);
+        scrollIOs.push(io);
       }
     }
   }
@@ -411,16 +450,20 @@ function togglePreview(store, view, repaint, assets) {
     },
   });
 
-  // JavaScript personalizado (global + de la página) en un sandbox try/catch
+  // JavaScript personalizado DE ESTA PÁGINA en un sandbox try/catch
   try {
-    const code = `${store.project.custom?.js || ''}\n${store.page.custom?.js || ''}`;
-    if (code.trim()) new Function(code)();
-  } catch (e) { console.warn('JS personalizado:', e); }
+    const pageJS = store.page.custom?.js || '';
+    if (pageJS.trim()) new Function(pageJS)();
+  } catch (e) { console.warn('JS de la página:', e); }
 
-  previewCleanup = () => {
+  return () => {
     animations.forEach((a) => a?.cancel());
+    bound.forEach(([target, ev, fn]) => target.removeEventListener(ev, fn));
+    scrollIOs.forEach((io) => io.disconnect());
     disposeEffects();
     disposeActions();
+    // Estilos de animación CSS propia que quedaron aplicados en línea
+    artboard.querySelectorAll('.wb-node[style*="animation"]').forEach((n) => { n.style.animation = ''; });
   };
 }
 

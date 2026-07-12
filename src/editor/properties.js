@@ -223,7 +223,7 @@ export class PropertiesPanel {
     /* Efectos de interacción: presión, hover, parallax, tilt 3D */
     this.root.append(this.#section('Efectos de interacción', [
       this.#field('Al tocar / presionar', this.#select(
-        ['ninguno', 'escala', 'rebote', 'brillo', 'latido', 'sacudida', 'hundir', 'chispas'],
+        ['ninguno', 'ondas', 'escala', 'rebote', 'brillo', 'latido', 'sacudida', 'hundir', 'elevar', 'chispas'],
         node.effects?.press || 'ninguno',
         (v) => this.store.updateNode(node.id, 'effects', { press: v }),
       )),

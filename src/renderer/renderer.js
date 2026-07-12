@@ -102,7 +102,7 @@ function media(node, ctx) {
   const fit = node.props.fit || 'cover';
   if (!src) return `<div class="wb-placeholder">${esc(node.name)}<small>Toca para poner aquí un recuerdo</small></div>`;
   const filter = IMG_FILTERS[node.props.filter || 'ninguno'](node.props.filterAmount ?? 100);
-  return `<img src="${src}" alt="${esc(node.props.alt || node.name)}" draggable="false"
+  return `<img src="${src}" alt="${esc(node.props.alt || node.name)}" draggable="false" loading="lazy" decoding="async"
     style="width:100%;height:100%;object-fit:${fit};filter:${filter};border-radius:inherit;pointer-events:none">`;
 }
 
@@ -138,7 +138,7 @@ export function contentHTML(node, ctx) {
       const src = p.assetId ? ctx.resolve(p.assetId) : '';
       if (!src) return `<div class="wb-placeholder">GIF<small>Un momento en movimiento va aquí</small></div>`;
       // Un GIF pausado se congela pintándolo en un canvas (lo hace el runtime).
-      return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false"
+      return `<img class="wb-gif" src="${src}" data-playing="${p.playing !== false}" draggable="false" decoding="async"
         style="width:100%;height:100%;object-fit:${p.fit || 'cover'};border-radius:inherit;pointer-events:none">`;
     }
 
@@ -148,6 +148,8 @@ export function contentHTML(node, ctx) {
       const attrs = [
         p.autoplay && !p.playOnScroll ? 'autoplay' : '', p.loop ? 'loop' : '', p.muted ? 'muted' : '',
         p.controls ? 'controls' : '', 'playsinline',
+        // Sin autoplay solo se lee la cabecera del vídeo hasta que se toca
+        p.autoplay || p.playOnScroll ? '' : 'preload="metadata"',
         p.playOnScroll ? 'data-scrollplay="1"' : '',
       ].filter(Boolean).join(' ');
       return `<video src="${src}" ${attrs} style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></video>`;

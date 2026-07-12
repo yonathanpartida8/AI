@@ -74,6 +74,30 @@ export function el(tag, attrs = {}, children = []) {
   return node;
 }
 
+/**
+ * Snackbar del editor: aviso breve con acción opcional ("Deshacer").
+ * Reutiliza un único elemento (pool) — mostrarlo mil veces no crea nodos.
+ */
+let _snack = null, _snackTimer = 0;
+export function showSnack(message, actionLabel, onAction) {
+  if (!_snack) {
+    _snack = el('div', { class: 'wb-snack', role: 'status' });
+    document.body.append(_snack);
+  }
+  clearTimeout(_snackTimer);
+  _snack.replaceChildren(
+    el('span', { class: 'wb-snack-msg', text: message }),
+    actionLabel ? el('button', {
+      class: 'wb-snack-act', text: actionLabel,
+      onclick: () => { _snack.classList.remove('show'); onAction?.(); },
+    }) : null,
+  );
+  _snack.classList.remove('show');
+  void _snack.offsetWidth;
+  _snack.classList.add('show');
+  _snackTimer = setTimeout(() => _snack.classList.remove('show'), 4200);
+}
+
 /** Descarga un Blob como archivo. */
 export function download(filename, blob) {
   const url = URL.createObjectURL(blob);

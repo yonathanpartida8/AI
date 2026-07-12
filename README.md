@@ -40,15 +40,20 @@ fotos polaroid · elementos flotantes (emojis) · **corazón 3D** (Three.js) ·
 **foto con profundidad 3D** · gradientes animados · reproductor de música.
 
 ### ✨ Fondos dinámicos (WebGL2 nativo, shaders propios)
-Corazones (con forma real por SDF) · nieve · estrellas titilantes ·
-luciérnagas · aurora · ondas de agua · nebulosa · lluvia · órbita. Simulación
-por tiempo real: idéntica velocidad y máxima fluidez a 60/90/120/144/165 Hz.
+Corazones (con forma real por SDF) · **pétalos que caen** · **burbujas** ·
+nieve · estrellas titilantes · luciérnagas · aurora · ondas de agua ·
+nebulosa · lluvia · órbita. Color, cantidad, tamaño, velocidad, opacidad,
+forma (disco/corazón/estrella/**anillo**) y brillo configurables **en vivo**.
+Simulación por tiempo real: idéntica velocidad y máxima fluidez a
+60/90/120/144/165 Hz.
 
 ### 🎬 Animaciones y transiciones
-26 presets de entrada (latido, tada, flip 3D, giro 3D, brillo, caída…) con
-triggers al cargar / scroll / tocar / **mantener presionado** / hover, y
-**8 animaciones de salida** (disolver, zoomOut, flipOut…) que se reproducen
-automáticamente cuando una acción oculta el elemento. Letras animadas (olas, saltos,
+33 presets de entrada (latido, tada, flip 3D, **elástico**, **resorte**,
+**cristal**, **ondulación**, **revelar**, **expandir**, **morph**, brillo,
+caída…) con triggers al cargar / scroll / tocar / **mantener presionado** /
+hover, y **12 animaciones de salida** (disolver, colapsar, resorte,
+revelar…) que se reproducen automáticamente cuando una acción oculta el
+elemento. Letras animadas (olas, saltos,
 brillo, arcoíris). Brillos de texto (neón, rosa, dorado, fuego, hielo).
 Efectos por elemento: **parallax al scroll** y **tilt 3D** táctil.
 Transiciones de página cinematográficas: círculo mágico, cortina, giro 3D,
@@ -75,7 +80,11 @@ Interfaz rediseñada con estética iPhone: cristal esmerilado, píldoras,
 control segmentado y barra de pestañas iOS. **Un dedo** sobre el lienzo
 vacío desplaza; sobre un elemento, lo mueve. **Dos dedos** siempre
 desplazan y hacen zoom (pinch), también en vista previa — y los toques
-llegan limpios a cartas, botones y secretos.
+llegan limpios a cartas, botones y secretos. Al soltar, el lienzo sigue
+deslizándose con **inercia y rebote elástico** contra los bordes (vista
+previa). **Desliza una capa o página a la izquierda para eliminarla**
+(con «Deshacer» al instante), **mantén presionada una capa** para
+selección múltiple y **doble toque en el lienzo** para reencuadrar.
 
 ### 🧩 Extensión con tu propio código
 - Componente **"3D personalizado"**: pega código Three.js (recibe `THREE`,
@@ -99,8 +108,9 @@ te deja escucharlas y añadirlas con un toque. El reproductor tiene disco
 giratorio y **ecualizador animado** que solo se mueven mientras suena.
 
 ### 👆 Efectos de interacción (biblioteca)
-Cada elemento elige su respuesta **al tocar** (escala, rebote, brillo,
-latido, sacudida, hundir, chispas ✨ con háptico) y **al pasar el cursor**
+Cada elemento elige su respuesta **al tocar** (**ondas ripple** —el
+efecto por defecto de los botones—, escala, rebote, brillo, latido,
+sacudida, hundir, elevar, chispas ✨ con háptico) y **al pasar el cursor**
 (elevar con sombra, zoom, brillo, flotar, girar) — sin programar, desde
 el panel de Efectos.
 

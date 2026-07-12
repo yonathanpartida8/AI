@@ -76,6 +76,35 @@ export const PRESETS = {
     { transform: 'translateY(-16px)', offset: 0.8 }, { transform: 'translateY(0)' },
   ],
   respirar: [{ transform: 'scale(1)', opacity: 0.9 }, { transform: 'scale(1.045)', opacity: 1, offset: 0.5 }, { transform: 'scale(1)', opacity: 0.9 }],
+  /* ── Premium (v7): cristal, elástico, resorte, revelados… ── */
+  cristal: [
+    { opacity: 0, filter: 'blur(18px) saturate(.55)', transform: 'scale(1.06)' },
+    { opacity: 1, filter: 'blur(0) saturate(1)', transform: 'scale(1)' },
+  ],
+  elastico: [
+    { opacity: 0, transform: 'scale(.3)' }, { opacity: 1, transform: 'scale(1.16)', offset: 0.5 },
+    { transform: 'scale(.94)', offset: 0.72 }, { transform: 'scale(1.04)', offset: 0.86 },
+    { opacity: 1, transform: 'scale(1)' },
+  ],
+  resorte: [
+    { opacity: 0, transform: 'translateY(70px)' }, { opacity: 1, transform: 'translateY(-16px)', offset: 0.55 },
+    { transform: 'translateY(8px)', offset: 0.75 }, { transform: 'translateY(-4px)', offset: 0.88 },
+    { opacity: 1, transform: 'translateY(0)' },
+  ],
+  ondulacion: [
+    { opacity: 0, transform: 'scale(.86)', boxShadow: '0 0 0 0 rgba(255,255,255,.35)' },
+    { opacity: 1, transform: 'scale(1)', boxShadow: '0 0 0 26px rgba(255,255,255,0)' },
+  ],
+  revelar: [{ clipPath: 'inset(0 100% 0 0)', opacity: 1 }, { clipPath: 'inset(0 0 0 0)', opacity: 1 }],
+  expandir: [
+    { clipPath: 'circle(0% at 50% 50%)', opacity: 0.5 },
+    { clipPath: 'circle(75% at 50% 50%)', opacity: 1 },
+  ],
+  morph: [
+    { opacity: 0, borderRadius: '62% 38% 56% 44% / 48% 62% 38% 52%', transform: 'scale(.6)' },
+    { opacity: 1, borderRadius: '38% 62% 44% 56% / 60% 40% 58% 42%', transform: 'scale(1.06)', offset: 0.55 },
+    { opacity: 1, transform: 'scale(1)' },
+  ],
 };
 
 export const PRESET_NAMES = Object.keys(PRESETS);
@@ -91,6 +120,19 @@ export const EXIT_PRESETS = {
   slideOutRight: [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(90px)' }],
   flipOut: [{ opacity: 1, transform: 'perspective(700px) rotateY(0)' }, { opacity: 0, transform: 'perspective(700px) rotateY(90deg)' }],
   disolver: [{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(14px)' }],
+  colapsar: [
+    { opacity: 1, clipPath: 'inset(0 0 0 0 round 12px)', transform: 'scale(1)' },
+    { opacity: 0, clipPath: 'inset(50% 50% 50% 50% round 40px)', transform: 'scale(.9)' },
+  ],
+  elasticoOut: [
+    { opacity: 1, transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.3 },
+    { opacity: 0, transform: 'scale(.3)' },
+  ],
+  resorteOut: [
+    { opacity: 1, transform: 'translateY(0)' }, { transform: 'translateY(-18px)', offset: 0.35 },
+    { opacity: 0, transform: 'translateY(80px)' },
+  ],
+  revelarOut: [{ clipPath: 'inset(0 0 0 0)', opacity: 1 }, { clipPath: 'inset(0 0 0 100%)', opacity: 0.9 }],
 };
 export const EXIT_PRESET_NAMES = Object.keys(EXIT_PRESETS);
 
@@ -107,16 +149,7 @@ export function playExitAnimation(elem, animOut) {
 
 /** @keyframes CSS de un preset de salida (para el export). */
 export function exitToKeyframesCSS(name) {
-  const frames = EXIT_PRESETS[name];
-  if (!frames) return '';
-  const steps = frames.map((frame, i) => {
-    const rules = [];
-    if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
-    if (frame.transform) rules.push(`transform:${frame.transform}`);
-    if (frame.filter) rules.push(`filter:${frame.filter}`);
-    return `  ${Math.round((i / (frames.length - 1)) * 100)}% { ${rules.join(';')} }`;
-  });
-  return `@keyframes wb-out-${name} {\n${steps.join('\n')}\n}`;
+  return framesToKeyframesCSS(`wb-out-${name}`, EXIT_PRESETS[name]);
 }
 
 /**
@@ -146,19 +179,26 @@ function kfToCSS(frame) {
   if (frame.opacity != null) rules.push(`opacity:${frame.opacity}`);
   if (frame.transform) rules.push(`transform:${frame.transform}`);
   if (frame.filter) rules.push(`filter:${frame.filter}`);
+  if (frame.clipPath) rules.push(`clip-path:${frame.clipPath}`);
+  if (frame.borderRadius) rules.push(`border-radius:${frame.borderRadius}`);
+  if (frame.boxShadow) rules.push(`box-shadow:${frame.boxShadow}`);
   return rules.join(';');
 }
 
-/** Genera el bloque @keyframes de un preset. */
-export function presetToKeyframesCSS(name) {
-  const frames = PRESETS[name];
+/** Serializa una lista de keyframes WAAPI a un bloque @keyframes. */
+function framesToKeyframesCSS(cssName, frames) {
   if (!frames) return '';
   const n = frames.length;
   const steps = frames.map((frame, i) => {
     const pct = frame.offset != null ? frame.offset * 100 : (i / (n - 1)) * 100;
     return `  ${Math.round(pct)}% { ${kfToCSS(frame)} }`;
   });
-  return `@keyframes wb-${name} {\n${steps.join('\n')}\n}`;
+  return `@keyframes ${cssName} {\n${steps.join('\n')}\n}`;
+}
+
+/** Genera el bloque @keyframes de un preset. */
+export function presetToKeyframesCSS(name) {
+  return framesToKeyframesCSS(`wb-${name}`, PRESETS[name]);
 }
 
 /** Propiedad CSS `animation` de un nodo concreto. */

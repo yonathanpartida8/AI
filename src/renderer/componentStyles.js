@@ -156,6 +156,14 @@ export const COMPONENT_CSS = `
 [data-press="sacudida"].wb-pressing{animation:wb-shake-fx .4s ease!important}
 @keyframes wb-shake-fx{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
 [data-press="hundir"].wb-pressing{transform:scale(.96) translateY(3px)!important;filter:brightness(.85)}
+[data-press="elevar"].wb-pressing{transform:translateY(-4px) scale(1.02)!important;box-shadow:0 18px 38px rgba(0,0,0,.42)!important}
+[data-press="ondas"].wb-pressing{transform:scale(.97)!important}
+/* Ripple (ondas): span reutilizable dentro del elemento pulsado */
+.wb-ripple-clip{position:relative;overflow:hidden}
+.wb-ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:3;transform:scale(0);opacity:0;
+  background:radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(255,255,255,.16) 55%,transparent 72%)}
+.wb-ripple.on{animation:wb-ripple-fx .55s ease-out forwards}
+@keyframes wb-ripple-fx{0%{transform:scale(0);opacity:1}100%{transform:scale(1);opacity:0}}
 
 /* ── Efectos al pasar el cursor (data-hover) ── */
 [data-hover]{transition:transform .25s cubic-bezier(.2,.8,.25,1),filter .25s,box-shadow .25s}

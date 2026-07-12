@@ -29,6 +29,7 @@ export class Interactions {
     this.view = view;
     this.gesture = null;      // estado del gesto activo
     this.pointers = new Map(); // multi-touch (pinch)
+    this.momentum = null;      // inercia del lienzo tras soltar un pan
     this.updateOverlay = throttleRAF(() => this.#renderOverlay());
 
     const vp = view.viewport;
@@ -42,6 +43,8 @@ export class Interactions {
     store.on('selection', () => this.updateOverlay());
     store.on('change', () => this.updateOverlay());
     store.on('view', () => this.updateOverlay());
+    store.on('page', () => this.#stopMomentum());
+    store.on('device', () => this.#stopMomentum());
 
     window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.repeat && !this.#isTyping(e)) { this.spaceDown = true; vp.classList.add('panning'); } });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { this.spaceDown = false; vp.classList.remove('panning'); } });
@@ -54,6 +57,7 @@ export class Interactions {
   #onDown(e) {
     const preview = document.body.classList.contains('preview');
     if (this.store.tool === 'draw') return; // lo gestiona DrawTool
+    this.#stopMomentum(); // un dedo nuevo frena el deslizamiento en curso
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     // Dos dedos → zoom (pinch) + desplazamiento (pan) simultáneos,
@@ -180,7 +184,26 @@ export class Interactions {
         g.captured = true;
         try { this.view.viewport.setPointerCapture(g.pointerId); } catch { /* puntero sintético */ }
       }
-      this.store.setView(null, { x: g.startPan.x + e.clientX - g.startX, y: g.startPan.y + e.clientY - g.startY });
+      // Velocidad suavizada (px/ms) para la inercia al soltar
+      if (g.lastT != null) {
+        const dt = Math.max(1, e.timeStamp - g.lastT);
+        const nvx = (e.clientX - g.lastX) / dt, nvy = (e.clientY - g.lastY) / dt;
+        g.vx = g.vx == null ? nvx : g.vx * 0.7 + nvx * 0.3;
+        g.vy = g.vy == null ? nvy : g.vy * 0.7 + nvy * 0.3;
+      }
+      g.lastX = e.clientX; g.lastY = e.clientY; g.lastT = e.timeStamp;
+
+      let x = g.startPan.x + e.clientX - g.startX;
+      let y = g.startPan.y + e.clientY - g.startY;
+      // Vista previa: resistencia elástica al pasarse de los bordes de la página
+      if (g.lazy) {
+        const b = this.#panBounds();
+        if (x < b.minX) x = b.minX + (x - b.minX) * 0.35;
+        if (x > b.maxX) x = b.maxX + (x - b.maxX) * 0.35;
+        if (y < b.minY) y = b.minY + (y - b.minY) * 0.35;
+        if (y > b.maxY) y = b.maxY + (y - b.maxY) * 0.35;
+      }
+      this.store.setView(null, { x, y });
       return;
     }
 
@@ -276,10 +299,69 @@ export class Interactions {
       this.store.commit();
       if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(12); // háptico al soltar
     }
+
+    // Inercia: si el pan terminó con velocidad, el lienzo sigue deslizándose.
+    // Un dedo quieto >120ms antes de soltar no lanza (evita vuelos fantasma;
+    // margen holgado porque Android agrupa pointermoves en frames cargados).
+    if (g.kind === 'pan' && g.vx != null && e.timeStamp - g.lastT < 120 && !(g.lazy && !g.captured)) {
+      this.#startMomentum(g.vx, g.vy, !!g.lazy);
+    }
+  }
+
+  /* ── Inercia del lienzo (fricción exponencial + rebote suave) ── */
+
+  #stopMomentum() {
+    if (this.momentum) { cancelAnimationFrame(this.momentum.raf); this.momentum = null; }
+  }
+
+  /** Límites del pan en vista previa: la página se comporta como un scroll. */
+  #panBounds() {
+    const zoom = this.store.zoom;
+    const width = this.store.project.settings.breakpoints[this.store.device] * zoom;
+    const height = this.store.page.height * zoom;
+    const vw = this.view.viewport.clientWidth, vh = this.view.viewport.clientHeight;
+    const cx = (vw - width) / 2;
+    return {
+      minX: width <= vw ? cx : vw - width - 24,
+      maxX: width <= vw ? cx : 24,
+      minY: Math.min(vh - height - 24, 24),
+      maxY: 24,
+    };
+  }
+
+  #startMomentum(vx, vy, bounded) {
+    if (Math.hypot(vx, vy) < 0.08 && !bounded) return;
+    this.#stopMomentum();
+    let last = performance.now();
+    const m = this.momentum = { vx, vy, raf: 0 };
+    const step = (now) => {
+      if (this.momentum !== m) return;
+      const dt = Math.min(50, now - last); last = now;
+      const friction = Math.exp(-dt / 300);
+      m.vx *= friction; m.vy *= friction;
+      let x = this.store.pan.x + m.vx * dt;
+      let y = this.store.pan.y + m.vy * dt;
+      let settled = Math.hypot(m.vx, m.vy) < 0.02;
+      if (bounded) {
+        // Muelle de vuelta a los límites (rebote iOS) amortiguando la velocidad
+        const b = this.#panBounds();
+        const pull = 1 - Math.exp(-dt / 110);
+        const damp = Math.exp(-dt / 55);
+        if (x < b.minX) { x += (b.minX - x) * pull; m.vx *= damp; settled = settled && b.minX - x < 0.5; }
+        else if (x > b.maxX) { x += (b.maxX - x) * pull; m.vx *= damp; settled = settled && x - b.maxX < 0.5; }
+        if (y < b.minY) { y += (b.minY - y) * pull; m.vy *= damp; settled = settled && b.minY - y < 0.5; }
+        else if (y > b.maxY) { y += (b.maxY - y) * pull; m.vy *= damp; settled = settled && y - b.maxY < 0.5; }
+      }
+      this.store.setView(null, { x, y });
+      if (settled) this.momentum = null;
+      else m.raf = requestAnimationFrame(step);
+    };
+    m.raf = requestAnimationFrame(step);
   }
 
   #onWheel(e) {
     e.preventDefault();
+    this.#stopMomentum();
     if (e.ctrlKey || e.metaKey) this.view.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.1 : 0.9);
     else this.store.setView(null, { x: this.store.pan.x - e.deltaX, y: this.store.pan.y - e.deltaY });
   }
@@ -289,7 +371,14 @@ export class Interactions {
   #onDblClick(e) {
     if (document.body.classList.contains('preview')) return;
     const nodeEl = e.target.closest('.wb-node');
-    if (!nodeEl) return;
+    if (!nodeEl) {
+      // Doble toque en lienzo vacío → reencuadra la página (como en mapas)
+      if (e.target.closest('#artboard') || e.target === this.view.viewport || e.target.closest('#world')) {
+        this.#stopMomentum();
+        this.view.fit();
+      }
+      return;
+    }
     const node = this.store.node(nodeEl.dataset.id);
     if (!node || node.locked || !['text', 'button'].includes(node.type)) return;
     const target = nodeEl.querySelector('.wb-text, .wb-btn') || nodeEl;
@@ -405,7 +494,7 @@ export class Interactions {
   #buildQuickbar(node) {
     const store = this.store;
     const btn = (icon, title, onclick, cls = '') => el('button', {
-      class: cls, title, html: ic(icon, 15),
+      class: cls, title, 'aria-label': title, html: ic(icon, 15),
       onpointerdown: (e) => e.stopPropagation(), // no inicia drag del nodo
       onclick,
     });

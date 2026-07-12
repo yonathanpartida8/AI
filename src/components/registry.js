@@ -241,13 +241,13 @@ export const Components = {
       styles: { background: '#020617', radius: 12 },
     },
     schema: [
-      select('props.mode', 'Modo', ['nebulosa', 'corazones', 'nieve', 'estrellas', 'luciérnagas', 'aurora', 'ondas', 'lluvia', 'órbita']),
+      select('props.mode', 'Modo', ['nebulosa', 'corazones', 'pétalos', 'burbujas', 'nieve', 'estrellas', 'luciérnagas', 'aurora', 'ondas', 'lluvia', 'órbita']),
       num('props.count', 'Cantidad', 10, 5000, 10),
       color('props.color', 'Color'),
       num('props.speed', 'Velocidad', 0.1, 10, 0.1),
       num('props.size', 'Tamaño', 0.5, 20, 0.5),
       num('props.opacity', 'Opacidad de partículas', 0, 1, 0.05),
-      select('props.shape', 'Forma', ['auto', 'disco', 'corazón', 'estrella']),
+      select('props.shape', 'Forma', ['auto', 'disco', 'corazón', 'estrella', 'anillo']),
       check('props.glow', 'Brillo aditivo (resplandor)'),
       ...STYLE_COMMON,
     ],
@@ -519,7 +519,7 @@ export function createNodeData(type, overrides = {}) {
     // Salida elegante al ocultarse mediante acciones
     animationOut: { preset: 'fadeOut', duration: 450, easing: 'ease-in' },
     // Efectos de interacción: presión al tocar, hover y scroll
-    effects: { parallax: 0, tilt: false, press: type === 'button' || type === 'heartButton' ? 'escala' : 'ninguno', hoverFx: 'ninguno' },
+    effects: { parallax: 0, tilt: false, press: type === 'button' || type === 'heartButton' ? 'ondas' : 'ninguno', hoverFx: 'ninguno' },
     events: [],                  // [{ on:'click', actions:[{action,target,value,delay}] }]
     locked: false,
     hidden: false,

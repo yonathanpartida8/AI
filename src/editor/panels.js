@@ -10,7 +10,7 @@
  * - Capas: z-order, bloquear, ocultar, eliminar.
  * ============================================================ */
 
-import { el, esc, formatBytes, debounce } from '../utils/helpers.js';
+import { el, esc, formatBytes, debounce, showSnack } from '../utils/helpers.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS } from '../storage/templates.js';
@@ -18,6 +18,65 @@ import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
 import { MUSIC_TRACKS, MUSIC_REPO_BASE, trackURL } from '../config/musicLibrary.js';
 import { MY_3D } from '../../contenido/3d/index.js';
 import { MY_WIDGETS } from '../../contenido/widgets/index.js';
+
+/**
+ * Desliza una fila hacia la IZQUIERDA para eliminarla (táctil, estilo iOS):
+ * a partir del 42 % del ancho la franja roja confirma; al soltar, la fila
+ * sale animada y se llama a onDelete. El scroll vertical nunca se bloquea
+ * (solo activamos el gesto cuando el movimiento es claramente horizontal).
+ */
+function enableSwipeDelete(row, onDelete) {
+  let sx = 0, sy = 0, dx = 0, active = false, pid = null, justSwiped = false;
+  row.classList.add('swipeable');
+  row.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch') return;
+    sx = e.clientX; sy = e.clientY; dx = 0; active = false; pid = e.pointerId;
+  });
+  row.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== pid) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (!active) {
+      if (Math.abs(mx) > 14 && Math.abs(mx) > Math.abs(my) * 1.4) {
+        active = true;
+        row.classList.add('swiping');
+        try { row.setPointerCapture(pid); } catch { /* puntero sintético */ }
+      } else if (Math.abs(my) > 12) { pid = null; return; } // el scroll vertical gana
+      else return;
+    }
+    dx = Math.min(0, mx); // solo hacia la izquierda
+    row.style.transform = `translateX(${dx}px)`;
+    row.classList.toggle('will-delete', -dx > row.offsetWidth * 0.42);
+    e.preventDefault();
+  });
+  const end = (e) => {
+    if (e.pointerId !== pid) return;
+    pid = null;
+    if (!active) return;
+    active = false;
+    justSwiped = true;
+    setTimeout(() => { justSwiped = false; }, 350);
+    row.classList.remove('swiping');
+    if (-dx > row.offsetWidth * 0.42) {
+      row.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
+      row.style.transform = 'translateX(-105%)';
+      row.style.opacity = '0';
+      if (navigator.vibrate) navigator.vibrate(18);
+      setTimeout(onDelete, 170);
+    } else {
+      row.style.transition = 'transform .28s cubic-bezier(.2,.8,.25,1)';
+      row.style.transform = '';
+      row.classList.remove('will-delete');
+      setTimeout(() => { row.style.transition = ''; }, 300);
+    }
+  };
+  row.addEventListener('pointerup', end);
+  row.addEventListener('pointercancel', end);
+  // Un deslizamiento no debe disparar el clic de la fila al soltar
+  row.addEventListener('click', (e) => {
+    if (justSwiped) { e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+  return row;
+}
 
 export class Panels {
   constructor(store, assets, view) {
@@ -178,7 +237,7 @@ export class Panels {
       const preview = asset.kind === 'video'
         ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb' })
         : ['image', 'gif', 'svg'].includes(asset.kind)
-          ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false' })
+          ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async' })
           : el('div', { class: 'asset-thumb kind-icon', html: ic({ audio: 'music', model: 'cube', font: 'type', html: 'globe' }[asset.kind] || 'file', 26) });
       const card = el('div', {
         class: 'asset-card', draggable: 'true',
@@ -325,7 +384,8 @@ export class Panels {
     for (const page of this.store.project.pages) {
       if (pq && !page.name.toLowerCase().includes(pq)) continue;
       const active = page.id === this.store.pageId;
-      list.append(el('div', { class: `page-item${active ? ' active' : ''}`, onclick: () => this.store.setPage(page.id) }, [
+      const canDelete = this.store.project.pages.length > 1;
+      list.append(enableSwipeDelete(el('div', { class: `page-item${active ? ' active' : ''}`, onclick: () => this.store.setPage(page.id) }, [
         el('span', {
           class: 'page-name', text: page.name, title: 'Doble clic para renombrar',
           ondblclick: (e) => {
@@ -340,7 +400,10 @@ export class Panels {
           el('button', { html: ic('duplicate', 13), title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
           el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id); } }),
         ]),
-      ]));
+      ]), () => {
+        if (canDelete && confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id);
+        else this.render(); // restaura la fila si se canceló
+      }));
     }
     body.append(list);
 
@@ -410,9 +473,15 @@ export class Panels {
     for (const node of [...nodes].reverse()) {
       if (q && !node.name.toLowerCase().includes(q)) continue;
       const selected = this.store.selection.includes(node.id);
-      list.append(el('div', {
+      list.append(enableSwipeDelete(el('div', {
         class: `layer-item${selected ? ' active' : ''}`,
         draggable: 'true',
+        // Pulsación larga (táctil) = añadir a la selección múltiple
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          this.store.select(node.id, true);
+          if (navigator.vibrate) navigator.vibrate(10);
+        },
         ondragstart: (e) => { e.dataTransfer.setData('text/wb-layer', node.id); e.dataTransfer.effectAllowed = 'move'; },
         ondragover: (e) => { e.preventDefault(); e.currentTarget.classList.add('drop-hint'); },
         ondragleave: (e) => e.currentTarget.classList.remove('drop-hint'),
@@ -440,7 +509,10 @@ export class Panels {
           el('button', { html: ic(node.hidden ? 'eyeOff' : 'eye', 13), title: 'Ocultar', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'hidden'); } }),
           el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); this.store.removeNodes([node.id]); } }),
         ]),
-      ]));
+      ]), () => {
+        this.store.removeNodes([node.id]);
+        showSnack(`"${node.name}" eliminada`, 'Deshacer', () => this.store.undo());
+      }));
     }
     body.append(list);
   }

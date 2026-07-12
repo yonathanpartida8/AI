@@ -112,10 +112,11 @@ export function wbParticles(canvas) {
     raf = requestAnimationFrame(stepQ);
   } else {
     /* ── Point sprites (formas por SDF: disco, corazón, estrella) ── */
-    var isHeart = mode === 'corazones';
+    var isHeart = mode === 'corazones' || mode === 'pétalos';
     var shapeId = shapeOverride === 'corazón' ? 1 : shapeOverride === 'estrella' ? 2
-      : shapeOverride === 'disco' ? 0 : (isHeart ? 1 : 0);
-    var soft = !glow || mode === 'nieve' || shapeId === 1; // blending normal
+      : shapeOverride === 'anillo' ? 3 : shapeOverride === 'disco' ? 0
+      : (isHeart ? 1 : mode === 'burbujas' ? 3 : 0);
+    var soft = !glow || mode === 'nieve' || mode === 'burbujas' || shapeId === 1; // blending normal
     var pp = program(
       '#version 300 es\nin vec2 aPos;in float aLife;uniform float uSize;uniform vec2 uRes;out float vLife;\n' +
       'void main(){vec2 c=(aPos/uRes)*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.,1.);\n' +
@@ -131,6 +132,10 @@ export function wbParticles(canvas) {
       ' alpha=smoothstep(0.03,-0.05,f)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.35);}\n' +
       'else if(uShape==2){vec2 p=(gl_PointCoord-vec2(0.5))*2.3;\n' +
       ' alpha=smoothstep(0.06,-0.04,sdStar(p))*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),vLife*0.3);}\n' +
+      'else if(uShape==3){float dd=length(gl_PointCoord-vec2(0.5));\n' + // anillo (burbuja) con brillo
+      ' float band=smoothstep(0.47,0.41,dd)*smoothstep(0.29,0.36,dd);\n' +
+      ' float hl=smoothstep(0.11,0.02,length(gl_PointCoord-vec2(0.36,0.33)));\n' +
+      ' alpha=(band*0.8+hl*0.55)*(0.35+vLife*0.65);col=mix(uColor,vec3(1.),0.25+vLife*0.3);}\n' +
       'else{float dd=length(gl_PointCoord-vec2(0.5));alpha=smoothstep(0.5,0.0,dd)*(0.30+vLife*0.70);col=uColor*(0.6+vLife*0.6);}\n' +
       'o=vec4(col,alpha*uAlpha);}');
     gl.uniform3fv(gl.getUniformLocation(pp, 'uColor'), rgb);
@@ -176,6 +181,16 @@ export function wbParticles(canvas) {
           pos[i * 2] += Math.sin(t * (0.6 + s) + i) * 0.4 * k;
           if (pos[i * 2 + 1] > H() + 8) { pos[i * 2 + 1] = -8; pos[i * 2] = Math.random() * W(); }
           life[i] = 0.4 + s * 0.6;
+        } else if (mode === 'pétalos') { // caen meciéndose de lado a lado
+          pos[i * 2 + 1] += (0.35 + s * 0.9) * k * dpr;
+          pos[i * 2] += Math.sin(t * (0.7 + s) + i * 1.3) * 1.1 * k;
+          life[i] = 0.45 + 0.55 * Math.sin(t * (0.6 + s) + i);
+          if (pos[i * 2 + 1] > H() + 16) { pos[i * 2 + 1] = -16; pos[i * 2] = Math.random() * W(); }
+        } else if (mode === 'burbujas') { // suben con bamboleo suave
+          pos[i * 2 + 1] -= (0.4 + s * 1.1) * k * dpr;
+          pos[i * 2] += Math.sin(t * (1.2 + s) + i * 2.1) * 0.35 * k;
+          life[i] = 0.5 + 0.5 * Math.sin(t * (0.5 + s) + i);
+          if (pos[i * 2 + 1] < -14) { pos[i * 2 + 1] = H() + 14; pos[i * 2] = Math.random() * W(); }
         } else if (mode === 'estrellas') { // fijas, titilan
           life[i] = 0.5 + 0.5 * Math.sin(t * (0.8 + s * 2.5) + i * 1.7);
         } else if (mode === 'luciérnagas') { // vagan lentas y pulsan
