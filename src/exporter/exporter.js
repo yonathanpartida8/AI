@@ -160,7 +160,8 @@ ${this.#nodesHTML(page, renderCtx)}
     const pageFiles = project.pages.map((p, i) => i === 0 ? './index.html' : `./paginas/${slugs.get(p.id)}.html`);
     zip.file('manifest.json', JSON.stringify({
       name: project.meta.name, short_name: project.meta.name.slice(0, 12),
-      display: 'standalone', start_url: './index.html',
+      display: 'fullscreen', display_override: ['fullscreen', 'standalone'],
+      start_url: './index.html', scope: './',
       background_color: '#150a24', theme_color: '#150a24',
       icons: [{ src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
     }, null, 2));
@@ -231,7 +232,10 @@ ${this.#nodesHTML(page, renderCtx)}
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>${esc(title)}</title>
   <link rel="icon" href="data:,">
   ${pwaHead}
@@ -333,6 +337,8 @@ ${mobileRules.join('\n')}
     return `/* Generado por No-Code Website Builder */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{touch-action:pan-y;overscroll-behavior-y:none}
 .wb-scale-wrap{width:100%;overflow:hidden}
 .wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
 [data-tilt],[data-parallax]{will-change:transform} /* acotado: menos memoria GPU */

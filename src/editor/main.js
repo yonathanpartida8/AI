@@ -69,7 +69,16 @@ async function boot() {
     unmountEl: (el) => three.disposeIn(el),
   });
   store.on('change', repaint);
-  store.on('page', () => { three.disposeAll(); view.fit(); });
+  store.on('page', () => {
+    three.disposeAll();
+    view.fit();
+    // Transición suave entre páginas: el lienzo entra con un fundido
+    // ascendente (solo opacity/transform → composición GPU, sin repintados)
+    view.artboard.animate(
+      [{ opacity: 0.35, transform: 'translateY(12px) scale(.992)' }, { opacity: 1, transform: 'none' }],
+      { duration: 280, easing: 'cubic-bezier(.2,.8,.25,1)' },
+    );
+  });
 
   buildTopbar(store, view, exporter, assets, repaint);
   buildMobileNav(store, panels, view);
@@ -331,6 +340,11 @@ let previewCleanup = null;
  */
 function togglePreview(store, view, repaint, assets) {
   const body = document.body;
+  // Crossfade editor ↔ vista previa: sin cortes bruscos (solo opacity, GPU)
+  const crossfade = () => document.getElementById('viewport')?.animate(
+    [{ opacity: 0.45 }, { opacity: 1 }],
+    { duration: 240, easing: 'ease-out' },
+  );
   if (body.classList.contains('preview')) {
     body.classList.remove('preview');
     previewCleanup?.();
@@ -339,11 +353,13 @@ function togglePreview(store, view, repaint, assets) {
     // reconstruye con su sandbox correcto (inerte o "activo al editar")
     document.querySelectorAll('#artboard .wb-node[data-type="htmlEmbed"]').forEach((el) => { el.dataset.sig = ''; });
     repaint();
+    crossfade();
     return;
   }
   body.classList.add('preview');
   store.clearSelection();
   repaint();
+  crossfade();
 
   // JavaScript personalizado GLOBAL: una sola vez por sesión de vista previa
   try {

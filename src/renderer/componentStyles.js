@@ -46,7 +46,6 @@ export const COMPONENT_CSS = `
 .wb-mp-mini{padding:8px 12px;gap:10px}
 .wb-mp-mini .wb-mp-cover{width:40px;height:40px;border-radius:10px}
 .wb-mp-mini .wb-mp-meta span,.wb-mp-mini .wb-eq{display:none}
-.wb-mp-yt{padding:0}
 .wb-eq{display:flex;align-items:flex-end;gap:3px;height:30px;flex:none}
 .wb-eq i{width:4px;height:8px;border-radius:2px;background:rgba(255,255,255,.75);transition:height .3s}
 .wb-mp.playing .wb-eq i{animation:wb-eqbar 1s ease-in-out infinite}

@@ -437,6 +437,31 @@ pesados conviven sin picos de CPU ni caídas de FPS.
 - Accesibilidad: `aria-label` en botones de icono, `prefers-reduced-motion`
   respetado en la interfaz (el contenido del usuario no se toca).
 
+## v8 — Producción móvil (Android / iPhone)
+
+- **PWA a pantalla completa**: `display: fullscreen` (con `display_override`
+  a `standalone`), `viewport-fit=cover` y metas de app nativa iOS/Android.
+  Sin zoom por gesto ni doble toque (`user-scalable=no` +
+  `touch-action: manipulation`), sin pull-to-refresh
+  (`overscroll-behavior`), y toda la interfaz respeta las zonas seguras
+  (notch / isla dinámica / barra de gestos) con `env(safe-area-inset-*)`.
+  Los sitios exportados reciben el mismo tratamiento.
+- **Bundle minificado** (esbuild JS+CSS): 372 KB → 251 KB; los runtimes
+  compartidos siguen inyectándose con `.toString()` (verificado en la
+  batería: los exports funcionan idénticos minificados).
+- **Presupuesto de GPU en móvil**: el desenfoque de cristal baja de 28px a
+  14px en pantallas táctiles (mitad de coste por frame, misma lectura
+  visual a DPI de móvil); `#world` fija su capa con `will-change` para que
+  el pan/zoom componga sin repintar.
+- **Sensación nativa**: transición del lienzo al cambiar de página
+  (fundido ascendente GPU), crossfade editor ↔ vista previa, entrada
+  animada del contenido al cambiar de pestaña, rebote del icono activo en
+  la barra inferior y objetivos táctiles a ≈44pt en toda la interfaz.
+- **YouTube eliminado**: el reproductor acepta canciones subidas,
+  `contenido/musica` y URLs de audio directas; los enlaces antiguos de
+  vídeo guardados en proyectos se sanean a estado vacío (sin iframes de
+  terceros en los sitios exportados).
+
 ## Hoja de ruta natural
 
 1. **Colaboración**: el JSON puro encaja directo con Yjs/CRDT.

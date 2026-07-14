@@ -205,7 +205,7 @@ export const Components = {
     },
     schema: [
       asset('props.assetId', 'Pista de audio (asset)', 'audio'),
-      text('props.srcUrl', 'o URL (GitHub / directa / YouTube)'),
+      text('props.srcUrl', 'o URL de audio directa (GitHub…)'),
       asset('props.coverId', 'Portada del álbum', 'image'),
       select('props.variant', 'Estilo', ['tarjeta', 'mini']),
       text('props.title', 'Título'), text('props.artist', 'Artista'),

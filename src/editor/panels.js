@@ -122,6 +122,15 @@ export class Panels {
       paginas: () => this.#renderPages(body),
       capas: () => this.#renderLayers(body),
     })[this.tab]();
+    // Entrada suave SOLO al cambiar de pestaña (no en cada refresco,
+    // que parpadearía): fundido ascendente compuesto en GPU.
+    if (this.lastTab !== this.tab) {
+      this.lastTab = this.tab;
+      body.animate(
+        [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 200, easing: 'cubic-bezier(.2,.8,.25,1)' },
+      );
+    }
   }
 
   /* ── Paleta de componentes ─────────────────────────── */
@@ -325,12 +334,12 @@ export class Panels {
     });
     body.append(list);
 
-    // Pega cualquier otra URL de audio directamente
+    // Pega una URL de audio directa (mp3/ogg/m4a…)
     const urlInput = el('input', { class: 'input', placeholder: 'https://…/cancion.mp3' });
     body.append(
-      el('h4', { class: 'panel-heading', text: 'O pega una URL (directa o YouTube)' }),
+      el('h4', { class: 'panel-heading', text: 'O pega una URL de audio directa' }),
       urlInput,
-      el('p', { class: 'panel-hint', text: 'Nota: YouTube no permite extraer solo el audio; los enlaces de YouTube se muestran como su reproductor oficial en modo privacidad (sin inicio de sesión).' }),
+      el('p', { class: 'panel-hint', text: 'Sirve cualquier enlace que termine en el archivo de audio (mp3, ogg, m4a…), por ejemplo desde tu repositorio de GitHub.' }),
       el('button', {
         class: 'btn block', html: `${ic('plus', 13)}<span>Añadir reproductor con esa URL</span>`,
         onclick: () => {

@@ -1,8 +1,12 @@
 {
   "name": "BuilderYNTHN_M-Beta",
   "short_name": "BuilderYNTHN",
-  "display": "standalone",
+  "description": "Creador de experiencias románticas digitales",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
   "start_url": "./index.html",
+  "scope": "./",
   "background_color": "#16101e",
   "theme_color": "#16101e",
   "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]

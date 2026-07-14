@@ -201,21 +201,13 @@ export function contentHTML(node, ctx) {
     }
 
     case 'musicPlayer': {
-      const src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
-      const yt = String(src).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,20})/);
+      // Fuentes admitidas: canción subida en Assets, carpeta contenido/musica
+      // o una URL de audio directa. Cualquier otra cosa → estado vacío.
+      let src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
+      if (/youtu/i.test(String(src))) src = '';
       const cover = p.coverId
         ? `<img class="wb-mp-cover" src="${ctx.resolve(p.coverId)}" alt="" draggable="false">`
         : `<div class="wb-mp-cover wb-mp-cover-icon">${MUSIC_NOTE_SVG}</div>`;
-      if (yt) {
-        /*
-         * YouTube: por sus políticas no se puede extraer el audio; la vía
-         * compatible sin inicio de sesión es el embed oficial en modo
-         * privacidad (youtube-nocookie). Se muestra como tarjeta de vídeo.
-         */
-        return `<div class="wb-mp wb-mp-yt"><iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0"
-          allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"
-          style="width:100%;height:100%;border:0;border-radius:inherit"></iframe></div>`;
-      }
       const mini = p.variant === 'mini';
       return `<div class="wb-mp${mini ? ' wb-mp-mini' : ''}">
         ${cover}

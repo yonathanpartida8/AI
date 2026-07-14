@@ -21,23 +21,32 @@ const result = await build({
   platform: 'browser',
   write: false,
   legalComments: 'none',
+  // Minificado: arranque más rápido y menos memoria. Los runtimes que el
+  // exportador inyecta con .toString() siguen siendo JS válido minificado.
+  minify: true,
   // Los imports dinámicos de CDN (Three.js) quedan como import() nativo
   external: ['https://*'],
 });
 
 // `</script>` dentro de strings del exportador rompería el HTML inline
 const js = result.outputFiles[0].text.replaceAll('</script', '<\\/script');
-const css = readFileSync('css/editor.css', 'utf8');
+// CSS minificado con el mismo esbuild (sin dependencias extra)
+const { transform } = await import('esbuild');
+const css = (await transform(readFileSync('css/editor.css', 'utf8'), { loader: 'css', minify: true })).code;
 
 const html = `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>BuilderYNTHN_M-Beta</title>
   <link rel="icon" href="icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#16101e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BuilderYNTHN">
   <!-- ═══════════════════════════════════════════════════════════
        ARCHIVO GENERADO — no editar a mano.
        Código fuente en /src y /css. Regenerar con: npm run build
