@@ -385,6 +385,14 @@ export function scaleEmbed(elem, node, frame) {
 /** Aplica marco + estilos visuales al elemento del editor. */
 export function syncNodeEl(elem, node, store) {
   const frame = store.frame(node);
+  // Huella visual: si NADA cambió en este nodo, ni una sola escritura al
+  // DOM. Sin esto, cada commit reescribía y re-parseaba los estilos de
+  // TODOS los nodos de la página (un impuesto fijo que crecía con
+  // fondos largos tipo data-URI y con el tamaño del proyecto).
+  const fp = JSON.stringify([frame, node.styles, node.hidden, node.locked, node.props?.viewWidth]);
+  if (elem.__wbFp === fp) return;
+  elem.__wbFp = fp;
+
   Object.assign(elem.style, frameCSS(frame));
   if (node.type === 'htmlEmbed') scaleEmbed(elem, node, frame);
   // Limpia estilos visuales previos y aplica los actuales

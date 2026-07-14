@@ -117,6 +117,8 @@ export class CanvasView {
     const { zoom, pan } = this.store;
     for (const [canvas, horizontal] of [[this.rulerH, true], [this.rulerV, false]]) {
       if (!canvas) continue;
+      // En móvil las reglas están ocultas: no gastes un canvas 2D por frame
+      if (canvas.parentElement.offsetParent === null) continue;
       const length = horizontal ? canvas.parentElement.clientWidth : canvas.parentElement.clientHeight;
       const dpr = window.devicePixelRatio || 1;
       canvas.width = (horizontal ? length : 24) * dpr;

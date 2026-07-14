@@ -29,7 +29,10 @@
   :root { --blur: saturate(160%) blur(14px); }
 }
 
-/* Fondo profundo con luz líquida en movimiento lento */
+/* Fondo profundo con luz líquida — ESTÁTICO a propósito: un fondo en
+   movimiento perpetuo obligaba a las superficies con desenfoque (topbar,
+   barra inferior, hojas) a re-desenfocar CADA frame para siempre: GPU
+   ocupada, calor y tirones en móvil aunque no tocaras nada. */
 body::before {
   content: ''; position: fixed; inset: -20%; z-index: -1;
   background:
@@ -37,11 +40,6 @@ body::before {
     radial-gradient(42% 36% at 82% 88%, rgba(255, 255, 255, .05), transparent 60%),
     radial-gradient(30% 26% at 70% 20%, rgba(255, 143, 171, .05), transparent 60%),
     var(--bg);
-  animation: liquid-drift 26s ease-in-out infinite alternate;
-}
-@keyframes liquid-drift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(-2.5%, -2%) scale(1.06); }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -165,7 +163,8 @@ button { font: inherit; color: inherit; }
 }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
-.panel-body { padding: 12px; overflow-y: auto; }
+/* Scroll con inercia nativa y SIN encadenarse al lienzo al llegar al tope */
+.panel-body { padding: 12px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .panel-heading { margin: 14px 0 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); }
 .panel-hint { margin: 10px 0; color: var(--text-dim); font-size: 12px; }
 
@@ -190,7 +189,6 @@ button { font: inherit; color: inherit; }
   border: .5px solid var(--border); border-radius: 14px;
   cursor: pointer; text-align: left; font-size: 12px; font-weight: 700;
   transition: border-color .15s, transform .15s cubic-bezier(.2,.8,.25,1), box-shadow .2s;
-  content-visibility: auto; contain-intrinsic-size: auto 42px;
 }
 .block-item:hover { border-color: var(--edge); transform: translateX(3px); box-shadow: var(--glass-shadow); }
 .block-item:active { transform: scale(.97); }
@@ -213,9 +211,6 @@ button { font: inherit; color: inherit; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-/* Con cientos de fotos/GIFs la galería sigue ligera: las tarjetas fuera
-   de pantalla no se pintan ni decodifican su miniatura. */
-.asset-card { content-visibility: auto; contain-intrinsic-size: auto 104px; }
 .asset-card {
   position: relative; background: var(--panel-2); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden; cursor: grab;
@@ -252,15 +247,10 @@ button { font: inherit; color: inherit; }
 }
 .page-actions button:hover, .layer-actions button:hover { background: var(--border); color: var(--text); }
 
-/* Listas largas SIEMPRE ligeras: las filas fuera de pantalla no se
-   renderizan (content-visibility) y cada fila aísla su layout/pintura.
-   Durante un deslizamiento se levanta el aislamiento para que la franja
-   roja (::after, fuera de la caja) pueda pintarse. */
-.page-item, .layer-item {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 34px;
-}
-.swipeable.swiping { content-visibility: visible; contain: none; }
+/* OJO: sin content-visibility en filas pequeñas. En Chrome Android hace
+   parpadear y saltar las listas dentro de hojas con desenfoque (las filas
+   entran/salen del render al hacer scroll). Con decenas de filas el ahorro
+   era ínfimo; la fluidez la dan los estilos simples y el scroll nativo. */
 
 /* Desliza a la izquierda para eliminar (táctil): franja roja tras la fila */
 .page-list, .layer-list { overflow-x: clip; }
@@ -364,9 +354,11 @@ button { font: inherit; color: inherit; }
 }
 #viewport.panning { cursor: grab; }
 
-/* will-change fija #world en su propia capa GPU: el pan/zoom (transform
-   por frame) se compone sin repintar la página — clave para 60-120 fps. */
-#world { position: absolute; top: 0; left: 0; transform-origin: 0 0; --izoom: 1; will-change: transform; }
+/* OJO: nada de will-change aquí. Fijar #world en una capa GPU permanente
+   obliga a rasterizar TODA la página en una textura gigante y deja el
+   texto borroso tras el zoom (se re-rasteriza tarde). El navegador ya
+   promociona la capa durante el gesto y la libera al terminar. */
+#world { position: absolute; top: 0; left: 0; transform-origin: 0 0; --izoom: 1; }
 
 #artboard {
   position: absolute; top: 0; left: 0;
@@ -420,6 +412,11 @@ button { font: inherit; color: inherit; }
   outline: calc(1.5px * var(--izoom, 1)) solid var(--accent-2);
 }
 .sel-box.locked { outline-style: dashed; }
+/* Anclaje sin rotación para etiqueta + barra rápida (siempre derechas) */
+.sel-affix { position: absolute; pointer-events: none; }
+.sel-affix .quickbar, .sel-affix .sel-label { pointer-events: auto; }
+/* La etiqueta queda por encima de la barra rápida a cualquier zoom */
+.sel-affix .sel-label { margin-bottom: calc(52px * var(--izoom, 1)); }
 .handle {
   position: absolute; width: 10px; height: 10px;
   background: #fff; border: 1.5px solid rgba(0, 0, 0, .7);
@@ -693,6 +690,7 @@ body.preview #fab-add { display: none !important; }
   display: grid; place-items: center;
   transition: background .12s, transform .12s;
 }
+.quickbar.no-anim { animation: none; }
 .quickbar button:hover { background: rgba(255, 255, 255, .12); }
 .quickbar button:active { transform: scale(.88); }
 .quickbar button.danger:hover { background: var(--danger); }

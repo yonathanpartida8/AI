@@ -462,6 +462,43 @@ pesados conviven sin picos de CPU ni caídas de FPS.
   vídeo guardados en proyectos se sanean a estado vacío (sin iframes de
   terceros en los sitios exportados).
 
+## v9 — Caza de glitches y del jank real (verificado A/B)
+
+Auditoría dirigida a lo que se SIENTE en un teléfono de verdad, con
+comparativa intercalada contra la versión anterior en el mismo entorno:
+
+- **Huella visual por nodo en `syncNodeEl`**: cada commit reescribía y
+  re-parseaba los estilos en línea de TODOS los nodos de la página
+  (impuesto fijo que crecía con el proyecto). Ahora, si la huella
+  (frame+styles+flags) no cambió, no se toca el DOM. Medido intercalado:
+  **de 16–24 ms/commit a 11–12 ms/commit** con 3 HTML + WebGL vivos.
+- **Fondo del editor estático**: la "luz líquida" en movimiento perpetuo
+  obligaba a topbar/hojas/barra inferior (con backdrop-filter) a
+  re-desenfocar cada frame para siempre → GPU ocupada, calor y tirones
+  en reposo. Fuera la animación; mismos degradados.
+- **`will-change` retirado de `#world`**: fijaba TODA la página en una
+  textura GPU gigante y dejaba el texto borroso tras el zoom.
+- **`content-visibility` retirado de filas/tarjetas**: en Chrome Android
+  hacía parpadear y saltar las listas dentro de hojas con blur.
+- **Quickbar sin parpadeo**: ya no se reconstruye en cada tick de
+  pan/zoom (las cajas viven dentro de #world y se mueven gratis por
+  transform) y su animación de entrada solo se reproduce cuando CAMBIA
+  la selección, no en cada refresco de edición.
+- **Etiqueta y quickbar siempre derechas**: sobre nodos rotados (las
+  polaroids lo están) se renderizaban inclinadas; ahora viven en un
+  anclaje sin rotación separado de la caja con tiradores.
+- **Brillo por letra componible**: `wb-fx-brillo` animaba `text-shadow`
+  por letra (repintado continuo del titular); ahora la sombra es
+  estática y pulsa la opacidad (composición GPU, mismo look).
+- **Topes táctiles en partículas**: máx. 320 por sistema y DPR 1.25 en
+  aurora/ondas (shader por píxel) en móvil — visualmente indistinguible.
+- **Plantilla**: el cielo de estrellitas pasa de un 2º sistema WebGL a un
+  tile SVG cacheado (un blit al pintar, cero coste por frame); quedan
+  2 sistemas de partículas en la página inicial, nunca simultáneos en
+  pantalla gracias al IntersectionObserver.
+- Reglas del lienzo: no se dibujan cuando están ocultas (móvil); scroll
+  de hojas con inercia nativa y `overscroll-behavior: contain`.
+
 ## Hoja de ruta natural
 
 1. **Colaboración**: el JSON puro encaja directo con Yjs/CRDT.

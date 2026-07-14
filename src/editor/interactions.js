@@ -42,7 +42,10 @@ export class Interactions {
 
     store.on('selection', () => this.updateOverlay());
     store.on('change', () => this.updateOverlay());
-    store.on('view', () => this.updateOverlay());
+    // OJO: nada de redibujar la superposición en 'view'. Las cajas de
+    // selección viven DENTRO de #world: el pan/zoom ya las mueve gratis
+    // por transform; reconstruirlas por frame hacía parpadear la barra
+    // rápida durante todo el gesto.
     store.on('page', () => this.#stopMomentum());
     store.on('device', () => this.#stopMomentum());
 
@@ -461,6 +464,12 @@ export class Interactions {
     const selected = this.store.selectedNodes;
     const single = selected.length === 1;
 
+    // La animación de entrada solo se reproduce cuando CAMBIA la selección;
+    // los refrescos por edición (sliders, nudges) no deben hacerla parpadear.
+    const key = selected.map((n) => n.id).join(',');
+    const isNewSelection = key !== this.lastOverlayKey;
+    this.lastOverlayKey = key;
+
     for (const node of selected) {
       const f = this.store.frame(node);
       const box = document.createElement('div');
@@ -480,13 +489,26 @@ export class Interactions {
         rot.className = 'handle h-rotate';
         rot.dataset.handle = 'rotate';
         box.append(rot);
-        const label = document.createElement('div');
-        label.className = 'sel-label';
-        label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
-        box.append(label);
       }
-      if (single) box.append(this.#buildQuickbar(node));
       overlay.append(box);
+
+      // Etiqueta y barra rápida en un ANCLAJE SIN ROTAR: sobre un nodo
+      // girado (las polaroids lo están) deben verse siempre derechas.
+      if (single) {
+        const affix = document.createElement('div');
+        affix.className = 'sel-affix';
+        Object.assign(affix.style, { left: `${f.x}px`, top: `${f.y}px`, width: `${f.w}px`, height: `${f.h}px` });
+        if (!node.locked) {
+          const label = document.createElement('div');
+          label.className = 'sel-label';
+          label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
+          affix.append(label);
+        }
+        const bar = this.#buildQuickbar(node);
+        if (!isNewSelection) bar.classList.add('no-anim');
+        affix.append(bar);
+        overlay.append(affix);
+      }
     }
   }
 

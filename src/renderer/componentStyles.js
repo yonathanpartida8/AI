@@ -130,8 +130,11 @@ export const COMPONENT_CSS = `
 @keyframes wb-fxwave{0%,100%{transform:translateY(0)}50%{transform:translateY(-.35em)}}
 .wb-fx-saltos{animation:wb-fxjump 1.4s cubic-bezier(.3,1.6,.4,1) infinite;animation-delay:calc(var(--i)*70ms)}
 @keyframes wb-fxjump{0%,30%,100%{transform:translateY(0) scale(1)}15%{transform:translateY(-.5em) scale(1.15)}}
-.wb-fx-brillo{animation:wb-fxglow 2.2s ease-in-out infinite;animation-delay:calc(var(--i)*110ms)}
-@keyframes wb-fxglow{0%,100%{text-shadow:0 0 4px rgba(255,255,255,.1);opacity:.8}50%{text-shadow:0 0 16px rgba(255,220,255,.95),0 0 34px rgba(244,114,182,.7);opacity:1}}
+/* Brillo por letra SIN repintados: la sombra es estática y solo pulsa la
+   opacidad del span (composición GPU) — el glow respira junto a la letra. */
+.wb-fx-brillo{text-shadow:0 0 14px rgba(255,220,255,.9),0 0 30px rgba(244,114,182,.65);
+  animation:wb-fxglow 2.2s ease-in-out infinite;animation-delay:calc(var(--i)*110ms);will-change:opacity}
+@keyframes wb-fxglow{0%,100%{opacity:.62}50%{opacity:1}}
 .wb-fx-arcoiris{animation:wb-fxrainbow 3.2s linear infinite;animation-delay:calc(var(--i)*-140ms)}
 @keyframes wb-fxrainbow{0%{color:#f472b6}20%{color:#fb923c}40%{color:#facc15}60%{color:#4ade80}80%{color:#38bdf8}100%{color:#f472b6}}
 

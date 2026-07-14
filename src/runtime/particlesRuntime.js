@@ -19,15 +19,21 @@
 export function wbParticles(canvas) {
   var d = canvas.dataset;
   var mode = d.mode || 'nebulosa';
-  var count = Math.min(+d.count || 400, 8000);
+  // En táctiles se acota la simulación: mismos visuales, fracción del coste.
+  // (Un teléfono con 3 sistemas a la vez no debe calentarse ni caer de fps.)
+  var touch = (navigator.maxTouchPoints || 0) > 0;
+  var count = Math.min(+d.count || 400, touch ? 320 : 8000);
   var speed = +d.speed || 1;
   var baseSize = +d.size || 2;
   var globalAlpha = d.opacity !== undefined && d.opacity !== '' ? Math.max(0, Math.min(1, +d.opacity)) : 1;
-  var shapeOverride = d.shape || 'auto'; // auto | disco | corazón | estrella
+  var shapeOverride = d.shape || 'auto'; // auto | disco | corazón | estrella | anillo
   var glow = d.glow !== 'false'; // brillo aditivo configurable
   var gl = canvas.getContext('webgl2', { alpha: true, powerPreference: 'high-performance' });
   if (!gl) return function () {};
-  var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  var isQuadMode = mode === 'aurora' || mode === 'ondas';
+  // Los fondos procedurales (aurora/ondas) calculan CADA píxel del canvas:
+  // en móvil, 1.25x de densidad es indistinguible y cuesta ~60% menos.
+  var dpr = Math.min(window.devicePixelRatio || 1, touch ? (isQuadMode ? 1.25 : 2) : 2.5);
 
   function resize() {
     var w = canvas.clientWidth || 300, h = canvas.clientHeight || 200;
@@ -62,7 +68,7 @@ export function wbParticles(canvas) {
   var ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
   if (ro) ro.observe(canvas);
 
-  var isQuad = mode === 'aurora' || mode === 'ondas';
+  var isQuad = isQuadMode;
 
   if (isQuad) {
     /* ── Fondos procedurales a pantalla completa ── */

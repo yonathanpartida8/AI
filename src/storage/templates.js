@@ -28,6 +28,10 @@ function node(type, frame, { styles = {}, props = {}, animation = {}, name } = {
 const scroll = (preset, delay = 0, extra = {}) => ({ preset, trigger: 'scroll', duration: 900, delay, ...extra });
 const load = (preset, delay = 0, extra = {}) => ({ preset, trigger: 'load', duration: 900, delay, ...extra });
 
+/* Cielo estrellado en un tile SVG de 420×420 (bitmap cacheado por el
+ * navegador: pintar estrellas cuesta un blit, no N degradados). */
+const STAR_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cg fill='%23fbcfe8'%3E%3Ccircle cx='50' cy='92' r='1.5' opacity='.9'/%3E%3Ccircle cx='118' cy='268' r='1.2' opacity='.7'/%3E%3Ccircle cx='172' cy='63' r='1.8' fill='%23ffffff' opacity='.8'/%3E%3Ccircle cx='231' cy='176' r='1.1' opacity='.6'/%3E%3Ccircle cx='281' cy='34' r='1.6' fill='%23ffffff' opacity='.75'/%3E%3Ccircle cx='311' cy='231' r='1.2' opacity='.65'/%3E%3Ccircle cx='361' cy='126' r='1.7' fill='%23ffffff' opacity='.8'/%3E%3Ccircle cx='390' cy='302' r='1.3' opacity='.7'/%3E%3Ccircle cx='84' cy='353' r='1.4' fill='%23ffffff' opacity='.55'/%3E%3Ccircle cx='265' cy='370' r='1.2' opacity='.6'/%3E%3Ccircle cx='25' cy='205' r='1.1' opacity='.5'/%3E%3Ccircle cx='205' cy='305' r='1' fill='%23ffffff' opacity='.5'/%3E%3C/g%3E%3C/svg%3E")`;
+
 /* ── Bloques ─────────────────────────────────────────── */
 
 function heroBlock(y) {
@@ -233,17 +237,15 @@ function romanticHeroBlock(y) {
     nodes: [
       node('section', { x: 0, y, w: W, h: 820 }, {
         name: 'Pulsa para cambiar este cielo :>',
-        styles: { background: 'linear-gradient(175deg,#1e0a2e 0%,#3b0f3f 45%,#180b2b 100%)' },
+        // Cielo estrellado como TILE SVG (un bitmap cacheado que se
+        // repite): mismo cielo, un solo blit al pintar — la magia en
+        // movimiento la ponen los corazones.
+        styles: { background: `${STAR_TILE} repeat, linear-gradient(175deg,#1e0a2e 0%,#3b0f3f 45%,#180b2b 100%)` },
       }),
       node('particles', { x: 0, y, w: W, h: 820 }, {
         name: 'Corazones que flotan por ti',
         styles: { background: 'transparent', radius: 0 },
         props: { count: 90, color: '#f472b6', speed: 0.7, size: 3, mode: 'corazones' },
-      }),
-      node('particles', { x: 0, y, w: W, h: 820 }, {
-        name: 'Estrellitas de nuestras noches',
-        styles: { background: 'transparent', radius: 0 },
-        props: { count: 160, color: '#fbcfe8', speed: 0.6, size: 1.6, mode: 'estrellas' },
       }),
       node('text', { x: 240, y: y + 210, w: 800, h: 150 }, {
         name: 'Estas palabras son para ti',
