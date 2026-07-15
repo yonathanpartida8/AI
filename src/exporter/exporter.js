@@ -135,6 +135,7 @@ export class Exporter {
         // Multimedia INCRUSTADA → la página funciona aunque se abra suelta
         resolve: (id) => this.assets.url(id),
         htmlText: (id) => this.assets.text(id),
+        assetName: (id) => this.assets.get(id)?.name || 'Pista',
         pages: project.pages,
         pageHref: (target) => hrefFrom(depth, slugs.get(target.id)),
       };
@@ -142,13 +143,13 @@ export class Exporter {
         title: `${page.name} — ${project.meta.name}`,
         cssText,
         body: `  <div class="wb-scale-wrap">
-    <main class="wb-stage ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}" id="stage"
+    <main class="wb-stage${page.pixelArt ? ' wb-pixel' : ''} ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}" id="stage"
       data-page="${slug}" data-overlay="${OVERLAY_TRANSITIONS[page.transition] || ''}"
       style="background:${page.background || '#0b1020'};--tdur:${page.transitionDuration || 700}ms">
 ${this.#nodesHTML(page, renderCtx)}
     </main>
   </div>`,
-        boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_CURRENT=${JSON.stringify(page.id)};window.WB_SINGLE=false;`,
+        boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_PAGES=${JSON.stringify(pagesMap)};window.WB_CURRENT=${JSON.stringify(page.id)};window.WB_SINGLE=false;window.WB_FPS=${project.settings.fps || 0};`,
         pwa: isIndex,
         runtime: this.#buildRuntime({ single: false, has3D }),
         pageJS: `${project.custom?.js || ''}\n${page.custom?.js || ''}`,
@@ -190,12 +191,13 @@ ${this.#nodesHTML(page, renderCtx)}
       editor: false,
       resolve: (id) => this.assets.url(id),
       htmlText: (id) => this.assets.text(id),
+      assetName: (id) => this.assets.get(id)?.name || 'Pista',
       pages: project.pages,
       pageHref: () => '#',
     };
 
     const sections = project.pages.map((page, i) => `  <div class="wb-scale-wrap"${i ? ' style="display:none"' : ''} data-wrap="${page.id}">
-    <main class="wb-stage ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}"
+    <main class="wb-stage${page.pixelArt ? ' wb-pixel' : ''} ${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}"
       data-page="${page.id}" data-enter="${page.transition && page.transition !== 'ninguna' ? `wb-enter-${OVERLAY_TRANSITIONS[page.transition] ? 'fade' : page.transition}` : ''}"
       data-overlay="${OVERLAY_TRANSITIONS[page.transition] || ''}"
       style="background:${page.background || '#0b1020'};--tdur:${page.transitionDuration || 700}ms">
@@ -213,7 +215,7 @@ ${this.#nodesHTML(page, renderCtx)}
       title: project.meta.name,
       cssText,
       body: sections,
-      boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_SINGLE=true;`,
+      boot: `window.WB_SOUNDS=${JSON.stringify(this.#soundsMap())};window.WB_SINGLE=true;window.WB_FPS=${project.settings.fps || 0};`,
       runtime: this.#buildRuntime({ single: true, has3D }),
       pageJS: `${project.custom?.js || ''}\n${pagesJS}`,
       extraHead: `<script type="application/json" id="wb-project">${projectJSON}</script>`,
@@ -266,19 +268,21 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
     const tabletRules = [];
     const mobileRules = [];
 
-    const frameRule = (frame) =>
-      `left:${frame.x}px;top:${frame.y}px;width:${frame.w}px;height:${frame.h}px;` +
-      `transform:rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1});opacity:${frame.opacity ?? 1};`;
+    const frameRule = (frame, styles = {}) => {
+      const skew = (styles.skewX || styles.skewY) ? ` skew(${styles.skewX || 0}deg, ${styles.skewY || 0}deg)` : '';
+      return `left:${frame.x}px;top:${frame.y}px;width:${frame.w}px;height:${frame.h}px;` +
+        `transform:rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1})${skew};opacity:${frame.opacity ?? 1};`;
+    };
 
     for (const node of Object.values(project.nodes)) {
       if (node.hidden) continue;
       const visual = Object.entries(styleCSS(node)).map(([k, v]) => `${k}:${v}`).join(';');
-      rules.push(`.el-${node.id}{${frameRule(node.base)}${visual}}`);
+      rules.push(`.el-${node.id}{${frameRule(node.base, node.styles)}${visual}}`);
 
       const tablet = node.responsive?.tablet;
-      if (tablet && Object.keys(tablet).length) tabletRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet })}}`);
+      if (tablet && Object.keys(tablet).length) tabletRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet }, node.styles)}}`);
       const mobile = node.responsive?.mobile;
-      if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet, ...mobile })}}`);
+      if (mobile && Object.keys(mobile).length) mobileRules.push(`.el-${node.id}{${frameRule({ ...node.base, ...tablet, ...mobile }, node.styles)}}`);
 
       // HTML importado: viewport virtual escalado proporcionalmente
       if (node.type === 'htmlEmbed') {
@@ -341,6 +345,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 body{touch-action:pan-y;overscroll-behavior-y:none}
 .wb-scale-wrap{width:100%;overflow:hidden}
 .wb-stage{position:relative;margin:0 auto;overflow:hidden;transform-origin:top left;font-family:system-ui,sans-serif;width:${bps.desktop}px}
+.wb-pixel,.wb-pixel img,.wb-pixel canvas,.wb-pixel iframe{image-rendering:pixelated}
 [data-tilt],[data-parallax]{will-change:transform} /* acotado: menos memoria GPU */
 ${fontFaces}
 ${COMPONENT_CSS}

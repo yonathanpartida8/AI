@@ -97,21 +97,109 @@ export function wbEffects(root, opts) {
     var fill = player.querySelector('.wb-mp-fill');
     var time = player.querySelector('.wb-mp-time');
     var track = player.querySelector('.wb-mp-track');
+    var titleEl = player.querySelector('.wb-mp-title');
+
+    /* Configuración del reproductor (volumen, loop, fades, lista) */
+    var baseVol = Math.max(0, Math.min(1, (+player.getAttribute('data-volume') || 100) / 100));
+    var loop = player.getAttribute('data-loop') === '1';
+    var fadeInMs = +player.getAttribute('data-fadein') || 0;
+    var fadeOutMs = +player.getAttribute('data-fadeout') || 0;
+    var playlist = [];
+    try { playlist = JSON.parse(player.getAttribute('data-playlist') || '[]'); } catch (e) { /* sin lista */ }
+    var trackIdx = 0;
+    audio.volume = baseVol;
+    if (loop && !fadeOutMs && !playlist.length) audio.loop = true;
+
+    /* Fundidos: rampa de volumen por rAF (suave a cualquier Hz) */
+    var fadeRaf = 0;
+    function fadeTo(target, ms, done) {
+      cancelAnimationFrame(fadeRaf);
+      if (!ms) { audio.volume = target; if (done) done(); return; }
+      var from = audio.volume, t0 = performance.now();
+      (function stepFade(now) {
+        // OJO: el timestamp de rAF es el inicio del frame y puede ser
+        // ANTERIOR a t0 (capturado a mitad de frame) → clamp inferior.
+        var k = Math.max(0, Math.min(1, (now - t0) / ms));
+        audio.volume = from + (target - from) * k;
+        if (k < 1) fadeRaf = requestAnimationFrame(stepFade);
+        else { fadeRaf = 0; if (done) done(); }
+      })(performance.now());
+    }
+
+    /* Reproducción BLINDADA: precarga al intentar, errores visibles,
+       desbloqueo con el primer toque si el móvil bloquea el autoplay. */
+    var meta = player.querySelector('.wb-mp-meta span');
+    function showError() {
+      if (meta) meta.textContent = 'No se pudo cargar el audio';
+      player.classList.add('wb-mp-error');
+    }
+    function tryPlay(viaGesture) {
+      audio.preload = 'auto';
+      if (fadeInMs) audio.volume = 0;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function (err) {
+        if (err && err.name === 'NotAllowedError' && !viaGesture) {
+          // Autoplay bloqueado: arranca con el primer gesto del usuario
+          var kick = function () { tryPlay(true); document.removeEventListener('pointerdown', kick); };
+          on(document, 'pointerdown', kick);
+        } else if (err && err.name !== 'AbortError') {
+          // Reintento único tras recargar la fuente (redes/decoder caprichosos)
+          audio.load();
+          var p2 = audio.play();
+          if (p2 && p2.catch) p2.catch(function () { showError(); });
+        }
+      });
+    }
+    function setTrack(i) {
+      trackIdx = (i + playlist.length) % playlist.length;
+      audio.src = playlist[trackIdx].url;
+      if (titleEl && playlist[trackIdx].name) titleEl.textContent = playlist[trackIdx].name.replace(/\.[a-z0-9]+$/i, '');
+      player.classList.remove('wb-mp-error');
+      audio.load();
+      tryPlay(true);
+    }
+
     on(playBtn, 'click', function () {
-      if (audio.paused) audio.play().catch(function () {});
+      if (audio.paused) tryPlay(true);
+      else if (fadeOutMs) fadeTo(0, Math.min(fadeOutMs, 600), function () { audio.pause(); });
       else audio.pause();
     });
-    on(audio, 'play', function () { player.classList.add('playing'); playBtn.innerHTML = PAUSE_SVG; });
-    on(audio, 'pause', function () { player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2; });
-    on(audio, 'ended', function () { player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2; });
+    var prevBtn = player.querySelector('.wb-mp-prev');
+    var nextBtn = player.querySelector('.wb-mp-next');
+    if (prevBtn) on(prevBtn, 'click', function () { setTrack(trackIdx - 1); });
+    if (nextBtn) on(nextBtn, 'click', function () { setTrack(trackIdx + 1); });
+
+    on(audio, 'play', function () {
+      player.classList.add('playing'); playBtn.innerHTML = PAUSE_SVG;
+      if (fadeInMs) fadeTo(baseVol, fadeInMs);
+    });
+    on(audio, 'pause', function () {
+      player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2;
+      cancelAnimationFrame(fadeRaf); audio.volume = baseVol;
+    });
+    on(audio, 'ended', function () {
+      if (playlist.length > 1) { setTrack(trackIdx + 1); return; }
+      if (loop && !audio.loop) { audio.currentTime = 0; tryPlay(true); return; }
+      player.classList.remove('playing'); playBtn.innerHTML = PLAY_SVG2;
+    });
+    on(audio, 'error', showError);
     on(audio, 'timeupdate', function () {
       if (fill && audio.duration) fill.style.width = (audio.currentTime / audio.duration * 100) + '%';
       if (time) time.textContent = fmtTime(audio.currentTime);
+      // Fade out natural al acercarse el final de la pista
+      if (fadeOutMs && audio.duration && !audio.paused) {
+        var left = (audio.duration - audio.currentTime) * 1000;
+        if (left <= fadeOutMs) audio.volume = baseVol * Math.max(0, left / fadeOutMs);
+        else if (audio.volume < baseVol && !fadeRaf) audio.volume = baseVol;
+      }
     });
     if (track) on(track, 'pointerdown', function (e) {
       var r = track.getBoundingClientRect();
       if (audio.duration) audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
     });
+
+    /* Autoplay declarado en el componente */
+    if (player.getAttribute('data-autoplay') === '1' && !opts.editor) tryPlay(false);
   });
 
   /* ── Mensaje oculto ── */

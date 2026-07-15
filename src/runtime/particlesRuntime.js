@@ -63,6 +63,16 @@ export function wbParticles(canvas) {
   }
 
   var disposed = false, visible = true, raf = 0, last = 0, t = 0;
+  // Frecuencia configurable (30–240 Hz o auto): window.WB_FPS limita el
+  // dibujo; la simulación sigue basada en dt así que la velocidad no cambia.
+  var lastDraw = 0;
+  function fpsCapped(now) {
+    var fps = (typeof window !== 'undefined' && +window.WB_FPS) || 0;
+    if (!fps) return false;
+    if (now - lastDraw < 1000 / fps - 0.5) return true;
+    lastDraw = now;
+    return false;
+  }
   var io = new IntersectionObserver(function (e) { visible = e[0].isIntersecting; });
   io.observe(canvas);
   var ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
@@ -108,6 +118,7 @@ export function wbParticles(canvas) {
       if (disposed) return;
       raf = requestAnimationFrame(stepQ);
       if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
+      if (fpsCapped(now)) return;
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now; t += dt * speed;
       gl.uniform2f(quRes, canvas.width, canvas.height);
@@ -170,6 +181,7 @@ export function wbParticles(canvas) {
       if (disposed) return;
       raf = requestAnimationFrame(stepP);
       if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
+      if (fpsCapped(now)) return;
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now;
       var k = dt * 60 * speed;

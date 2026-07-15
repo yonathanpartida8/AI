@@ -241,6 +241,41 @@ export class PropertiesPanel {
       el('p', { class: 'panel-hint', text: 'Se ven en Vista previa y en el sitio exportado.' }),
     ]));
 
+    /* Avanzado (v10): mezcla, filtros, deformación, sombra propia, capa */
+    const st = (key, v) => this.store.updateNode(node.id, 'styles', { [key]: v });
+    const advNum = (label, key, min, max, step = 1, def = 0) => this.#field(label, el('input', {
+      class: 'input', type: 'number', min, max, step, value: node.styles?.[key] ?? def,
+      onchange: (e) => st(key, e.target.value === '' ? undefined : +e.target.value),
+    }));
+    this.root.append(this.#section('Avanzado', [
+      this.#field('Mezcla con el fondo', this.#select(
+        ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'color-dodge', 'difference', 'exclusion', 'luminosity'],
+        node.styles?.blendMode || 'normal', (v) => st('blendMode', v),
+      )),
+      advNum('Desenfoque del elemento (px)', 'fxBlur', 0, 40),
+      advNum('Brillo (%)', 'fxBrightness', 0, 300, 5, 100),
+      advNum('Contraste (%)', 'fxContrast', 0, 300, 5, 100),
+      advNum('Saturación (%)', 'fxSaturate', 0, 300, 5, 100),
+      advNum('Tono (girar °)', 'fxHue', 0, 360, 5),
+      advNum('Escala de grises (%)', 'fxGrayscale', 0, 100, 5),
+      advNum('Sepia (%)', 'fxSepia', 0, 100, 5),
+      advNum('Inclinación X (°)', 'skewX', -45, 45),
+      advNum('Inclinación Y (°)', 'skewY', -45, 45),
+      this.#field('Sombra propia (CSS box-shadow)', el('input', {
+        class: 'input', type: 'text', value: node.styles?.shadowCustom || '',
+        placeholder: '0 12px 30px rgba(0,0,0,.4)',
+        onchange: (e) => st('shadowCustom', e.target.value || undefined),
+      })),
+      this.#field('Transformar texto', this.#select(
+        ['ninguna', 'uppercase', 'lowercase', 'capitalize'],
+        node.styles?.textTransform || 'ninguna', (v) => st('textTransform', v),
+      )),
+      this.#field('Desbordamiento', this.#select(
+        ['', 'hidden', 'visible'], node.styles?.overflow || '', (v) => st('overflow', v || undefined),
+      )),
+      advNum('Capa (z-index)', 'zIndex', -50, 200),
+    ], true));
+
     /* Lógica visual: eventos con cadenas de acciones */
     const eventRows = (node.events || []).map((event, i) => this.#renderEventRow(node, event, i));
     this.root.append(this.#section('Lógica e interacción', [
@@ -268,6 +303,10 @@ export class PropertiesPanel {
       el('div', { class: 'btn-row' }, [
         el('button', { class: 'btn', html: `${ic('front', 14)}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node.id) }),
         el('button', { class: 'btn', html: `${ic('back', 14)}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node.id) }),
+      ]),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn', text: 'Distribuir ↔', title: 'Espaciado uniforme horizontal (3+ seleccionados)', onclick: () => this.store.distributeSelection('x') }),
+        el('button', { class: 'btn', text: 'Distribuir ↕', title: 'Espaciado uniforme vertical (3+ seleccionados)', onclick: () => this.store.distributeSelection('y') }),
       ]),
       el('div', { class: 'btn-row' }, [
         el('button', { class: 'btn', html: `${ic('copy', 14)}<span>Copiar estilo</span>`, title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
@@ -391,7 +430,7 @@ export class PropertiesPanel {
           el('select', {
             class: 'input',
             onchange: (e) => { if (e.target.value) commit([...ids, e.target.value]); e.target.value = ''; },
-          }, [el('option', { value: '', text: '+ añadir imagen…' }), ...list.map((a) => el('option', { value: a.id, text: a.name }))]),
+          }, [el('option', { value: '', text: field.kind === 'audio' ? '+ añadir pista…' : '+ añadir imagen…' }), ...list.map((a) => el('option', { value: a.id, text: a.name }))]),
         ]));
       }
       default:
@@ -467,8 +506,8 @@ export class PropertiesPanel {
 
   /* ── Helpers de UI ─────────────────────────────────── */
 
-  #section(title, children) {
-    return el('details', { class: 'props-section', open: 'true' }, [
+  #section(title, children, collapsed = false) {
+    return el('details', { class: 'props-section', ...(collapsed ? {} : { open: 'true' }) }, [
       el('summary', { text: title }),
       el('div', { class: 'props-section-body' }, children),
     ]);

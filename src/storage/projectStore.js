@@ -21,7 +21,9 @@ import { starterProject, buildBlock } from './templates.js';
 import { DB } from './db.js';
 
 const LS_KEY = 'nocode-builder:project';
-const HISTORY_LIMIT = 50;
+// Historial profundo: los snapshots se COALESCEN por gesto (no por tecla),
+// así que 200 pasos cubren sesiones largas sin presión de memoria.
+const HISTORY_LIMIT = 200;
 
 export const DEVICES = {
   desktop: { label: 'Escritorio', width: 1280, icon: '🖥' },
@@ -79,9 +81,11 @@ export class ProjectStore extends EventBus {
   /** Migra proyectos de versiones anteriores al modelo actual. */
   migrate(project) {
     project.custom ||= { css: '', js: '' };
+    project.settings.fps ||= 0; // 0 = automático (vsync del dispositivo)
     for (const page of project.pages) {
       page.transitionDuration ||= 700;
       page.custom ||= { css: '', js: '' };
+      page.pixelArt ||= false;
     }
     for (const node of Object.values(project.nodes)) {
       node.effects ||= { parallax: 0, tilt: false };
@@ -376,6 +380,27 @@ export class ProjectStore extends EventBus {
         top: { y: 0 }, centerY: { y: Math.round((this.page.height - f.h) / 2) },
       }[mode];
       if (patch) this.setFrame(node, patch);
+    }
+    this.commit();
+  }
+
+  /** Distribuye 3+ elementos seleccionados con espacio uniforme. */
+  distributeSelection(axis) {
+    const nodes = this.selectedNodes.filter((n) => !n.locked);
+    if (nodes.length < 3) return;
+    this.snapshot();
+    const key = axis === 'x' ? 'x' : 'y';
+    const size = axis === 'x' ? 'w' : 'h';
+    const sorted = [...nodes].sort((a, b) => this.frame(a)[key] - this.frame(b)[key]);
+    const first = this.frame(sorted[0]);
+    const last = this.frame(sorted[sorted.length - 1]);
+    const span = (last[key] + last[size]) - first[key];
+    const total = sorted.reduce((sum, n) => sum + this.frame(n)[size], 0);
+    const gap = (span - total) / (sorted.length - 1);
+    let cursor = first[key];
+    for (const node of sorted) {
+      this.setFrame(node, { [key]: Math.round(cursor) });
+      cursor += this.frame(node)[size] + gap;
     }
     this.commit();
   }

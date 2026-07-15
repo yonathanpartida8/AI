@@ -499,6 +499,38 @@ comparativa intercalada contra la versión anterior en el mismo entorno:
 - Reglas del lienzo: no se dibujan cuando están ocultas (móvil); scroll
   de hojas con inercia nativa y `overscroll-behavior: contain`.
 
+## v10 — Editor de nivel comercial
+
+- **Escalado inteligente**: redimensionar desde una ESQUINA escala el
+  contenido interior (tipografía, radio, borde) con factor geométrico
+  `√(áreaNueva/áreaVieja)`; los tiradores laterales hacen reflow puro y
+  Alt desactiva el acompañamiento. Deshacer restaura tamaño y estilos.
+- **Música robusta**: volumen por pista, loop, fade in/out (rampa por
+  rAF con clamp — los timestamps de rAF pueden preceder a
+  `performance.now()` y producían volúmenes negativos), lista de
+  reproducción con anterior/siguiente y auto-avance, autoplay con
+  desbloqueo en el primer gesto (política móvil), reintento único al
+  fallar la carga y estado de error visible en el propio reproductor.
+- **Panel Avanzado** en todos los elementos: mezcla con el fondo
+  (mix-blend-mode), desenfoque/brillo/contraste/saturación/tono/grises/
+  sepia (filter), inclinación X/Y (skew en el transform, también en los
+  breakpoints del export), sombra CSS propia, transformar texto,
+  desbordamiento y z-index. Mismo CSS compartido editor/export.
+- **Pantalla y resolución**: ancho de lienzo editable por dispositivo,
+  presets rápidos (teléfono/tablet/portátil/TV, vertical y horizontal)
+  y botón de giro de orientación con pares retrato↔paisaje.
+- **Frecuencia configurable** (auto/30/60/90/120/144/165/240 Hz):
+  `window.WB_FPS` limita el DIBUJO de los WebGL (la simulación sigue en
+  dt → misma velocidad); se exporta con el proyecto.
+- **Modo Pixel Art por página**: `image-rendering: pixelated` en lienzo
+  y export (clase `wb-pixel` en el stage).
+- **Estilos de proyecto**: 8 estéticas de un toque (Pixel Art,
+  Minimalista, Glassmorphism, Neomorphism, iOS, Material, Cyberpunk,
+  Terminal) que fijan el fondo de página y añaden una portada coherente.
+- **Distribución automática** (3+ seleccionados, espaciado uniforme),
+  historial a 200 pasos (coalescido), buscador en la paleta de Piezas
+  (bloques, estilos y componentes) e icono PWA nuevo.
+
 ## Hoja de ruta natural
 
 1. **Colaboración**: el JSON puro encaja directo con Yjs/CRDT.

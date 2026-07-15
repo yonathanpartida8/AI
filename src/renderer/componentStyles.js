@@ -40,6 +40,9 @@ export const COMPONENT_CSS = `
 .wb-mp-controls{display:flex;align-items:center;gap:10px}
 .wb-mp-play{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;display:grid;place-items:center;cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.25,1);box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .wb-mp-play:active{transform:scale(.88)}
+.wb-mp-prev,.wb-mp-next{width:26px;height:26px;flex:none;border:none;border-radius:50%;background:rgba(255,255,255,.16);color:inherit;display:grid;place-items:center;cursor:pointer;transition:transform .16s,background .16s}
+.wb-mp-prev:active,.wb-mp-next:active{transform:scale(.86);background:rgba(255,255,255,.3)}
+.wb-mp-error .wb-mp-meta span{color:#fda4af;opacity:1}
 .wb-mp-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.22);cursor:pointer;position:relative}
 .wb-mp-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:3px;background:#fff;transition:width .25s linear}
 .wb-mp-time{font-size:11px;opacity:.75;font-variant-numeric:tabular-nums;flex:none}

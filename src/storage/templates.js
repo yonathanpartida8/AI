@@ -762,6 +762,121 @@ export function buildBlock(key, y) {
   return BLOCKS[key] ? BLOCKS[key].build(y) : null;
 }
 
+/* ── ESTILOS DE PROYECTO (v10) ───────────────────────────
+ * Estéticas completas listas para arrancar: cambian el fondo de la
+ * página y añaden una portada coherente con esa identidad visual. */
+
+function themeHero(y, t) {
+  const nodes = [
+    node('section', { x: 0, y, w: W, h: 560 }, {
+      name: `Portada ${t.name}`, styles: { background: t.sectionBg || 'transparent' },
+    }),
+    node('container', { x: 240, y: y + 90, w: 800, h: 380 }, {
+      name: `Tarjeta ${t.name}`, styles: t.card,
+      animation: scroll(t.anim || 'fadeInUp'),
+    }),
+    node('text', { x: 300, y: y + 150, w: 680, h: 90 }, {
+      name: `Título ${t.name}`, props: { text: t.title, tag: 'h1' },
+      styles: { fontSize: t.titleSize || 44, fontWeight: '900', textAlign: 'center', color: t.titleColor, fontFamily: t.font, ...(t.titleExtra || {}) },
+      animation: scroll(t.anim || 'fadeInUp', 120),
+    }),
+    node('text', { x: 340, y: y + 260, w: 600, h: 40 }, {
+      name: `Subtítulo ${t.name}`, props: { text: t.subtitle, tag: 'p' },
+      styles: { fontSize: 16, textAlign: 'center', color: t.subColor, fontFamily: t.font },
+      animation: scroll('fadeIn', 240),
+    }),
+    node('button', { x: 520, y: y + 340, w: 240, h: 54 }, {
+      name: `Botón ${t.name}`, props: { text: t.btnText },
+      styles: { fontSize: 15, fontWeight: '800', textAlign: 'center', ...t.btn },
+      animation: scroll(t.anim || 'zoomIn', 360),
+    }),
+  ];
+  return { height: 560, nodes };
+}
+
+export const THEMES = {
+  pixel: {
+    label: 'Pixel Art', pageBg: '#1a1c2c', pixelArt: true,
+    build: (y) => themeHero(y, {
+      name: 'pixel', font: 'monospace', anim: 'zoomIn',
+      card: { background: '#29366f', radius: 0, borderWidth: 4, borderColor: '#41a6f6' },
+      title: 'PIXEL QUEST', titleColor: '#ffcd75', titleSize: 40,
+      subtitle: '> PULSA START PARA COMENZAR', subColor: '#73eff7',
+      btnText: '► START', btn: { background: '#ef7d57', color: '#1a1c2c', radius: 0, borderWidth: 4, borderColor: '#ffcd75' },
+    }),
+  },
+  minimal: {
+    label: 'Minimalista', pageBg: '#fafafa',
+    build: (y) => themeHero(y, {
+      name: 'minimal', font: 'Helvetica',
+      card: { background: '#ffffff', radius: 24, shadow: 'suave' },
+      title: 'Menos, pero mejor', titleColor: '#111111',
+      subtitle: 'Espacio, tipografía y nada que sobre.', subColor: '#8a8a8e',
+      btnText: 'Explorar', btn: { background: '#111111', color: '#ffffff', radius: 27 },
+    }),
+  },
+  glass: {
+    label: 'Glassmorphism', pageBg: 'linear-gradient(135deg,#5b21b6,#db2777,#f59e0b)',
+    build: (y) => themeHero(y, {
+      name: 'glass', font: '',
+      card: { background: 'rgba(255,255,255,.14)', radius: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,.4)', blur: 18 },
+      title: 'Cristal líquido', titleColor: '#ffffff',
+      subtitle: 'Transparencias reales con desenfoque de fondo.', subColor: 'rgba(255,255,255,.8)',
+      btnText: 'Descubrir', btn: { background: 'rgba(255,255,255,.25)', color: '#ffffff', radius: 27, borderWidth: 1, borderColor: 'rgba(255,255,255,.5)', blur: 10 },
+    }),
+  },
+  neo: {
+    label: 'Neomorphism', pageBg: '#e0e5ec',
+    build: (y) => themeHero(y, {
+      name: 'neo', font: '',
+      card: { background: '#e0e5ec', radius: 30, shadowCustom: '9px 9px 22px #bec3c9, -9px -9px 22px #ffffff' },
+      title: 'Suave al tacto', titleColor: '#44476a',
+      subtitle: 'Relieves de luz y sombra sobre una sola superficie.', subColor: '#9a9db1',
+      btnText: 'Tocar', btn: { background: '#e0e5ec', color: '#44476a', radius: 27, shadowCustom: '6px 6px 14px #bec3c9, -6px -6px 14px #ffffff' },
+    }),
+  },
+  ios: {
+    label: 'iOS', pageBg: '#f2f2f7',
+    build: (y) => themeHero(y, {
+      name: 'ios', font: '-apple-system',
+      card: { background: '#ffffff', radius: 22, shadow: 'suave' },
+      title: 'Como en casa', titleColor: '#000000',
+      subtitle: 'Píldoras, esquinas amables y azul del sistema.', subColor: '#8e8e93',
+      btnText: 'Continuar', btn: { background: '#0a84ff', color: '#ffffff', radius: 27 },
+    }),
+  },
+  material: {
+    label: 'Material Design', pageBg: '#121212',
+    build: (y) => themeHero(y, {
+      name: 'material', font: 'Roboto',
+      card: { background: '#1e1e1e', radius: 16, shadow: 'media' },
+      title: 'Material que responde', titleColor: '#ffffff',
+      subtitle: 'Elevación, capas y color de acento vibrante.', subColor: 'rgba(255,255,255,.6)',
+      btnText: 'EMPEZAR', btn: { background: '#bb86fc', color: '#121212', radius: 8 },
+    }),
+  },
+  cyber: {
+    label: 'Cyberpunk', pageBg: 'linear-gradient(180deg,#0d0221,#1a0533)',
+    build: (y) => themeHero(y, {
+      name: 'cyber', font: 'monospace', anim: 'revelar',
+      card: { background: 'rgba(255,0,153,.06)', radius: 6, borderWidth: 1, borderColor: '#ff2a6d' },
+      title: 'NEON://FUTURO', titleColor: '#05d9e8', titleExtra: { textGlow: 'neón' },
+      subtitle: '[ sistema en línea · señal estable ]', subColor: '#ff2a6d',
+      btnText: 'CONECTAR', btn: { background: 'transparent', color: '#05d9e8', radius: 4, borderWidth: 2, borderColor: '#05d9e8' },
+    }),
+  },
+  terminal: {
+    label: 'Terminal', pageBg: '#0a0f0a',
+    build: (y) => themeHero(y, {
+      name: 'terminal', font: 'monospace', anim: 'revelar',
+      card: { background: '#0d130d', radius: 10, borderWidth: 1, borderColor: '#14532d' },
+      title: '~$ hola_mundo', titleColor: '#22c55e', titleSize: 36,
+      subtitle: 'escribiendo... ▋', subColor: '#4ade80',
+      btnText: '[ ENTER ]', btn: { background: '#052e16', color: '#22c55e', radius: 6, borderWidth: 1, borderColor: '#22c55e' },
+    }),
+  },
+};
+
 /**
  * Proyecto inicial: EXPERIENCIA ROMÁNTICA completa y lista para
  * personalizar — portada con corazones, carta, historia, contador,

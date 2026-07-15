@@ -200,15 +200,26 @@ export const Components = {
   musicPlayer: {
     label: 'Reproductor', icon: '🎵', cat: 'Avanzados', size: [360, 110], accepts: ['audio'],
     defaults: {
-      props: { assetId: null, srcUrl: '', coverId: null, variant: 'tarjeta', title: 'Nuestra canción', artist: 'La que lo dice todo' },
+      props: {
+        assetId: null, srcUrl: '', coverId: null, variant: 'tarjeta',
+        title: 'Nuestra canción', artist: 'La que lo dice todo',
+        playlistIds: [], volume: 100, loop: false, autoplay: false,
+        fadeIn: 0, fadeOut: 0,
+      },
       styles: { background: 'linear-gradient(135deg,#4c1d95,#be185d)', radius: 18, color: '#fff' },
     },
     schema: [
       asset('props.assetId', 'Pista de audio (asset)', 'audio'),
       text('props.srcUrl', 'o URL de audio directa (GitHub…)'),
+      { key: 'props.playlistIds', label: 'Lista de reproducción (varias pistas)', type: 'assetList', kind: 'audio' },
       asset('props.coverId', 'Portada del álbum', 'image'),
       select('props.variant', 'Estilo', ['tarjeta', 'mini']),
       text('props.title', 'Título'), text('props.artist', 'Artista'),
+      num('props.volume', 'Volumen (%)', 0, 100, 5),
+      check('props.loop', 'Repetir (loop)'),
+      check('props.autoplay', 'Autoreproducir (si el móvil lo permite)'),
+      num('props.fadeIn', 'Fade in (ms)', 0, 5000, 100),
+      num('props.fadeOut', 'Fade out (ms)', 0, 5000, 100),
       ...STYLE_COMMON,
     ],
   },

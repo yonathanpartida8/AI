@@ -45,6 +45,8 @@ const TEXT_GLOW_CSS = {
 /* Iconos SVG del reproductor (sin emojis, coherentes en export) */
 const MUSIC_NOTE_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v11"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/></svg>';
 const PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5z"/></svg>';
+const PREV_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M6 5h2.4v14H6zM19 5.8v12.4L9.6 12z"/></svg>';
+const NEXT_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.6 5H18v14h-2.4zM5 5.8v12.4L14.4 12z"/></svg>';
 
 const IMG_FILTERS = {
   ninguno: () => 'none',
@@ -59,13 +61,15 @@ const IMG_FILTERS = {
 /* ── Estilos ─────────────────────────────────────────── */
 
 /** CSS de posición/transform a partir del marco efectivo. */
-export function frameCSS(frame) {
+export function frameCSS(frame, styles = {}) {
+  const skew = (styles.skewX || styles.skewY)
+    ? ` skew(${styles.skewX || 0}deg, ${styles.skewY || 0}deg)` : '';
   return {
     left: `${frame.x}px`,
     top: `${frame.y}px`,
     width: `${frame.w}px`,
     height: `${frame.h}px`,
-    transform: `rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1})`,
+    transform: `rotate(${frame.rotation || 0}deg) scale(${frame.scale ?? 1})${skew}`,
     opacity: String(frame.opacity ?? 1),
   };
 }
@@ -87,6 +91,22 @@ export function styleCSS(node) {
   if (s.borderWidth) css.border = `${s.borderWidth}px solid ${s.borderColor || '#94a3b8'}`;
   if (s.shadow && s.shadow !== 'ninguna') css['box-shadow'] = SHADOWS[s.shadow] || 'none';
   if (s.blur) css['backdrop-filter'] = `blur(${s.blur}px)`;
+  /* ── Avanzado (v10): mezcla, filtros, sombra propia, texto, capa ── */
+  if (s.blendMode && s.blendMode !== 'normal') css['mix-blend-mode'] = s.blendMode;
+  const filters = [];
+  if (s.fxBlur) filters.push(`blur(${s.fxBlur}px)`);
+  if (s.fxBrightness != null && +s.fxBrightness !== 100) filters.push(`brightness(${s.fxBrightness}%)`);
+  if (s.fxContrast != null && +s.fxContrast !== 100) filters.push(`contrast(${s.fxContrast}%)`);
+  if (s.fxSaturate != null && +s.fxSaturate !== 100) filters.push(`saturate(${s.fxSaturate}%)`);
+  if (s.fxHue) filters.push(`hue-rotate(${s.fxHue}deg)`);
+  if (s.fxGrayscale) filters.push(`grayscale(${s.fxGrayscale}%)`);
+  if (s.fxSepia) filters.push(`sepia(${s.fxSepia}%)`);
+  if (s.fxInvert) filters.push(`invert(${s.fxInvert}%)`);
+  if (filters.length) css.filter = filters.join(' ');
+  if (s.shadowCustom) css['box-shadow'] = s.shadowCustom;
+  if (s.textTransform && s.textTransform !== 'ninguna') css['text-transform'] = s.textTransform;
+  if (s.overflow) css.overflow = s.overflow;
+  if (s.zIndex != null && s.zIndex !== '' && +s.zIndex !== 0) css['z-index'] = String(s.zIndex);
   if (node.type === 'shape' && node.props.shape !== 'rectángulo') {
     css['clip-path'] = CLIP_PATHS[node.props.shape] || 'none';
     css['border-radius'] = '0';
@@ -201,21 +221,36 @@ export function contentHTML(node, ctx) {
     }
 
     case 'musicPlayer': {
-      // Fuentes admitidas: canción subida en Assets, carpeta contenido/musica
-      // o una URL de audio directa. Cualquier otra cosa → estado vacío.
+      // Fuentes admitidas: canción subida en Assets, lista de reproducción,
+      // carpeta contenido/musica o URL de audio directa. Otra cosa → vacío.
       let src = p.assetId ? ctx.resolve(p.assetId) : (p.srcUrl || '');
       if (/youtu/i.test(String(src))) src = '';
+      // Lista de reproducción: pistas resueltas con su nombre
+      const playlist = (p.playlistIds || [])
+        .map((id) => ({ url: ctx.resolve(id), name: ctx.assetName ? ctx.assetName(id) : '' }))
+        .filter((t) => t.url);
+      if (!src && playlist.length) src = playlist[0].url;
       const cover = p.coverId
         ? `<img class="wb-mp-cover" src="${ctx.resolve(p.coverId)}" alt="" draggable="false">`
         : `<div class="wb-mp-cover wb-mp-cover-icon">${MUSIC_NOTE_SVG}</div>`;
       const mini = p.variant === 'mini';
-      return `<div class="wb-mp${mini ? ' wb-mp-mini' : ''}">
+      const dataAttrs = [
+        `data-volume="${Math.max(0, Math.min(100, +p.volume ?? 100))}"`,
+        p.loop ? 'data-loop="1"' : '',
+        p.autoplay ? 'data-autoplay="1"' : '',
+        +p.fadeIn ? `data-fadein="${+p.fadeIn}"` : '',
+        +p.fadeOut ? `data-fadeout="${+p.fadeOut}"` : '',
+        playlist.length > 1 ? `data-playlist='${esc(JSON.stringify(playlist))}'` : '',
+      ].filter(Boolean).join(' ');
+      return `<div class="wb-mp${mini ? ' wb-mp-mini' : ''}" ${dataAttrs}>
         ${cover}
         <div class="wb-mp-body">
-          <div class="wb-mp-meta"><strong>${esc(p.title || '')}</strong><span>${esc(p.artist || '')}</span></div>
+          <div class="wb-mp-meta"><strong class="wb-mp-title">${esc(p.title || '')}</strong><span>${esc(p.artist || '')}</span></div>
           ${src ? `
           <div class="wb-mp-controls">
+            ${playlist.length > 1 ? `<button class="wb-mp-prev" type="button" aria-label="Anterior">${PREV_SVG}</button>` : ''}
             <button class="wb-mp-play" type="button" aria-label="Reproducir">${PLAY_SVG}</button>
+            ${playlist.length > 1 ? `<button class="wb-mp-next" type="button" aria-label="Siguiente">${NEXT_SVG}</button>` : ''}
             <div class="wb-mp-track"><div class="wb-mp-fill"></div></div>
             <span class="wb-mp-time">0:00</span>
           </div>` : '<small class="wb-mp-empty">Elige una canción para este momento</small>'}
@@ -393,11 +428,12 @@ export function syncNodeEl(elem, node, store) {
   if (elem.__wbFp === fp) return;
   elem.__wbFp = fp;
 
-  Object.assign(elem.style, frameCSS(frame));
+  Object.assign(elem.style, frameCSS(frame, node.styles));
   if (node.type === 'htmlEmbed') scaleEmbed(elem, node, frame);
   // Limpia estilos visuales previos y aplica los actuales
   for (const prop of ['background', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign',
-    'letterSpacing', 'lineHeight', 'borderRadius', 'border', 'boxShadow', 'backdropFilter', 'clipPath', 'visibility']) {
+    'letterSpacing', 'lineHeight', 'borderRadius', 'border', 'boxShadow', 'backdropFilter', 'clipPath', 'visibility',
+    'filter', 'mixBlendMode', 'textTransform', 'overflow', 'zIndex']) {
     elem.style[prop] = '';
   }
   for (const [k, v] of Object.entries(styleCSS(node))) elem.style.setProperty(k, v);
@@ -448,6 +484,7 @@ export function renderPage(artboard, store, assets, { mountEl, unmountEl } = {})
     editor: true,
     resolve: (id) => assets.url(id),
     htmlText: (id) => assets.text(id),
+    assetName: (id) => assets.get(id)?.name || 'Pista',
     pages: store.project.pages,
     pageHref: () => '#',
   };

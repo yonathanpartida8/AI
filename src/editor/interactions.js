@@ -156,7 +156,15 @@ export class Interactions {
         startAngle: Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2)),
       };
     } else {
-      this.gesture = { kind: 'resize', node, handle, start: this.view.toArtboard(e.clientX, e.clientY), frame };
+      this.gesture = {
+        kind: 'resize', node, handle, start: this.view.toArtboard(e.clientX, e.clientY), frame,
+        // Escalado INTELIGENTE: desde una esquina, el contenido interior
+        // (tipografía, radios, bordes) acompaña al nuevo tamaño.
+        startStyles: {
+          fontSize: node.styles?.fontSize, radius: node.styles?.radius,
+          borderWidth: node.styles?.borderWidth,
+        },
+      };
     }
   }
 
@@ -254,6 +262,18 @@ export class Interactions {
         if (h.includes('e') || h.includes('w')) f.h = f.w / ratio; else f.w = f.h * ratio;
       }
       this.store.setFrame(g.node, { x: Math.round(f.x), y: Math.round(f.y), w: Math.round(f.w), h: Math.round(f.h) });
+
+      // Escalado inteligente del contenido (esquinas; Alt lo desactiva):
+      // tipografía, radio y borde siguen el tamaño con factor geométrico —
+      // nada queda desproporcionado al agrandar o encoger la pieza.
+      if (g.handle.length === 2 && !e.altKey && g.frame.w > 0 && g.frame.h > 0) {
+        const factor = Math.sqrt((f.w * f.h) / (g.frame.w * g.frame.h));
+        const s = g.startStyles;
+        if (s.fontSize) g.node.styles.fontSize = Math.max(6, Math.round(s.fontSize * factor));
+        if (s.radius) g.node.styles.radius = Math.max(0, Math.round(s.radius * factor));
+        if (s.borderWidth) g.node.styles.borderWidth = Math.max(0, Math.round(s.borderWidth * factor * 2) / 2);
+      }
+
       const elem = this.#nodeEl(g.node.id);
       if (elem) syncNodeEl(elem, g.node, this.store);
       this.updateOverlay();

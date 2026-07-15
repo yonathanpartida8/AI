@@ -55,6 +55,18 @@ async function boot() {
   store.on('change', syncCustomCSS);
   syncCustomCSS();
 
+  // Frecuencia de refresco configurable (30–240 Hz, 0 = auto/vsync):
+  // los runtimes WebGL la leen de window.WB_FPS en cada frame.
+  const syncFps = () => { window.WB_FPS = store.project.settings.fps || 0; };
+  store.on('change', syncFps);
+  syncFps();
+
+  // Modo Pixel Art por página: nearest-neighbor en todo el lienzo
+  const syncPixelArt = () => document.getElementById('artboard').classList.toggle('pixel-art', !!store.page.pixelArt);
+  store.on('change', syncPixelArt);
+  store.on('page', syncPixelArt);
+  syncPixelArt();
+
   const view = new CanvasView(store);
   const three = new ThreeManager(assets);
   const interactions = new Interactions(store, view);

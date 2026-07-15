@@ -13,7 +13,7 @@
 import { el, esc, formatBytes, debounce, showSnack } from '../utils/helpers.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
-import { BLOCKS } from '../storage/templates.js';
+import { BLOCKS, THEMES } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
 import { MUSIC_TRACKS, MUSIC_REPO_BASE, trackURL } from '../config/musicLibrary.js';
 import { MY_3D } from '../../contenido/3d/index.js';
@@ -136,16 +136,41 @@ export class Panels {
   /* ── Paleta de componentes ─────────────────────────── */
 
   #renderComponents(body) {
-    // Bloques prediseñados: secciones completas listas para usar
-    body.append(el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
-    const blockList = el('div', { class: 'block-list' });
-    for (const [key, block] of Object.entries(BLOCKS)) {
-      blockList.append(el('button', {
-        class: 'block-item', title: 'Añade esta sección al final de la página',
-        onclick: () => this.store.addBlock(key),
-      }, [el('span', { class: 'palette-icon', html: ic(BLOCK_ICONS[key] || 'sparkles') }), el('span', { text: block.label })]));
+    // Buscador de piezas: filtra bloques, estilos y componentes al escribir
+    const pq = (this.pieceQuery || '').toLowerCase();
+    body.append(el('input', {
+      class: 'input block', type: 'search', placeholder: 'Buscar pieza, bloque o estilo…', value: this.pieceQuery || '',
+      oninput: (e) => { this.pieceQuery = e.target.value; this.render(); },
+    }));
+    const match = (label) => !pq || label.toLowerCase().includes(pq);
+
+    // Estilos de proyecto: estéticas completas de un toque
+    const themeEntries = Object.entries(THEMES).filter(([, t]) => match(t.label));
+    if (themeEntries.length) {
+      body.append(el('h4', { class: 'panel-heading', text: 'Estilos de proyecto' }));
+      const themeList = el('div', { class: 'block-list' });
+      for (const [key, theme] of themeEntries) {
+        themeList.append(el('button', {
+          class: 'block-item', title: 'Aplica esta estética y añade su portada',
+          onclick: () => this.#applyTheme(key),
+        }, [el('span', { class: 'palette-icon', html: ic('sparkles') }), el('span', { text: theme.label })]));
+      }
+      body.append(themeList);
     }
-    body.append(blockList);
+
+    // Bloques prediseñados: secciones completas listas para usar
+    const blockEntries = Object.entries(BLOCKS).filter(([, b]) => match(b.label));
+    if (blockEntries.length) {
+      body.append(el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
+      const blockList = el('div', { class: 'block-list' });
+      for (const [key, block] of blockEntries) {
+        blockList.append(el('button', {
+          class: 'block-item', title: 'Añade esta sección al final de la página',
+          onclick: () => this.store.addBlock(key),
+        }, [el('span', { class: 'palette-icon', html: ic(BLOCK_ICONS[key] || 'sparkles') }), el('span', { text: block.label })]));
+      }
+      body.append(blockList);
+    }
 
     /* Tus carpetas de contenido: 3D y widgets propios */
     if (MY_3D.length) {
@@ -176,10 +201,11 @@ export class Panels {
     }
 
     for (const cat of CATEGORIES) {
+      const entries = Object.entries(Components).filter(([, def]) => def.cat === cat && match(def.label));
+      if (!entries.length) continue;
       body.append(el('h4', { class: 'panel-heading', text: cat }));
       const grid = el('div', { class: 'palette-grid' });
-      for (const [type, def] of Object.entries(Components)) {
-        if (def.cat !== cat) continue;
+      for (const [type, def] of entries) {
         const item = el('div', {
           class: 'palette-item', draggable: 'true', title: `Arrastra al lienzo o haz clic`,
           ondragstart: (e) => e.dataTransfer.setData('application/x-wb-component', type),
@@ -190,6 +216,25 @@ export class Panels {
       body.append(grid);
     }
     body.append(el('p', { class: 'panel-hint', text: 'También puedes arrastrar archivos de tu galería directamente sobre el lienzo.' }));
+  }
+
+  /** Aplica un ESTILO DE PROYECTO: fondo de página + portada temática. */
+  #applyTheme(key) {
+    const theme = THEMES[key];
+    if (!theme) return;
+    this.store.snapshot('theme');
+    const page = this.store.page;
+    page.background = theme.pageBg;
+    if (theme.pixelArt != null) page.pixelArt = theme.pixelArt;
+    // La portada del estilo se añade al final (o al inicio si está vacía)
+    const startY = page.nodes.length ? page.height : 0;
+    const block = theme.build(startY);
+    for (const n of block.nodes) {
+      this.store.project.nodes[n.id] = n;
+      page.nodes.push(n.id);
+    }
+    page.height = startY + block.height;
+    this.store.commit();
   }
 
   #addAtCenter(type) {
@@ -416,6 +461,44 @@ export class Panels {
     }
     body.append(list);
 
+    // ── Proyecto y pantalla: Hz, resoluciones y orientación ──
+    const settings = this.store.project.settings;
+    const bps = settings.breakpoints;
+    const RES_PRESETS = [
+      ['', 'Resoluciones rápidas…'], ['390', 'Teléfono · 390'], ['844', 'Teléfono horizontal · 844'],
+      ['768', 'Tablet · 768'], ['1024', 'Tablet horizontal · 1024'], ['1280', 'Portátil · 1280'],
+      ['1440', 'Escritorio · 1440'], ['1920', 'TV / Monitor · 1920'],
+    ];
+    // Pares retrato ↔ paisaje para el giro de orientación
+    const FLIP = { 390: 844, 844: 390, 768: 1024, 1024: 768, 1280: 800, 800: 1280, 1440: 900, 900: 1440, 1920: 1080, 1080: 1920 };
+    const applyWidth = (width) => {
+      if (!width || width < 120) return;
+      this.store.snapshot();
+      bps[this.store.device] = Math.round(width);
+      this.store.commit();
+      this.view.fit();
+    };
+    body.append(
+      el('h4', { class: 'panel-heading', text: 'Proyecto y pantalla' }),
+      this.#field(`Ancho del lienzo (${this.store.device}) px`, el('input', {
+        class: 'input', type: 'number', min: 120, max: 3840, value: bps[this.store.device],
+        onchange: (e) => applyWidth(+e.target.value),
+      })),
+      el('select', {
+        class: 'input block',
+        onchange: (e) => { applyWidth(+e.target.value); e.target.value = ''; },
+      }, RES_PRESETS.map(([v, label]) => el('option', { value: v, text: label }))),
+      el('button', {
+        class: 'btn block', html: `${ic('tablet', 14)}<span>Girar orientación (vertical ↔ horizontal)</span>`,
+        onclick: () => applyWidth(FLIP[bps[this.store.device]] || Math.round(bps[this.store.device] * (bps[this.store.device] > 700 ? 0.6 : 1.7))),
+      }),
+      this.#field('Frecuencia de refresco (WebGL)', el('select', {
+        class: 'input',
+        onchange: (e) => { this.store.snapshot(); settings.fps = +e.target.value; this.store.commit(); },
+      }, [[0, 'Automática (vsync del dispositivo)'], [30, '30 Hz (ahorro)'], [60, '60 Hz'], [90, '90 Hz'], [120, '120 Hz'], [144, '144 Hz'], [165, '165 Hz'], [240, '240 Hz']]
+        .map(([v, label]) => el('option', { value: v, text: label, selected: (settings.fps || 0) === v ? 'true' : null })))),
+    );
+
     // Ajustes de la página activa
     const page = this.store.page;
     body.append(
@@ -451,6 +534,13 @@ export class Panels {
         class: 'input', type: 'number', min: 100, max: 5000, step: 100, value: page.transitionDuration || 700,
         onchange: (e) => this.store.updatePage(page.id, { transitionDuration: +e.target.value || 700 }),
       })),
+      el('label', { class: 'field check' }, [
+        el('input', {
+          type: 'checkbox', ...(page.pixelArt ? { checked: 'true' } : {}),
+          onchange: (e) => this.store.updatePage(page.id, { pixelArt: e.target.checked }),
+        }),
+        el('span', { text: 'Modo Pixel Art (reescalado sin suavizado)' }),
+      ]),
       el('h4', { class: 'panel-heading', text: 'Código de esta página' }),
       this.#field('CSS propio', el('textarea', {
         class: 'input code', rows: 3, text: page.custom?.css || '', placeholder: '.mi-estilo { … }',
