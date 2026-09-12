@@ -17,7 +17,7 @@
  *  - doble clic en texto    → edición inline
  * ============================================================ */
 
-import { clamp, throttleRAF, el } from '../utils/helpers.js';
+import { throttleRAF, el } from '../utils/helpers.js';
 import { syncNodeEl } from '../renderer/renderer.js';
 import { ic } from './icons.js';
 
@@ -46,6 +46,7 @@ export class Interactions {
     // selección viven DENTRO de #world: el pan/zoom ya las mueve gratis
     // por transform; reconstruirlas por frame hacía parpadear la barra
     // rápida durante todo el gesto.
+    store.on('view', () => { const n = this.store.selectedNodes; if (n.length === 1) this.#placeQuickbar(n[0]); });
     store.on('page', () => this.#stopMomentum());
     store.on('device', () => this.#stopMomentum());
 
@@ -284,6 +285,12 @@ export class Interactions {
       const angle = Math.atan2(e.clientY - g.cy, e.clientX - g.cx);
       let deg = g.startRotation + ((angle - g.startAngle) * 180) / Math.PI;
       if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+      else {
+        // Imán angular: cerca de 0/45/90/135… engancha solo (±3°).
+        // Con el dedo es casi imposible clavar un ángulo recto a pulso.
+        const recto = Math.round(deg / 45) * 45;
+        if (Math.abs(deg - recto) <= 3) deg = recto;
+      }
       this.store.setFrame(g.node, { rotation: Math.round(deg) });
       const elem = this.#nodeEl(g.node.id);
       if (elem) syncNodeEl(elem, g.node, this.store);
@@ -524,12 +531,60 @@ export class Interactions {
           label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
           affix.append(label);
         }
-        const bar = this.#buildQuickbar(node);
-        if (!isNewSelection) bar.classList.add('no-anim');
-        affix.append(bar);
         overlay.append(affix);
+        this.#showQuickbar(node, isNewSelection);
       }
     }
+    if (!single) this.#hideQuickbar();
+  }
+
+  /* ── Barra rápida: vive FUERA del lienzo escalado ──────
+   * Dentro de #world heredaba el zoom (a 30 % se salía de la pantalla)
+   * y el navegador la recortaba. Ahora se monta en un host fijo:
+   * en el teléfono es una barra inferior siempre completa y visible;
+   * en pantalla ancha flota junto al elemento, acotada al viewport. */
+
+  #quickHost() {
+    if (!this.qbHost) {
+      this.qbHost = el('div', { id: 'quickbar-host' });
+      document.body.append(this.qbHost);
+    }
+    return this.qbHost;
+  }
+
+  #hideQuickbar() { if (this.qbHost) this.qbHost.replaceChildren(); }
+
+  #showQuickbar(node, animate) {
+    const host = this.#quickHost();
+    const bar = this.#buildQuickbar(node);
+    if (!animate) bar.classList.add('no-anim');
+    host.replaceChildren(bar);
+    this.#placeQuickbar(node);
+  }
+
+  /** Coloca la barra junto al elemento (solo en pantalla ancha). */
+  #placeQuickbar(node) {
+    const host = this.qbHost;
+    const bar = host?.firstElementChild;
+    if (!bar) return;
+    if (window.matchMedia('(max-width: 820px)').matches) {
+      host.classList.add('docked');       // barra inferior fija: la coloca el CSS
+      bar.style.left = bar.style.top = '';
+      return;
+    }
+    host.classList.remove('docked');
+    bar.style.bottom = 'auto';
+    const elem = this.#nodeEl(node.id);
+    if (!elem) return;
+    const r = elem.getBoundingClientRect();
+    const w = bar.offsetWidth || 300, h = bar.offsetHeight || 44;
+    const pad = 8;
+    let left = r.left + (r.width - w) / 2;
+    let top = r.top - h - pad;
+    if (top < 60) top = Math.min(r.bottom + pad, window.innerHeight - h - pad);
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    bar.style.left = `${Math.round(left)}px`;
+    bar.style.top = `${Math.round(top)}px`;
   }
 
   /** Barra rápida contextual: acciones al alcance del pulgar. */
@@ -540,7 +595,7 @@ export class Interactions {
       onpointerdown: (e) => e.stopPropagation(), // no inicia drag del nodo
       onclick,
     });
-    const bar = el('div', { class: 'quickbar', style: { left: '0', bottom: '100%', marginBottom: '6px' } }, [
+    const bar = el('div', { class: 'quickbar' }, [
       btn('duplicate', 'Duplicar', () => store.duplicateNodes([node.id])),
       btn('copy', 'Copiar', () => { store.select([node.id]); store.copy(); }),
       btn(node.locked ? 'lock' : 'unlock', node.locked ? 'Desbloquear' : 'Bloquear', () => store.toggleFlag(node.id, 'locked')),

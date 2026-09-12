@@ -1,7 +1,7 @@
 # BuilderYNTHN_M-Beta — Creador de Experiencias Románticas
 
-**Interfaz Liquid Glass** en blancos y negros con tipografía bold, y
-**motor de render incremental**: edita proyectos con decenas de elementos,
+**Interfaz pastel pensada para el pulgar** (crema, rosa y menta, con
+temas Claro · Oscuro · Baddie · Pixel Art) y **motor de render incremental**: edita proyectos con decenas de elementos,
 HTML importado, 3D y partículas sin tirones — solo se reconstruye lo que
 cambia, y los iframes/WebGL sobreviven intactos entre ediciones.
 
@@ -75,16 +75,30 @@ Bloques con lógica precableada listos para usar: **La gran pregunta (Sí/No)**
 con celebración de corazones, **Cupones de amor** canjeables manteniendo
 presionado, y **Razones por las que te amo** con tarjetas 3D interactivas.
 
-### 📱 Táctil sin complicaciones (interfaz estilo iOS)
-Interfaz rediseñada con estética iPhone: cristal esmerilado, píldoras,
-control segmentado y barra de pestañas iOS. **Un dedo** sobre el lienzo
-vacío desplaza; sobre un elemento, lo mueve. **Dos dedos** siempre
-desplazan y hacen zoom (pinch), también en vista previa — y los toques
-llegan limpios a cartas, botones y secretos. Al soltar, el lienzo sigue
-deslizándose con **inercia y rebote elástico** contra los bordes (vista
-previa). **Desliza una capa o página a la izquierda para eliminarla**
-(con «Deshacer» al instante), **mantén presionada una capa** para
-selección múltiple y **doble toque en el lienzo** para reencuadrar.
+### 📱 Interfaz pastel, hecha para el pulgar
+Estética suave —crema, rosa y menta sobre tarjetas blancas— con sombras
+ligeras, esquinas generosas y animaciones cortas. La barra superior deja
+a la vista solo lo de cada minuto (deshacer, rehacer, zoom, **Vista
+previa**) y el resto vive en la hoja **Más**. Los paneles son hojas
+inferiores que se cierran deslizando, y al seleccionar algo aparece una
+**barra contextual completa** abajo, nunca recortada.
+**Un dedo** sobre el lienzo vacío desplaza (con inercia y rebote); sobre
+un elemento, lo mueve. **Dos dedos** hacen zoom. **Desliza una capa o
+página a la izquierda** para borrarla (con «Deshacer» al instante) y
+**mantén pulsada** una capa para selección múltiple.
+
+### 🎨 Temas y paletas
+Cuatro temas del editor —**Claro · Oscuro · Baddie · Pixel Art**— y ocho
+paletas pastel (rosa, menta, lavanda, azul, crema, beige, melocotón,
+lila) que se eligen en *Páginas → Apariencia* y se recuerdan. El tema
+Pixel Art es de verdad: esquinas rectas, sombras duras, bordes de 2 px y
+tipografía monoespaciada.
+
+### 🌐 Online Assets
+Pega la URL de una imagen, GIF, vídeo, audio, SVG o JSON y el recurso se
+descarga una vez, se guarda en la carpeta **"online assets"** y se usa
+igual que uno tuyo —también **sin conexión**—. Se puede actualizar
+cuando el archivo remoto cambie y viaja dentro del sitio exportado.
 
 ### 🧩 Extensión con tu propio código
 - Componente **"3D personalizado"**: pega código Three.js (recibe `THREE`,

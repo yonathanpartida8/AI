@@ -33,6 +33,12 @@ import { ThreeManager } from '../webgl/threeManager.js';
 import { Exporter } from '../exporter/exporter.js';
 
 async function boot() {
+  // Tema y paleta elegidos por el usuario (se recuerdan entre sesiones)
+  const tema = localStorage.getItem('wb-theme');
+  const paleta = localStorage.getItem('wb-palette');
+  if (tema) document.body.dataset.theme = tema;
+  if (paleta) document.body.dataset.palette = paleta;
+
   // CSS compartido de componentes: la MISMA hoja que llevará el export
   const shared = document.createElement('style');
   shared.id = 'wb-component-css';
@@ -107,6 +113,12 @@ async function boot() {
 
 /* ── Barra superior ──────────────────────────────────── */
 
+/**
+ * BARRA SUPERIOR — una sola definición de acciones para dos destinos:
+ * en pantalla ancha se despliegan todas en la barra; en el teléfono
+ * solo quedan las de uso constante y el resto vive en el menú "Más"
+ * (hoja inferior, al alcance del pulgar). Ninguna función se pierde.
+ */
 function buildTopbar(store, view, exporter, assets, repaint) {
   const bar = document.getElementById('topbar');
   const savedDot = el('span', { class: 'saved-dot', title: 'Guardado automático activo', text: '●' });
@@ -115,20 +127,27 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     setTimeout(() => savedDot.classList.remove('flash'), 600);
   });
 
+  /* Selector de dispositivo: se instancia dos veces (barra y menú) y
+     ambas copias se mantienen sincronizadas por el evento del store. */
   const DEVICE_IC = { desktop: 'desktop', tablet: 'tablet', mobile: 'mobile' };
-  const deviceButtons = el('div', { class: 'seg' }, Object.entries(DEVICES).map(([key, meta]) =>
-    el('button', {
-      class: `seg-btn${store.device === key ? ' active' : ''}`, html: `${ic(DEVICE_IC[key], 15)}<span>${meta.label}</span>`,
-      dataset: { device: key },
-      title: `${meta.width}px`,
-      onclick: () => store.setDevice(key),
-    })));
-  store.on('device', () => {
-    deviceButtons.querySelectorAll('.seg-btn').forEach((btn) =>
-      btn.classList.toggle('active', btn.dataset.device === store.device));
-  });
+  const deviceSeg = () => {
+    const seg = el('div', { class: 'seg' }, Object.entries(DEVICES).map(([key, meta]) =>
+      el('button', {
+        class: `seg-btn${store.device === key ? ' active' : ''}`,
+        html: `${ic(DEVICE_IC[key], 15)}<span>${meta.label}</span>`,
+        dataset: { device: key },
+        title: `${meta.width}px`,
+        onclick: () => store.setDevice(key),
+      })));
+    store.on('device', () => seg.querySelectorAll('.seg-btn').forEach((btn) =>
+      btn.classList.toggle('active', btn.dataset.device === store.device)));
+    return seg;
+  };
 
-  const zoomLabel = el('span', { class: 'zoom-label', text: '100%' });
+  const zoomLabel = el('button', {
+    class: 'zoom-label', text: '100%', title: 'Ajustar a pantalla',
+    onclick: () => view.fit(),
+  });
   store.on('view', () => { zoomLabel.textContent = `${Math.round(store.zoom * 100)}%`; });
 
   const fileInput = el('input', {
@@ -163,66 +182,109 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     },
   });
 
+  /* Acciones de proyecto: mismas funciones, dos presentaciones */
+  const guard = async (btn, run, verbo) => {
+    btn.disabled = true;
+    try { await run(); }
+    catch (err) { alert(`Error al ${verbo}: ${err.message}`); console.error(err); }
+    btn.disabled = false;
+  };
+  const PROJECT_ACTIONS = [
+    {
+      icon: 'pen', label: 'Dibujar', title: 'Libreta de dibujo a mano alzada',
+      run: () => store.setTool(store.tool === 'draw' ? 'select' : 'draw'),
+    },
+    {
+      icon: 'upload', label: 'Importar', title: 'Importar proyecto (.json/.html) o página externa',
+      run: () => fileInput.click(),
+    },
+    {
+      icon: 'download', label: 'Guardar', title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
+      run: () => {
+        // El .json incluye los assets → el archivo es 100% autocontenido
+        const data = { ...store.exportJSON(), assetsData: assets.exportData() };
+        download(`${store.project.meta.name}.json`, new Blob([JSON.stringify(data)], { type: 'application/json' }));
+      },
+    },
+    {
+      icon: 'file', label: 'HTML (1 archivo)', cls: 'primary',
+      title: 'Todo el sitio en un único archivo autocontenido: ábrelo directamente en el móvil',
+      run: (btn) => guard(btn, () => exporter.exportSingle(), 'exportar'),
+    },
+    {
+      icon: 'archive', label: 'Sitio (.zip)', cls: 'primary',
+      title: 'Carpeta de proyecto completa para subir a un hosting',
+      run: (btn) => guard(btn, () => exporter.export(), 'exportar'),
+    },
+    {
+      icon: 'trash', label: 'Nuevo', cls: 'danger', title: 'Proyecto nuevo (borra el actual)',
+      run: () => {
+        if (!confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) return;
+        const template = confirm('¿Empezar con la plantilla de ejemplo?\n(Aceptar = plantilla · Cancelar = lienzo en blanco)');
+        store.reset(!template);
+      },
+    },
+  ];
+  const actionButton = (a, withLabel) => el('button', {
+    class: `btn${a.cls ? ` ${a.cls}` : ''}${withLabel ? ' block' : ''}`,
+    html: `${ic(a.icon)}<span>${a.label}</span>`,
+    title: a.title,
+    onclick: (e) => a.run(e.currentTarget),
+  });
+
+  /* Menú "Más": hoja inferior con todo lo que no cabe en el teléfono */
+  const menuSheet = el('aside', { id: 'menu-sheet', class: 'sheet' }, [
+    el('h3', { class: 'sheet-title', text: 'Proyecto' }),
+    el('div', { class: 'sheet-body' }, [
+      el('h4', { class: 'panel-heading', text: 'Tamaño de pantalla' }),
+      deviceSeg(),
+      el('h4', { class: 'panel-heading', text: 'Herramientas' }),
+      ...PROJECT_ACTIONS.map((a) => actionButton(a, true)),
+    ]),
+  ]);
+  document.body.append(menuSheet);
+  const closeMenu = () => { menuSheet.classList.remove('open'); document.body.classList.remove('sheet-open'); };
+  makeSheetDismissable(menuSheet, closeMenu);
+  document.addEventListener('wb:close-sheets', closeMenu);
+
   bar.append(
     el('div', { class: 'brand', html: `${ic('heart', 15)}<span>BuilderYNTHN<small>_M-Beta</small></span>` }),
     savedDot,
     el('div', { class: 'sep' }),
     el('button', { class: 'btn btn-ic', html: ic('undo'), title: 'Deshacer (Ctrl+Z)', onclick: () => store.undo() }),
     el('button', { class: 'btn btn-ic', html: ic('redo'), title: 'Rehacer (Ctrl+Y)', onclick: () => store.redo() }),
-    el('div', { class: 'sep' }),
-    deviceButtons,
-    el('div', { class: 'sep' }),
-    el('button', { class: 'btn btn-ic', html: ic('minus'), title: 'Alejar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
+    el('div', { class: 'sep only-wide' }),
+    el('div', { class: 'only-wide', style: { display: 'contents' } }, [deviceSeg()]),
+    el('div', { class: 'sep only-wide' }),
+    el('button', { class: 'btn btn-ic only-wide', html: ic('minus'), title: 'Alejar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
     zoomLabel,
-    el('button', { class: 'btn btn-ic', html: ic('plus'), title: 'Acercar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
-    el('button', { class: 'btn btn-ic', html: ic('fit'), title: 'Ajustar a pantalla', onclick: () => view.fit() }),
-    el('div', { class: 'sep' }),
-    el('button', { class: 'btn', html: `${ic('pen')}<span>Dibujar</span>`, onclick: () => store.setTool(store.tool === 'draw' ? 'select' : 'draw') }),
-    el('span', { class: 'spacer' }),
-    el('button', { class: 'btn', html: `${ic('play')}<span>Vista previa</span>`, onclick: () => togglePreview(store, view, repaint, assets) }),
-    el('div', { class: 'sep' }),
+    el('button', { class: 'btn btn-ic only-wide', html: ic('plus'), title: 'Acercar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
+    el('button', { class: 'btn btn-ic only-wide', html: ic('fit'), title: 'Ajustar a pantalla', onclick: () => view.fit() }),
+    el('div', { class: 'sep only-wide' }),
     fileInput,
-    el('button', { class: 'btn', html: `${ic('upload')}<span>Importar</span>`, title: 'Importar proyecto (.json/.html) o página externa', onclick: () => fileInput.click() }),
+    // En pantalla ancha: todas las acciones a la vista
+    ...PROJECT_ACTIONS.map((a) => {
+      const btn = actionButton(a, false);
+      btn.classList.add('only-wide');
+      return btn;
+    }),
+    el('span', { class: 'spacer' }),
+    el('button', { class: 'btn primary', html: `${ic('play')}<span>Vista previa</span>`, onclick: () => togglePreview(store, view, repaint, assets) }),
+    // En el teléfono: el resto vive aquí, a un toque del pulgar
     el('button', {
-      class: 'btn', html: `${ic('download')}<span>Guardar</span>`, title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
+      class: 'btn btn-ic only-narrow', html: ic('more'), title: 'Más opciones del proyecto',
       onclick: () => {
-        // El .json incluye los assets → el archivo es 100% autocontenido
-        const data = { ...store.exportJSON(), assetsData: assets.exportData() };
-        download(`${store.project.meta.name}.json`,
-          new Blob([JSON.stringify(data)], { type: 'application/json' }));
-      },
-    }),
-    el('button', {
-      class: 'btn primary', html: `${ic('file')}<span>HTML (1 archivo)</span>`,
-      title: 'Todo el sitio en un único archivo autocontenido: ábrelo directamente en el móvil',
-      onclick: async (e) => {
-        e.target.disabled = true;
-        try { await exporter.exportSingle(); }
-        catch (err) { alert(`Error al exportar: ${err.message}`); console.error(err); }
-        e.target.disabled = false;
-      },
-    }),
-    el('button', {
-      class: 'btn primary', html: `${ic('archive')}<span>Sitio (.zip)</span>`,
-      title: 'Carpeta de proyecto completa para subir a un hosting',
-      onclick: async (e) => {
-        e.target.disabled = true;
-        try { await exporter.export(); }
-        catch (err) { alert(`Error al exportar: ${err.message}`); console.error(err); }
-        e.target.disabled = false;
-      },
-    }),
-    el('button', {
-      class: 'btn danger', html: `${ic('trash')}<span>Nuevo</span>`, title: 'Proyecto nuevo (borra el actual)',
-      onclick: () => {
-        if (!confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) return;
-        const template = confirm('¿Empezar con la plantilla de ejemplo?\n(Aceptar = plantilla · Cancelar = lienzo en blanco)');
-        store.reset(!template);
+        const wasOpen = menuSheet.classList.contains('open');
+        document.dispatchEvent(new CustomEvent('wb:close-sheets'));
+        if (!wasOpen) {
+          menuSheet.classList.add('open');
+          document.body.classList.add('sheet-open');
+          if (navigator.vibrate) navigator.vibrate(8);
+        }
       },
     }),
   );
 }
-
 /**
  * Recupera el proyecto de un HTML exportado "todo en uno" y detecta
  * bloques <style class="custom"> / <script class="custom"> que el
@@ -259,16 +321,25 @@ function buildMobileNav(store, panels, view) {
     left.classList.remove('open');
     right.classList.remove('open');
     nav.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+    document.body.classList.remove('sheet-open');
+  };
+  // Cualquier hoja que se abra cierra las demás (una sola capa a la vez)
+  document.addEventListener('wb:close-sheets', closeAll);
+  const openSheet = (panel) => {
+    document.dispatchEvent(new CustomEvent('wb:close-sheets'));
+    panel.classList.add('open');
+    document.body.classList.add('sheet-open');
   };
 
   const item = (icon, label, open) => el('button', {
+    title: label, 'aria-label': label,
     onclick: (e) => {
       const btn = e.currentTarget;
       const wasActive = btn.classList.contains('active');
       closeAll();
-      if (!wasActive) { open(); btn.classList.add('active'); }
+      if (!wasActive) { open(); btn.classList.add('active'); if (navigator.vibrate) navigator.vibrate(6); }
     },
-  }, [el('span', { class: 'mn-icon', html: ic(icon, 20) }), el('span', { class: 'mn-label', text: label })]);
+  }, [el('span', { class: 'mn-icon', html: ic(icon, 21) }), el('span', { class: 'mn-label', text: label })]);
 
   // FAB estilo One UI: añadir piezas con el pulgar, siempre a mano
   const fab = el('button', {
@@ -278,7 +349,7 @@ function buildMobileNav(store, panels, view) {
       closeAll();
       if (!wasOpen) {
         panels.openTab('componentes');
-        left.classList.add('open');
+        openSheet(left);
         if (navigator.vibrate) navigator.vibrate(10);
       }
     },
@@ -287,14 +358,17 @@ function buildMobileNav(store, panels, view) {
   document.body.append(fab);
 
   const nav = el('nav', { id: 'mobile-nav' }, [
-    item('grid', 'Piezas', () => { panels.openTab('componentes'); left.classList.add('open'); }),
-    item('image', 'Assets', () => { panels.openTab('assets'); left.classList.add('open'); }),
-    item('music', 'Música', () => { panels.openTab('musica'); left.classList.add('open'); }),
-    item('pages', 'Páginas', () => { panels.openTab('paginas'); left.classList.add('open'); }),
-    item('layers', 'Capas', () => { panels.openTab('capas'); left.classList.add('open'); }),
-    item('sliders', 'Diseño', () => { right.classList.add('open'); }),
+    item('grid', 'Piezas', () => { panels.openTab('componentes'); openSheet(left); }),
+    item('image', 'Assets', () => { panels.openTab('assets'); openSheet(left); }),
+    item('music', 'Música', () => { panels.openTab('musica'); openSheet(left); }),
+    item('pages', 'Páginas', () => { panels.openTab('paginas'); openSheet(left); }),
+    item('layers', 'Capas', () => { panels.openTab('capas'); openSheet(left); }),
+    item('sliders', 'Diseño', () => { openSheet(right); }),
   ]);
   document.body.append(nav);
+
+  // Con algo seleccionado manda la barra contextual: el FAB se aparta
+  store.on('selection', () => document.body.classList.toggle('has-selection', store.selection.length > 0));
 
   // Tocar el lienzo cierra las hojas → edición sin estorbos
   view.viewport.addEventListener('pointerdown', closeAll);
@@ -302,7 +376,7 @@ function buildMobileNav(store, panels, view) {
   store.on('tool', () => { if (store.tool === 'draw') closeAll(); });
   // La barra rápida del lienzo abre el panel de Diseño
   document.addEventListener('wb:open-design', () => {
-    if (getComputedStyle(nav).display !== 'none') { closeAll(); right.classList.add('open'); }
+    if (getComputedStyle(nav).display !== 'none') { openSheet(right); }
   });
   // Deslizar hacia abajo cierra cualquier hoja (gesto natural)
   makeSheetDismissable(left, closeAll);

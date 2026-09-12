@@ -10,12 +10,12 @@
  * - Capas: z-order, bloquear, ocultar, eliminar.
  * ============================================================ */
 
-import { el, esc, formatBytes, debounce, showSnack } from '../utils/helpers.js';
+import { el, formatBytes, debounce, showSnack } from '../utils/helpers.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS, THEMES } from '../storage/templates.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
-import { MUSIC_TRACKS, MUSIC_REPO_BASE, trackURL } from '../config/musicLibrary.js';
+import { MUSIC_TRACKS, trackURL } from '../config/musicLibrary.js';
 import { MY_3D } from '../../contenido/3d/index.js';
 import { MY_WIDGETS } from '../../contenido/widgets/index.js';
 
@@ -108,8 +108,8 @@ export class Panels {
     const tabs = el('div', { class: 'panel-tabs' }, ['componentes', 'assets', 'musica', 'paginas', 'capas'].map((name) =>
       el('button', {
         class: `tab-btn${this.tab === name ? ' active' : ''}`,
-        html: name === 'musica' ? ic('music', 15) : { componentes: 'Piezas', assets: 'Assets', paginas: 'Páginas', capas: 'Capas' }[name],
-        title: name === 'musica' ? 'Música' : null,
+        text: { componentes: 'Piezas', assets: 'Assets', musica: 'Música', paginas: 'Páginas', capas: 'Capas' }[name],
+        title: { componentes: 'Piezas y bloques', assets: 'Biblioteca de recursos', musica: 'Música del proyecto', paginas: 'Páginas y ajustes', capas: 'Capas de la página' }[name],
         onclick: () => { this.tab = name; this.render(); },
       })));
     this.root.append(tabs);
@@ -265,15 +265,55 @@ export class Panels {
       }),
       el('div', { class: 'chip-row' }, [
         el('button', { class: `chip${!this.assetFilter.kind ? ' active' : ''}`, text: 'Todo', onclick: () => { this.assetFilter.kind = null; this.render(); } }),
+        // Icono + texto: en una pantalla táctil no hay tooltip que valga
         ...Object.entries(ASSET_KINDS).filter(([k]) => k !== 'svg').map(([kind, meta]) =>
           el('button', {
             class: `chip${this.assetFilter.kind === kind ? ' active' : ''}`,
-            html: ic({ image: 'image', gif: 'film', video: 'video', audio: 'music', model: 'cube', font: 'type', html: 'globe' }[kind] || 'file', 14),
+            html: `${ic({ image: 'image', gif: 'film', video: 'video', audio: 'music', model: 'cube', font: 'type', html: 'globe' }[kind] || 'file', 14)}<span>${meta.label}</span>`,
             title: meta.label,
             onclick: () => { this.assetFilter.kind = kind; this.render(); },
           })),
       ]),
     );
+    /* ── ONLINE ASSETS: recursos por URL, cacheados como locales ── */
+    const urlInput = el('input', {
+      class: 'input', type: 'url', placeholder: 'https://…/foto.png, .gif, .mp3, .mp4, .svg, .json',
+    });
+    const estado = el('p', { class: 'panel-hint', text: 'Se descargan una vez y quedan guardados en la carpeta "online assets": se usan igual que los tuyos y funcionan sin conexión.' });
+    const traer = async () => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      estado.textContent = 'Descargando…';
+      try {
+        const asset = await this.assets.addRemote(url);
+        urlInput.value = '';
+        estado.textContent = `Listo: ${asset.name} (${formatBytes(asset.size)})`;
+      } catch (err) {
+        estado.textContent = err.message;
+      }
+    };
+    body.append(
+      el('h4', { class: 'panel-heading', text: 'Online assets' }),
+      el('div', { class: 'btn-row' }, [urlInput]),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn primary', html: `${ic('globe', 14)}<span>Traer recurso</span>`, onclick: traer }),
+        el('button', {
+          class: 'btn', html: `${ic('redo', 14)}<span>Actualizar</span>`,
+          title: 'Vuelve a descargar los recursos online por si cambiaron',
+          onclick: async (e) => {
+            e.currentTarget.disabled = true;
+            estado.textContent = 'Actualizando…';
+            const { total, fallos } = await this.assets.refreshRemotes();
+            estado.textContent = total === 0 ? 'Todavía no hay recursos online.'
+              : fallos.length ? `Actualizados ${total - fallos.length}/${total}. ${fallos[0]}`
+                : `${total} recurso(s) al día.`;
+            e.currentTarget.disabled = false;
+          },
+        }),
+      ]),
+      estado,
+    );
+
     this.assetGrid = el('div', { class: 'asset-grid' });
     body.append(this.assetGrid);
     this.#renderAssetGrid();
@@ -294,8 +334,11 @@ export class Panels {
           ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async' })
           : el('div', { class: 'asset-thumb kind-icon', html: ic({ audio: 'music', model: 'cube', font: 'type', html: 'globe' }[asset.kind] || 'file', 26) });
       const card = el('div', {
-        class: 'asset-card', draggable: 'true',
-        title: `${asset.name} · ${formatBytes(asset.size)} · carpeta: ${asset.folder}`,
+        class: `asset-card${asset.remote ? ' remote' : ''}`, draggable: 'true',
+        title: asset.remote
+          ? `${asset.name} · ${formatBytes(asset.size)} · online
+${asset.url}`
+          : `${asset.name} · ${formatBytes(asset.size)} · carpeta: ${asset.folder}`,
         ondragstart: (e) => e.dataTransfer.setData('application/x-wb-asset', asset.id),
         onclick: () => this.#useAsset(asset),
       }, [
@@ -460,6 +503,28 @@ export class Panels {
       }));
     }
     body.append(list);
+
+    // ── Apariencia del editor: tema y paleta (se recuerdan) ──
+    const TEMAS = [['', 'Claro'], ['oscuro', 'Oscuro'], ['baddie', 'Baddie'], ['pixel', 'Pixel Art']];
+    const PALETAS = [['', 'Base'], ['rosa', 'Rosa'], ['menta', 'Menta'], ['lavanda', 'Lavanda'],
+      ['azul', 'Azul'], ['crema', 'Crema'], ['beige', 'Beige'], ['melocoton', 'Melocotón'], ['lila', 'Lila']];
+    const aplicar = (clave, valor) => {
+      const attr = clave === 'tema' ? 'theme' : 'palette';
+      if (valor) { localStorage.setItem(`wb-${attr}`, valor); document.body.dataset[attr] = valor; }
+      else { localStorage.removeItem(`wb-${attr}`); delete document.body.dataset[attr]; }
+      this.render();
+    };
+    body.append(
+      el('h4', { class: 'panel-heading', text: 'Apariencia del editor' }),
+      el('div', { class: 'chip-row' }, TEMAS.map(([v, label]) => el('button', {
+        class: `chip${(localStorage.getItem('wb-theme') || '') === v ? ' active' : ''}`,
+        text: label, onclick: () => aplicar('tema', v),
+      }))),
+      el('div', { class: 'chip-row' }, PALETAS.map(([v, label]) => el('button', {
+        class: `chip${(localStorage.getItem('wb-palette') || '') === v ? ' active' : ''}`,
+        text: label, onclick: () => aplicar('paleta', v),
+      }))),
+    );
 
     // ── Proyecto y pantalla: Hz, resoluciones y orientación ──
     const settings = this.store.project.settings;

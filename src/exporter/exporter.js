@@ -20,7 +20,7 @@
 import { ZipWriter } from '../utils/zip.js';
 import { download, slugify, dataURLToBytes, esc } from '../utils/helpers.js';
 import { contentHTML, styleCSS } from '../renderer/renderer.js';
-import { PRESETS, EXIT_PRESETS, presetToKeyframesCSS, exitToKeyframesCSS } from '../animations/engine.js';
+import { PRESETS, EXIT_PRESETS, presetToKeyframesCSS, exitToKeyframesCSS, animationCSS, exitAnimationCSS } from '../animations/engine.js';
 import { COMPONENT_CSS } from '../renderer/componentStyles.js';
 import { MY_ANIMATIONS_CSS } from '../../contenido/animaciones/index.js';
 import { ASSET_KINDS } from '../assets/assetManager.js';
@@ -111,7 +111,7 @@ export class Exporter {
       const dot = asset.name.lastIndexOf('.');
       const ext = dot > 0 ? asset.name.slice(dot + 1).toLowerCase() : 'bin';
       const base = slugify(dot > 0 ? asset.name.slice(0, dot) : asset.name);
-      zip.file(`assets/${ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`, dataURLToBytes(asset.data));
+      zip.file(`assets/${asset.folder || ASSET_KINDS[asset.kind].folder}/${base}-${id.slice(-4)}.${ext}`, dataURLToBytes(asset.data));
     }
 
     const slugs = this.#slugs();
@@ -303,9 +303,8 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
         rules.push(`${selector}{animation:${anim.custom}}`);
       } else if (anim && anim.preset !== 'ninguna' && PRESETS[anim.preset]) {
         usedPresets.add(anim.preset);
-        const iter = anim.loop ? 'infinite' : '1';
         const selector = anim.trigger === 'hover' ? `.el-${node.id}:hover` : `.el-${node.id}.wb-play`;
-        rules.push(`${selector}{animation:wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || 'ease-out'} ${anim.delay || 0}ms ${iter} both}`);
+        rules.push(`${selector}{animation:${animationCSS(anim)}}`);
         const first = PRESETS[anim.preset][0];
         if (['scroll', 'click', 'hold'].includes(anim.trigger) && first.opacity === 0) {
           rules.push(`.el-${node.id}:not(.wb-play){opacity:0}`);
@@ -315,7 +314,7 @@ ${custom ? `  <script class="custom">\ntry{\n${custom.replaceAll('</script', '<\
       const animOut = node.animationOut;
       if (animOut && animOut.preset !== 'ninguna' && EXIT_PRESETS[animOut.preset]) {
         usedExits.add(animOut.preset);
-        rules.push(`.el-${node.id}.wb-out{animation:wb-out-${animOut.preset} ${animOut.duration || 450}ms ${animOut.easing || 'ease-in'} both!important}`);
+        rules.push(`.el-${node.id}.wb-out{animation:${exitAnimationCSS(animOut)}!important}`);
       }
     }
 

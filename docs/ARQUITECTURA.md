@@ -531,6 +531,50 @@ comparativa intercalada contra la versión anterior en el mismo entorno:
   historial a 200 pasos (coalescido), buscador en la paleta de Piezas
   (bloques, estilos y componentes) e icono PWA nuevo.
 
+## v11 — Interfaz reconstruida (pastel, móvil primero)
+
+Reconstrucción completa de la **capa visual** sin tocar el modelo de
+datos ni el comportamiento: todo proyecto guardado sigue abriéndose
+igual y ninguna función desapareció (hay una suite que lo verifica).
+
+- **Sistema de diseño por tokens**: una sola paleta en `:root` (crema,
+  rosa y menta sobre superficies blancas, sombras muy ligeras, esquinas
+  generosas). Los temas *Claro · Oscuro · Baddie · Pixel Art* y las ocho
+  paletas pastel solo redefinen variables — cero reglas duplicadas.
+  El tema Pixel Art va en serio: esquinas rectas, sombras duras
+  desplazadas, bordes de 2 px, monoespaciada y `steps()` en las curvas.
+- **Shell de una mano**: la barra superior guarda solo lo que se usa a
+  cada minuto (deshacer, rehacer, zoom, Vista previa) y el resto vive en
+  la hoja **"Más"** (dispositivo, dibujar, importar, guardar, HTML, ZIP,
+  nuevo). Las acciones se declaran UNA vez y se pintan en los dos sitios
+  según el ancho, así que no hay lógica duplicada.
+- **Barra rápida fuera del lienzo**: antes vivía dentro de `#world` y
+  heredaba el zoom (al 30 % se salía de la pantalla y el navegador la
+  recortaba). Ahora se monta en un host fijo: en el teléfono es una
+  barra inferior siempre completa; en pantalla ancha flota junto al
+  elemento, acotada al viewport.
+- **Una sola capa a la vez**: cualquier hoja que se abre cierra las
+  demás (`wb:close-sheets`), y el FAB se aparta cuando hay una hoja
+  abierta o un elemento seleccionado (manda la barra contextual).
+- **Online Assets**: recursos remotos por URL que se descargan una vez,
+  se cachean en IndexedDB como cualquier recurso local (funcionan sin
+  conexión), se pueden actualizar y se exportan en `assets/online assets/`.
+- **Rotación con imán**: cerca de 0/45/90/135° engancha sola (±3°) —
+  con el dedo es casi imposible clavar un ángulo recto a pulso.
+- **Limpieza**: imports muertos fuera, `animationCSS`/`exitAnimationCSS`
+  como única fuente de la propiedad `animation` (el exportador la
+  duplicaba línea a línea) y CSS sin reglas huérfanas.
+
+### Trampas aprendidas (para no repetirlas)
+
+- `overflow: hidden` en un hijo flexible **desactiva** la protección
+  `min-height: auto`: las secciones del inspector se aplastaban y
+  recortaban su contenido. Se arregla con `flex: none` en los hijos.
+- Un `position: fixed` heredado de un ancestro transformado NO se ancla
+  al viewport: por eso la barra rápida tenía que salir de `#world`.
+- Un campo con el mismo relleno que su tarjeta es un campo invisible:
+  dentro de superficies suaves los `.input` se visten de blanco.
+
 ## Hoja de ruta natural
 
 1. **Colaboración**: el JSON puro encaja directo con Yjs/CRDT.

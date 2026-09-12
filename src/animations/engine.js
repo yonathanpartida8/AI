@@ -201,9 +201,18 @@ export function presetToKeyframesCSS(name) {
   return framesToKeyframesCSS(`wb-${name}`, PRESETS[name]);
 }
 
-/** Propiedad CSS `animation` de un nodo concreto. */
+/**
+ * VALOR de la propiedad `animation` de un nodo (sin el nombre de la
+ * propiedad): única fuente de verdad para el editor y el exportador.
+ */
 export function animationCSS(anim) {
   if (!anim || anim.preset === 'ninguna' || !PRESETS[anim.preset]) return '';
   const iter = anim.loop ? 'infinite' : '1';
-  return `animation: wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || 'ease-out'} ${anim.delay || 0}ms ${iter} both;`;
+  return `wb-${anim.preset} ${anim.duration || 800}ms ${anim.easing || 'ease-out'} ${anim.delay || 0}ms ${iter} both`;
+}
+
+/** Ídem para la animación de SALIDA. */
+export function exitAnimationCSS(animOut) {
+  if (!animOut || animOut.preset === 'ninguna' || !EXIT_PRESETS[animOut.preset]) return '';
+  return `wb-out-${animOut.preset} ${animOut.duration || 450}ms ${animOut.easing || 'ease-in'} both`;
 }

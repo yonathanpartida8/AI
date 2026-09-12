@@ -135,6 +135,77 @@ export class AssetManager extends EventBus {
     return asset;
   }
 
+  /* ── ONLINE ASSETS ───────────────────────────────────
+   * Recursos remotos por URL: se DESCARGAN una vez y quedan cacheados
+   * en IndexedDB como cualquier recurso local — se usan igual, funcionan
+   * sin conexión y viajan dentro del export. Guardan su URL de origen
+   * para poder actualizarse cuando el archivo remoto cambie. */
+
+  #kindFromURL(url, contentType) {
+    const byMime = [['gif', /^image\/gif/], ['image', /^image\//], ['video', /^video\//],
+      ['audio', /^audio\//], ['font', /font/], ['html', /html|json/]];
+    for (const [kind, re] of byMime) if (re.test(contentType || '')) return kind;
+    const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+    return ({
+      gif: 'gif', png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', avif: 'image', svg: 'image',
+      mp4: 'video', webm: 'video', mov: 'video',
+      mp3: 'audio', ogg: 'audio', m4a: 'audio', wav: 'audio',
+      glb: 'model', gltf: 'model', html: 'html', json: 'html',
+      ttf: 'font', otf: 'font', woff: 'font', woff2: 'font',
+    })[ext] || 'image';
+  }
+
+  /**
+   * Descarga (o vuelve a descargar) un recurso remoto y lo guarda en la
+   * carpeta "online assets". Lanza un error legible si no se puede.
+   */
+  async addRemote(url, existingId = null) {
+    let res;
+    try { res = await fetch(url, { mode: 'cors' }); }
+    catch { throw new Error('No se pudo descargar: revisa la URL o los permisos (CORS) del servidor'); }
+    if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
+    const blob = await res.blob();
+    if (!blob.size) throw new Error('El archivo remoto está vacío');
+    const data = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('No se pudo leer el archivo descargado'));
+      r.readAsDataURL(blob);
+    });
+    const prev = existingId ? this.#byId.get(existingId) : null;
+    const asset = {
+      ...(prev || {}),
+      id: prev?.id || uid('as'),
+      name: prev?.name || decodeURIComponent(url.split('?')[0].split('/').pop() || 'recurso'),
+      kind: prev?.kind || this.#kindFromURL(url, res.headers.get('content-type')),
+      mime: blob.type || 'application/octet-stream',
+      size: blob.size,
+      folder: 'online assets',
+      tags: prev?.tags || ['online'],
+      created: prev?.created || Date.now(),
+      updated: Date.now(),
+      remote: true,
+      url,
+      data,
+    };
+    this.#byId.set(asset.id, asset);
+    await DB.putAsset(asset).catch(console.warn);
+    this.#syncProject();
+    this.emit('change');
+    return asset;
+  }
+
+  /** Vuelve a descargar todos los recursos remotos (actualización). */
+  async refreshRemotes() {
+    const remotes = [...this.#byId.values()].filter((a) => a.remote && a.url);
+    const fallos = [];
+    for (const a of remotes) {
+      try { await this.addRemote(a.url, a.id); }
+      catch (e) { fallos.push(`${a.name}: ${e.message}`); }
+    }
+    return { total: remotes.length, fallos };
+  }
+
   async remove(id) {
     this.#byId.delete(id);
     await DB.deleteAsset(id).catch(console.warn);
