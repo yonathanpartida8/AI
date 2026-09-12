@@ -565,6 +565,32 @@ igual y ninguna función desapareció (hay una suite que lo verifica).
   como única fuente de la propiedad `animation` (el exportador la
   duplicaba línea a línea) y CSS sin reglas huérfanas.
 
+### Biblioteca de assets: tamaño cómodo + scroll honrado
+
+El panel de Assets enterraba lo importante: para ver una sola miniatura
+había que pasar por el botón de subir, el buscador, **ocho filtros en
+tres filas** y el bloque entero de Online Assets. Las miniaturas medían
+84 px de alto y se recortaban con `cover`.
+
+- **El contenido manda**: la biblioteca sube justo debajo de una fila de
+  acciones compacta; *Online assets* baja a un bloque plegable al final.
+- **Filtros en una sola fila** que se desplaza con el dedo
+  (`overscroll-behavior-x: contain`, sin barra visible).
+- **Miniaturas grandes en 4:3 con `object-fit: contain`**: una foto
+  vertical, cuadrada o panorámica se ve ENTERA — ni recorte ni
+  deformación. 164–183 px en teléfono, 220 px en tablet (3 columnas),
+  147 px en el panel de escritorio (ensanchado a 300/320 px, y a
+  340/360 px por encima de 1400 px).
+- **La hoja pasa de 60 vh a 78 vh**: se aprovecha la pantalla en vez de
+  encoger las piezas para que "quepa todo".
+- **Scroll honrado**: `touch-action: pan-y` (un arrastre casi vertical
+  nunca se desvía), `overscroll-behavior: contain` (no arrastra el
+  lienzo al llegar al tope), `scrollbar-gutter: stable` (sin saltos de
+  layout) y espacio inferior para que la última fila no quede pegada a
+  la barra.
+- La paleta de piezas pasa de 4 columnas apretadas a 3 cómodas
+  (celdas de 104 px mínimo, 94 px de alto) y los bloques a 58 px.
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección

@@ -255,17 +255,74 @@ export class Panels {
       type: 'file', multiple: 'true', accept: ACCEPT_ATTR, style: { display: 'none' },
       onchange: async (e) => { await this.assets.importFiles([...e.target.files]); e.target.value = ''; },
     });
+
+    /* ── Online assets: recursos por URL, cacheados como locales ──
+       Va PLEGADO al final: es una acción puntual, no debe empujar la
+       biblioteca (lo importante) fuera de la primera pantalla. */
+    const urlInput = el('input', {
+      class: 'input', type: 'url', placeholder: 'https://…/foto.png, .gif, .mp3, .mp4, .svg',
+    });
+    const estado = el('p', { class: 'panel-hint', text: 'Se descargan una vez y quedan en la carpeta "online assets": se usan igual que los tuyos y funcionan sin conexión.' });
+    const traer = async (btn) => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      btn.disabled = true;
+      estado.textContent = 'Descargando…';
+      try {
+        const asset = await this.assets.addRemote(url);
+        urlInput.value = '';
+        estado.textContent = `Listo: ${asset.name} (${formatBytes(asset.size)})`;
+      } catch (err) { estado.textContent = err.message; }
+      btn.disabled = false;
+    };
+    const onlineBlock = el('details', { class: 'props-section online-block' }, [
+      el('summary', { text: 'Añadir desde una URL (online)' }),
+      el('div', { class: 'props-section-body' }, [
+        urlInput,
+        el('div', { class: 'btn-row' }, [
+          el('button', { class: 'btn primary', html: `${ic('globe', 14)}<span>Traer</span>`, onclick: (e) => traer(e.currentTarget) }),
+          el('button', {
+            class: 'btn', html: `${ic('redo', 14)}<span>Actualizar</span>`,
+            title: 'Vuelve a descargar los recursos online por si cambiaron',
+            onclick: async (e) => {
+              e.currentTarget.disabled = true;
+              estado.textContent = 'Actualizando…';
+              const { total, fallos } = await this.assets.refreshRemotes();
+              estado.textContent = total === 0 ? 'Todavía no hay recursos online.'
+                : fallos.length ? `Actualizados ${total - fallos.length}/${total}. ${fallos[0]}`
+                  : `${total} recurso(s) al día.`;
+              e.currentTarget.disabled = false;
+            },
+          }),
+        ]),
+        estado,
+      ]),
+    ]);
+
+    const total = this.assets.list({}).length;
     body.append(
       input,
-      el('button', { class: 'btn primary block', html: `${ic('upload', 15)}<span>Subir desde galería / disco</span>`, onclick: () => input.click() }),
+      el('div', { class: 'btn-row' }, [
+        el('button', {
+          class: 'btn primary', html: `${ic('upload', 15)}<span>Subir</span>`,
+          title: 'Fotos, GIFs, vídeos, audio, modelos o fuentes desde tu galería',
+          onclick: () => input.click(),
+        }),
+        el('button', {
+          class: 'btn', html: `${ic('globe', 15)}<span>Desde URL</span>`,
+          title: 'Traer un recurso de internet',
+          onclick: () => { onlineBlock.open = true; onlineBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); urlInput.focus(); },
+        }),
+      ]),
       el('input', {
         class: 'input block', type: 'search', placeholder: 'Buscar por nombre o etiqueta…',
         value: this.assetFilter.query,
         oninput: (e) => { this.assetFilter.query = e.target.value; this.#renderAssetGrid(); },
       }),
-      el('div', { class: 'chip-row' }, [
+      // Filtros en UNA fila deslizable: tres filas de chips empujaban la
+      // biblioteca fuera de la pantalla.
+      el('div', { class: 'chip-row scroll-x' }, [
         el('button', { class: `chip${!this.assetFilter.kind ? ' active' : ''}`, text: 'Todo', onclick: () => { this.assetFilter.kind = null; this.render(); } }),
-        // Icono + texto: en una pantalla táctil no hay tooltip que valga
         ...Object.entries(ASSET_KINDS).filter(([k]) => k !== 'svg').map(([kind, meta]) =>
           el('button', {
             class: `chip${this.assetFilter.kind === kind ? ' active' : ''}`,
@@ -275,48 +332,16 @@ export class Panels {
           })),
       ]),
     );
-    /* ── ONLINE ASSETS: recursos por URL, cacheados como locales ── */
-    const urlInput = el('input', {
-      class: 'input', type: 'url', placeholder: 'https://…/foto.png, .gif, .mp3, .mp4, .svg, .json',
-    });
-    const estado = el('p', { class: 'panel-hint', text: 'Se descargan una vez y quedan guardados en la carpeta "online assets": se usan igual que los tuyos y funcionan sin conexión.' });
-    const traer = async () => {
-      const url = urlInput.value.trim();
-      if (!url) return;
-      estado.textContent = 'Descargando…';
-      try {
-        const asset = await this.assets.addRemote(url);
-        urlInput.value = '';
-        estado.textContent = `Listo: ${asset.name} (${formatBytes(asset.size)})`;
-      } catch (err) {
-        estado.textContent = err.message;
-      }
-    };
-    body.append(
-      el('h4', { class: 'panel-heading', text: 'Online assets' }),
-      el('div', { class: 'btn-row' }, [urlInput]),
-      el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn primary', html: `${ic('globe', 14)}<span>Traer recurso</span>`, onclick: traer }),
-        el('button', {
-          class: 'btn', html: `${ic('redo', 14)}<span>Actualizar</span>`,
-          title: 'Vuelve a descargar los recursos online por si cambiaron',
-          onclick: async (e) => {
-            e.currentTarget.disabled = true;
-            estado.textContent = 'Actualizando…';
-            const { total, fallos } = await this.assets.refreshRemotes();
-            estado.textContent = total === 0 ? 'Todavía no hay recursos online.'
-              : fallos.length ? `Actualizados ${total - fallos.length}/${total}. ${fallos[0]}`
-                : `${total} recurso(s) al día.`;
-            e.currentTarget.disabled = false;
-          },
-        }),
-      ]),
-      estado,
-    );
 
+    // La biblioteca, lo primero que se ve
     this.assetGrid = el('div', { class: 'asset-grid' });
     body.append(this.assetGrid);
     this.#renderAssetGrid();
+    body.append(
+      total ? el('p', { class: 'panel-hint', text: `${total} recurso${total === 1 ? '' : 's'} en el proyecto. Toca uno para usarlo; arrástralo para colocarlo donde quieras.` })
+        : el('p', { class: 'panel-hint', text: 'Arrastra archivos de tu galería directamente sobre el lienzo, o usa los botones de arriba.' }),
+      onlineBlock,
+    );
   }
 
   #renderAssetGrid() {
