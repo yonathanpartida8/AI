@@ -591,6 +591,52 @@ tres filas** y el bloque entero de Online Assets. Las miniaturas medían
 - La paleta de piezas pasa de 4 columnas apretadas a 3 cómodas
   (celdas de 104 px mínimo, 94 px de alto) y los bloques a 58 px.
 
+### Escala del contenido y gestos táctiles (v12)
+
+**Control de escala (barra vertical).** En *Posición y tamaño* hay un
+deslizador vertical: arriba agranda, abajo reduce. No es un zoom
+visual — `store.scaleSelection(factor)` reescribe los valores REALES
+del proyecto, así que lo exportado sale idéntico:
+
+- marco (x, y, ancho, alto) y, con varios elementos seleccionados,
+  también **la separación entre ellos** respecto al centro del grupo:
+  la composición no se desarma;
+- el interior mediante `scaleInnerStyles()`: tipografía, interlineado,
+  espaciado entre letras, radios, bordes, relleno, separación y las
+  longitudes en píxeles de una sombra CSS propia.
+
+El mando vuelve al centro al soltar (se puede seguir escalando sin
+topar con un extremo) y todo el gesto se coalesce en **un solo paso de
+deshacer**. Botones de ±10 % para ajustes exactos y con teclado.
+
+**Escala de la interfaz por tokens.** `--fs-*`, `--ctrl*`, `--ic*` y
+`--gap` mandan sobre tipografía, altura de controles e iconos: subir la
+escala es tocar `:root`, no cien reglas sueltas. Los iconos heredan su
+tamaño del token (`ic()` sin argumento) y llevan trazo de 2,2 px con
+esquinas generosas.
+
+**Gestos separados por intención.** Antes, un dedo sobre un elemento
+empezaba a moverlo de inmediato: al recorrer la página se arrastraba
+sin querer todo lo que rozaba. Ahora, sobre un elemento **no**
+seleccionado el gesto se resuelve por lo que hace el dedo:
+
+| Gesto | Resultado |
+|---|---|
+| deslizar | desplazar la página (el elemento no se toca) |
+| levantar sin recorrido | seleccionar |
+| mantener pulsado (380 ms) | seleccionar y empezar a arrastrar (háptico) |
+| arrastrar lo ya seleccionado | mover, con 7 px de tolerancia |
+| tirador | redimensionar o rotar al instante |
+
+Con ratón se conserva el arrastre directo de siempre (umbral de 2 px).
+
+**Compacto por ancho O por alto.** El layout de hojas ya no depende
+solo de `max-width: 820px`: un teléfono tumbado es ancho pero bajo, así
+que la condición es `(max-width: 820px), (max-height: 540px)` — la
+misma que usa `#placeQuickbar` en JS. En horizontal las barras
+adelgazan y la miniatura pasa a 16:10. Verificado en iPhone SE/12/15
+Pro Max, Galaxy A14/S24+, Pixel 8, iPad mini y ambas orientaciones.
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección

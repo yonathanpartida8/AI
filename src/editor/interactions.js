@@ -107,11 +107,39 @@ export class Interactions {
     if (nodeEl) {
       const id = nodeEl.dataset.id;
       const node = this.store.node(id);
-      if (!this.store.selection.includes(id)) {
+      const yaElegido = this.store.selection.includes(id);
+      if (yaElegido && e.shiftKey) { this.store.select(this.store.selection.filter((s) => s !== id)); return; }
+
+      /*
+       * DEDO SOBRE UN ELEMENTO **NO** SELECCIONADO → el gesto es ambiguo:
+       * puede ser un toque para elegirlo o un deslizamiento para recorrer
+       * la página. Antes se movía de inmediato, así que al desplazarse el
+       * dedo arrastraba sin querer todo lo que rozaba.
+       *
+       * Ahora se decide por la INTENCIÓN:
+       *   · se mueve el dedo  → desplazar la página (el elemento no se toca)
+       *   · se levanta quieto → seleccionar
+       *   · se mantiene pulsado → seleccionar y empezar a arrastrar (háptico)
+       * Con el ratón se conserva el arrastre directo de toda la vida.
+       */
+      if (e.pointerType === 'touch' && !yaElegido && !e.shiftKey) {
+        const mantener = setTimeout(() => {
+          if (!this.gesture || this.gesture.decidir !== id) return;
+          this.store.select(id);
+          if (navigator.vibrate) navigator.vibrate(12);
+          if (!node.locked) this.#startMove({ clientX: this.gesture.startX, clientY: this.gesture.startY, pointerType: 'touch' });
+        }, 380);
+        this.gesture = {
+          kind: 'pan', decidir: id, mantener,
+          startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan },
+        };
+        return;
+      }
+
+      if (!yaElegido) {
         this.store.select(id, e.shiftKey);
         if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(8); // háptico al seleccionar
       }
-      else if (e.shiftKey) { this.store.select(this.store.selection.filter((s) => s !== id)); return; }
       if (node.locked) return;
       this.#startMove(e);
       return;
@@ -136,6 +164,11 @@ export class Interactions {
     this.gesture = {
       kind: 'move',
       start: this.view.toArtboard(e.clientX, e.clientY),
+      startX: e.clientX, startY: e.clientY,
+      // Tolerancia: con el dedo hace falta un desplazamiento claro para
+      // que el elemento se mueva; un toque tembloroso no lo descoloca.
+      umbral: e.pointerType === 'touch' ? 7 : 2,
+      suelto: false,
       frames: new Map(nodes.map((n) => [n.id, this.store.frame(n)])),
       moved: false,
     };
@@ -189,6 +222,12 @@ export class Interactions {
     }
 
     if (g.kind === 'pan') {
+      // Gesto ambiguo sobre un elemento: en cuanto el dedo recorre algo,
+      // queda claro que se está desplazando la página, no moviendo la pieza.
+      if (g.decidir && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > 6) {
+        clearTimeout(g.mantener);
+        g.decidir = null;
+      }
       // Pan perezoso (vista previa): captura el puntero solo tras moverse
       // 8px — un toque limpio sigue llegando al componente de debajo.
       if (g.lazy && !g.captured) {
@@ -227,6 +266,11 @@ export class Interactions {
     }
 
     if (g.kind === 'move') {
+      // Hasta superar la tolerancia el elemento no se mueve ni un píxel
+      if (!g.suelto) {
+        if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < g.umbral) return;
+        g.suelto = true;
+      }
       const point = this.view.toArtboard(e.clientX, e.clientY);
       let dx = point.x - g.start.x, dy = point.y - g.start.y;
       if (Math.abs(dx) + Math.abs(dy) > 1) g.moved = true;
@@ -309,6 +353,14 @@ export class Interactions {
     document.body.classList.remove('wb-gesturing');
     this.view.clearGuides();
     document.getElementById('marquee')?.remove();
+
+    // Toque limpio sobre un elemento (sin recorrido): seleccionarlo
+    if (g.kind === 'pan' && g.decidir) {
+      clearTimeout(g.mantener);
+      this.store.select(g.decidir);
+      if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(8);
+      return;
+    }
 
     if (g.kind === 'marquee' && g.x1 != null) {
       const [x0, x1] = [Math.min(g.x0, g.x1), Math.max(g.x0, g.x1)];
@@ -567,7 +619,8 @@ export class Interactions {
     const host = this.qbHost;
     const bar = host?.firstElementChild;
     if (!bar) return;
-    if (window.matchMedia('(max-width: 820px)').matches) {
+    // Misma condición que el CSS: compacto por ancho O por alto
+    if (window.matchMedia('(max-width: 820px), (max-height: 540px)').matches) {
       host.classList.add('docked');       // barra inferior fija: la coloca el CSS
       bar.style.left = bar.style.top = '';
       return;

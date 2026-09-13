@@ -127,6 +127,7 @@ export class PropertiesPanel {
   #renderMulti(nodes) {
     this.root.append(
       el('h3', { class: 'props-title', text: `${nodes.length} elementos` }),
+      this.#scaleSlider(nodes[0]),
       el('div', { class: 'btn-row' }, [
         ['left', '⇤'], ['centerX', '⇹'], ['right', '⇥'], ['top', '⤒'], ['centerY', '⇕'],
       ].map(([mode, label]) => el('button', { class: 'btn', text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
@@ -163,7 +164,9 @@ export class PropertiesPanel {
         },
       })));
     }
-    this.root.append(this.#section('Posición y tamaño', [grid,
+    this.root.append(this.#section('Posición y tamaño', [
+      this.#scaleSlider(node),
+      grid,
       this.store.device !== 'desktop'
         ? el('button', {
             class: 'btn block', text: '↺ Quitar override de este dispositivo',
@@ -320,6 +323,83 @@ export class PropertiesPanel {
       el('button', { class: 'btn btn-ic', html: ic(node.locked ? 'lock' : 'unlock'), title: node.locked ? 'Desbloquear' : 'Bloquear', onclick: () => this.store.toggleFlag(node.id, 'locked') }),
       el('button', { class: 'btn danger', html: `${ic('trash', 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node.id]) }),
     ]));
+  }
+
+  /**
+   * CONTROL DE ESCALA (barra vertical).
+   *
+   * Desliza hacia ARRIBA para agrandar y hacia ABAJO para reducir. No
+   * es un zoom: reescribe los valores reales del elemento —caja,
+   * tipografía, radios, bordes y espaciados— y, con varios elementos
+   * seleccionados, también las distancias entre ellos.
+   *
+   * El deslizador vuelve al centro al soltar: así se puede seguir
+   * agrandando sin llegar nunca a un tope.
+   */
+  #scaleSlider(node) {
+    const MAX = 60;                       // recorrido útil en píxeles
+    const paso = (dy) => 1 + (-dy / MAX) * 0.5;   // arriba = crecer
+    const pill = el('div', { class: 'scale-thumb' });
+    const via = el('div', { class: 'scale-track' }, [
+      el('span', { class: 'scale-mark plus', html: ic('plus', 16) }),
+      pill,
+      el('span', { class: 'scale-mark minus', html: ic('minus', 16) }),
+    ]);
+    const lectura = el('span', { class: 'scale-read', text: '100%' });
+
+    let arrastrando = false, y0 = 0, aplicado = 1, pid = null;
+    const fijar = (dy) => {
+      const objetivo = Math.min(1.6, Math.max(0.55, paso(dy)));
+      // Solo se aplica el DELTA respecto a lo ya aplicado en este gesto
+      const delta = objetivo / aplicado;
+      if (Math.abs(delta - 1) > 0.002) {
+        this.store.snapshot('escala');           // se coalesce en un paso
+        this.store.scaleSelection(delta);
+        aplicado = objetivo;
+      }
+      pill.style.transform = `translateY(${Math.max(-MAX, Math.min(MAX, dy))}px)`;
+      lectura.textContent = `${Math.round(objetivo * 100)}%`;
+    };
+    via.addEventListener('pointerdown', (e) => {
+      arrastrando = true; y0 = e.clientY; aplicado = 1; pid = e.pointerId;
+      via.classList.add('dragging');
+      try { via.setPointerCapture(pid); } catch { /* puntero sintético */ }
+      e.preventDefault();
+    });
+    via.addEventListener('pointermove', (e) => {
+      if (!arrastrando || e.pointerId !== pid) return;
+      fijar(e.clientY - y0);
+      e.preventDefault();
+    });
+    const soltar = () => {
+      if (!arrastrando) return;
+      arrastrando = false; pid = null;
+      via.classList.remove('dragging');
+      pill.style.transform = '';                 // el mando vuelve al centro
+      lectura.textContent = '100%';
+      if (navigator.vibrate) navigator.vibrate(8);
+    };
+    via.addEventListener('pointerup', soltar);
+    via.addEventListener('pointercancel', soltar);
+
+    // Botones para ajustes finos exactos (y accesibles con teclado)
+    const boton = (etiqueta, factor, titulo) => el('button', {
+      class: 'btn scale-step', text: etiqueta, title: titulo,
+      onclick: () => { this.store.snapshot('escala'); this.store.scaleSelection(factor); },
+    });
+    const varios = this.store.selection.length > 1;
+    return el('div', { class: 'scale-box' }, [
+      via,
+      el('div', { class: 'scale-side' }, [
+        el('span', { class: 'field-label', text: varios ? `Escala del grupo (${this.store.selection.length})` : 'Escala del contenido' }),
+        lectura,
+        el('p', { class: 'panel-hint', text: 'Desliza la barra hacia arriba o abajo: todo lo de dentro crece o mengua a la vez.' }),
+        el('div', { class: 'btn-row' }, [
+          boton('−10%', 0.9, 'Reducir un 10 %'),
+          boton('+10%', 1.1, 'Agrandar un 10 %'),
+        ]),
+      ]),
+    ]);
   }
 
   #updateAnim(node, patch) { this.store.updateNode(node.id, 'animation', patch); }

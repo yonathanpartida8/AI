@@ -269,7 +269,11 @@ function buildTopbar(store, view, exporter, assets, repaint) {
       return btn;
     }),
     el('span', { class: 'spacer' }),
-    el('button', { class: 'btn primary', html: `${ic('play')}<span>Vista previa</span>`, onclick: () => togglePreview(store, view, repaint, assets) }),
+    el('button', {
+      class: 'btn primary', title: 'Ver la página como la verá ella',
+      html: `${ic('play')}<span class="lbl-wide">Vista previa</span><span class="lbl-narrow">Previa</span>`,
+      onclick: () => togglePreview(store, view, repaint, assets),
+    }),
     // En el teléfono: el resto vive aquí, a un toque del pulgar
     el('button', {
       class: 'btn btn-ic only-narrow', html: ic('more'), title: 'Más opciones del proyecto',

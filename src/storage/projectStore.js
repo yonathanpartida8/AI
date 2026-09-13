@@ -384,6 +384,44 @@ export class ProjectStore extends EventBus {
     this.commit();
   }
 
+  /**
+   * ESCALADO PROPORCIONAL de la selección.
+   *
+   * No es un zoom visual: reescribe los valores REALES del proyecto, así
+   * que lo exportado sale idéntico a lo que se ve. Escala el marco, el
+   * interior (tipografía, radios, bordes, grosores) y —cuando hay varios
+   * elementos— también las distancias entre ellos respecto al centro del
+   * grupo, conservando su composición.
+   *
+   * @param {number} factor  1 = igual, 1.2 = un 20 % más grande
+   * @param {object} anchor  punto fijo; por defecto el centro del grupo
+   */
+  scaleSelection(factor, anchor = null) {
+    const nodes = this.selectedNodes.filter((n) => !n.locked);
+    if (!nodes.length || !(factor > 0) || factor === 1) return;
+
+    const frames = nodes.map((n) => this.frame(n));
+    const minX = Math.min(...frames.map((f) => f.x));
+    const minY = Math.min(...frames.map((f) => f.y));
+    const maxX = Math.max(...frames.map((f) => f.x + f.w));
+    const maxY = Math.max(...frames.map((f) => f.y + f.h));
+    const cx = anchor?.x ?? (minX + maxX) / 2;
+    const cy = anchor?.y ?? (minY + maxY) / 2;
+
+    nodes.forEach((node, i) => {
+      const f = frames[i];
+      // Posición relativa al ancla: así el grupo no se desarma
+      this.setFrame(node, {
+        x: Math.round(cx + (f.x - cx) * factor),
+        y: Math.round(cy + (f.y - cy) * factor),
+        w: Math.max(8, Math.round(f.w * factor)),
+        h: Math.max(8, Math.round(f.h * factor)),
+      });
+      scaleInnerStyles(node.styles, factor);
+    });
+    this.commit();
+  }
+
   /** Distribuye 3+ elementos seleccionados con espacio uniforme. */
   distributeSelection(axis) {
     const nodes = this.selectedNodes.filter((n) => !n.locked);
@@ -493,5 +531,32 @@ export class ProjectStore extends EventBus {
     this.pageId = this.project.pages[0].id;
     this.clearSelection();
     this.commit(); this.emit('page');
+  }
+}
+
+/**
+ * Escala el CONTENIDO de un elemento junto con su caja: tipografía,
+ * interlineado, espaciado entre letras, radios, bordes y sombras
+ * propias. Sin esto, agrandar una tarjeta dejaba el texto diminuto.
+ */
+function scaleInnerStyles(styles, factor) {
+  if (!styles) return;
+  const num = (v, min, max, dec = 0) => {
+    const r = Math.min(max, Math.max(min, v * factor));
+    return dec ? Math.round(r * 10 ** dec) / 10 ** dec : Math.round(r);
+  };
+  if (styles.fontSize) styles.fontSize = num(styles.fontSize, 6, 400);
+  if (styles.radius) styles.radius = num(styles.radius, 0, 999);
+  if (styles.borderWidth) styles.borderWidth = num(styles.borderWidth, 0, 60, 1);
+  if (styles.letterSpacing) styles.letterSpacing = num(styles.letterSpacing, -20, 80, 1);
+  if (styles.padding) styles.padding = num(styles.padding, 0, 400);
+  if (styles.gap) styles.gap = num(styles.gap, 0, 400);
+  if (styles.blur) styles.blur = num(styles.blur, 0, 80);
+  // Sombra propia en CSS: se reescalan sus longitudes en píxeles
+  if (typeof styles.shadowCustom === 'string' && styles.shadowCustom.trim()) {
+    styles.shadowCustom = styles.shadowCustom.replace(
+      /(-?\d*\.?\d+)px/g,
+      (_, n) => `${Math.round(parseFloat(n) * factor * 10) / 10}px`,
+    );
   }
 }

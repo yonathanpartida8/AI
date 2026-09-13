@@ -2,28 +2,29 @@
  * editor/icons.js — Iconografía SVG del editor
  *
  * Cero emojis en la interfaz: un set consistente de iconos de
- * trazo (24×24, stroke currentColor) al estilo de las apps
- * premium. `ic(nombre, tamaño)` devuelve el SVG listo para
- * inyectar con innerHTML/html:.
+ * trazo (24×24, stroke currentColor). Estética AMABLE: trazo
+ * grueso, extremos redondeados y esquinas generosas — nada de
+ * iconografía técnica de líneas finas.
+ * `ic(nombre, tamaño)` devuelve el SVG listo para inyectar.
  * ============================================================ */
 
 const P = (d) => `<path d="${d}"/>`;
 const C = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
-const R = (x, y, w, h, rx = 2) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+const R = (x, y, w, h, rx = 4) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
 const L = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
 
 const ICONS = {
   undo: P('M9 14 4 9l5-5') + P('M4 9h10a6 6 0 0 1 0 12h-3'),
   redo: P('M15 14l5-5-5-5') + P('M20 9H10a6 6 0 0 0 0 12h3'),
-  desktop: R(3, 4, 18, 12) + L(9, 20, 15, 20) + L(12, 16, 12, 20),
-  tablet: R(5, 3, 14, 18, 2) + L(11, 18, 13, 18),
-  mobile: R(7, 2.5, 10, 19, 2.5) + L(11, 18, 13, 18),
+  desktop: R(3, 4.5, 18, 12, 3.5) + L(9, 20, 15, 20) + L(12, 16.5, 12, 20),
+  tablet: R(5, 3, 14, 18, 4) + L(11, 18, 13, 18),
+  mobile: R(7, 2.5, 10, 19, 3.5) + L(11, 18, 13, 18),
   minus: L(5, 12, 19, 12),
   plus: L(12, 5, 12, 19) + L(5, 12, 19, 12),
   fit: P('M9 3H4a1 1 0 0 0-1 1v5') + P('M15 3h5a1 1 0 0 1 1 1v5') + P('M9 21H4a1 1 0 0 1-1-1v-5') + P('M15 21h5a1 1 0 0 0 1-1v-5'),
   pen: P('M12 19l7-7a2.1 2.1 0 0 0-3-3l-7 7-1.5 4.5L12 19z') + L(4, 21, 8, 21),
   play: P('M7 4.5v15l12-7.5L7 4.5z'),
-  stop: R(6, 6, 12, 12, 2),
+  stop: R(6, 6, 12, 12, 4),
   upload: P('M12 16V4') + P('m6 10 6-6 6 6') + P('M4 20h16'),
   download: P('M12 4v12') + P('m6 10 6 6 6-6') + P('M4 20h16'),
   file: P('M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z') + P('M14 3v4h4'),
@@ -86,9 +87,12 @@ const ICONS = {
 };
 
 /** Devuelve el SVG del icono (string, listo para html:). */
-export function ic(name, size = 18) {
+export function ic(name, size) {
   const body = ICONS[name] || ICONS.sparkles;
-  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  // Sin tamaño explícito hereda el del CSS (--ic): un solo sitio para
+  // agrandar toda la iconografía sin tocar cada llamada.
+  const dim = size ? `width="${size}" height="${size}"` : '';
+  return `<svg class="ic" ${dim} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 }
 
 /** Icono por tipo de componente (paleta, capas). */

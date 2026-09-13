@@ -82,10 +82,24 @@ a la vista solo lo de cada minuto (deshacer, rehacer, zoom, **Vista
 previa**) y el resto vive en la hoja **Más**. Los paneles son hojas
 inferiores que se cierran deslizando, y al seleccionar algo aparece una
 **barra contextual completa** abajo, nunca recortada.
-**Un dedo** sobre el lienzo vacío desplaza (con inercia y rebote); sobre
-un elemento, lo mueve. **Dos dedos** hacen zoom. **Desliza una capa o
-página a la izquierda** para borrarla (con «Deshacer» al instante) y
-**mantén pulsada** una capa para selección múltiple.
+**Un dedo** desplaza el lienzo con inercia y rebote —pase por donde
+pase—. **Dos dedos** hacen zoom. **Desliza una capa o página a la
+izquierda** para borrarla (con «Deshacer» al instante) y **mantén
+pulsada** una capa para selección múltiple.
+
+### 📐 Escala del contenido, en una barra
+En el panel de edición hay un **deslizador vertical**: arrástralo hacia
+arriba para agrandar y hacia abajo para reducir. No es un zoom — crece
+todo a la vez y de verdad: la caja, el texto, los bordes, los radios y
+los espaciados. Con varias piezas seleccionadas también escala la
+distancia entre ellas, así que la composición no se desarma. Un solo
+"deshacer" revierte el gesto entero.
+
+### 👆 Deslizar ya no descoloca nada
+Si recorres la página con el dedo y pasas por encima de una pieza, la
+pieza **no se mueve**. Toca para seleccionarla, arrastra lo que ya está
+seleccionado para moverlo, o mantén pulsado para seleccionar y arrastrar
+de una vez. Con ratón, el arrastre directo de siempre.
 
 ### 🎨 Temas y paletas
 Cuatro temas del editor —**Claro · Oscuro · Baddie · Pixel Art**— y ocho
