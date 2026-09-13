@@ -615,20 +615,11 @@ escala es tocar `:root`, no cien reglas sueltas. Los iconos heredan su
 tamaño del token (`ic()` sin argumento) y llevan trazo de 2,2 px con
 esquinas generosas.
 
-**Gestos separados por intención.** Antes, un dedo sobre un elemento
-empezaba a moverlo de inmediato: al recorrer la página se arrastraba
-sin querer todo lo que rozaba. Ahora, sobre un elemento **no**
-seleccionado el gesto se resuelve por lo que hace el dedo:
-
-| Gesto | Resultado |
-|---|---|
-| deslizar | desplazar la página (el elemento no se toca) |
-| levantar sin recorrido | seleccionar |
-| mantener pulsado (380 ms) | seleccionar y empezar a arrastrar (háptico) |
-| arrastrar lo ya seleccionado | mover, con 7 px de tolerancia |
-| tirador | redimensionar o rotar al instante |
-
-Con ratón se conserva el arrastre directo de siempre (umbral de 2 px).
+**Gestos separados por intención (primera versión).** Antes, un dedo
+sobre un elemento empezaba a moverlo de inmediato: al recorrer la
+página se arrastraba sin querer todo lo que rozaba. La v12 lo resolvió
+para los elementos **no** seleccionados, pero el que ya estaba
+seleccionado seguía escapándose. La regla definitiva está en v13.
 
 **Compacto por ancho O por alto.** El layout de hojas ya no depende
 solo de `max-width: 820px`: un teléfono tumbado es ancho pero bajo, así
@@ -636,6 +627,88 @@ que la condición es `(max-width: 820px), (max-height: 540px)` — la
 misma que usa `#placeQuickbar` en JS. En horizontal las barras
 adelgazan y la miniatura pasa a 16:10. Verificado en iPhone SE/12/15
 Pro Max, Galaxy A14/S24+, Pixel 8, iPad mini y ambas orientaciones.
+
+## v13 — Página de edición reconstruida
+
+La v12 ya era pastel y táctil, pero seguía siendo **una interfaz de
+escritorio encogida**: la barra de acciones era una fila de iconos de
+20 px sin nombre, y al recorrer la página con el dedo las piezas ya
+seleccionadas se escapaban. La v13 rehace la página de edición desde
+la base: tamaños pensados para el pulgar, no reducidos para que quepan.
+
+### El desplazamiento SIEMPRE gana
+
+La regla es una sola y no tiene excepciones táctiles: **el dedo que se
+mueve desplaza la página, nunca la pieza** — da igual si la pieza está
+seleccionada o no. Sobre un elemento, `#onDown` no inicia un arrastre:
+abre un gesto `pan` con un temporizador de intención.
+
+| Gesto (dedo) | Resultado |
+|---|---|
+| deslizar sobre cualquier pieza | desplazar la página; la pieza no se mueve ni un píxel |
+| levantar sin recorrido | seleccionar |
+| mantener quieto 380 ms (160 ms si ya está seleccionada) | modo mover + háptico |
+| arrastrar desde el **asa de mover** | mover desde el primer píxel |
+| tirador del marco | redimensionar o rotar al instante |
+
+El temporizador se cancela en cuanto el dedo recorre 6 px, así que
+recorrer la página nunca acaba en modo mover. El umbral de movimiento
+(7 px con el dedo, 2 px con ratón) sigue absorbiendo el temblor de la
+mano. Con **ratón** se conserva el arrastre directo de toda la vida:
+ahí no hay ambigüedad que resolver.
+
+Para que la vía inmediata exista sin reintroducir el problema, el marco
+de selección estrena un **asa de mover** central de 52 px (`.handle
+.h-move`): tocarla es una intención inequívoca, así que arrastra sin
+esperas. Necesita doble clase en el CSS para ganarle a la regla de
+`@media (pointer: coarse)` que encoge los tiradores.
+
+### Barra de edición: una barra de app, no una fila de iconos
+
+`#buildQuickbar` se reescribió sobre un constructor `boton({icon,
+label, title, onclick, cls, activo})` y separadores. Ocho acciones
+—Editar · Duplicar · Copiar | Al frente · Al fondo | Bloquear ·
+Ocultar | Eliminar— con **icono de 26 px Y etiqueta**, 76 × 72 px por
+botón y estados visibles: `principal` (degradado) para Editar,
+`activo` para bloqueado/oculto, `peligro` para Eliminar.
+
+En el teléfono es una barra inferior fija y completa; en pantalla ancha
+flota junto al elemento. Cuando las ocho no caben, la fila se desplaza
+lateralmente con `scroll-snap` y el borde por el que queda algo más se
+**difumina** (`.mas-izq` / `.mas-der`, alternadas por un listener
+pasivo): se ve que hay más herramientas sin ocupar sitio con flechas.
+Si caben todas, no se difumina nada — la pista nunca miente.
+
+### Tamaños desde la base, no por zoom
+
+Los tokens de `:root` subieron de golpe y con ellos toda la interfaz,
+porque nada mide en píxeles sueltos:
+
+```css
+--fs: 16px;  --fs-lg: 21px;          /* texto */
+--ctrl: 54px; --ctrl-lg: 60px;       /* alto de control */
+--ic: 24px;  --ic-lg: 27px;          /* iconos */
+--topbar-h: 66px; --nav-h: 74px;     /* barras */
+```
+
+Medido en iPhone 12: botón de la barra de edición 72 px, icono 26 px,
+asa de mover 52 px, botón de navegación 73 px, botón superior 54 px.
+Ningún destino táctil baja de 44 px.
+
+Cuando algo no cabe, **se desplaza; no se encoge**: la biblioteca crece
+hacia abajo con tarjetas de 164–183 px, la barra de edición se desplaza
+en horizontal y el inspector es una hoja con scroll propio. En
+escritorio los paneles laterales son anchos a propósito (324 px / 344 px,
+364 px / 400 px en monitores grandes) para que las tarjetas de assets
+mantengan el mismo tamaño cómodo que en el móvil.
+
+### Jerarquía visual
+
+El orden de peso es literal y se lee sin pensar: contenido → pieza
+seleccionada (marco rosa + asa) → controles de la pieza (barra inferior
+con etiquetas) → herramientas de edición (hoja de Diseño) → opciones
+secundarias (secciones plegadas, hoja «Más»). Un solo elemento lleva
+degradado por pantalla, y es siempre la acción principal.
 
 ### Trampas aprendidas (para no repetirlas)
 
@@ -646,6 +719,13 @@ Pro Max, Galaxy A14/S24+, Pixel 8, iPad mini y ambas orientaciones.
   al viewport: por eso la barra rápida tenía que salir de `#world`.
 - Un campo con el mismo relleno que su tarjeta es un campo invisible:
   dentro de superficies suaves los `.input` se visten de blanco.
+- Una regla de `@media (pointer: coarse)` sobre `.handle` gana a
+  `.h-move` por orden de cascada: el asa de mover necesita **doble
+  clase** (`.handle.h-move`) para conservar sus 52 px en el móvil,
+  justo donde más falta hacen.
+- Un imán angular de ±3° es demasiado fino para un asa grande movida a
+  pulso; con ±5° los ángulos rectos se clavan solos sin impedir los
+  intermedios.
 
 ## Hoja de ruta natural
 

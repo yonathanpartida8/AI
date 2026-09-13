@@ -101,7 +101,16 @@ export class Interactions {
     if (e.button !== 0) return;
 
     const handle = e.target.closest('[data-handle]');
-    if (handle) { this.#startHandle(e, handle.dataset.handle); return; }
+    if (handle) {
+      // Asa de MOVER: intención inequívoca, se arrastra desde el primer píxel
+      if (handle.dataset.handle === 'move') {
+        const sel = this.store.selectedNodes[0];
+        if (sel && !sel.locked) { this.#startMove(e); this.gesture.umbral = 0; }
+        return;
+      }
+      this.#startHandle(e, handle.dataset.handle);
+      return;
+    }
 
     const nodeEl = e.target.closest('.wb-node');
     if (nodeEl) {
@@ -111,35 +120,42 @@ export class Interactions {
       if (yaElegido && e.shiftKey) { this.store.select(this.store.selection.filter((s) => s !== id)); return; }
 
       /*
-       * DEDO SOBRE UN ELEMENTO **NO** SELECCIONADO → el gesto es ambiguo:
-       * puede ser un toque para elegirlo o un deslizamiento para recorrer
-       * la página. Antes se movía de inmediato, así que al desplazarse el
-       * dedo arrastraba sin querer todo lo que rozaba.
+       * ═══ EL DESPLAZAMIENTO SIEMPRE GANA ═══════════════════
        *
-       * Ahora se decide por la INTENCIÓN:
-       *   · se mueve el dedo  → desplazar la página (el elemento no se toca)
-       *   · se levanta quieto → seleccionar
-       *   · se mantiene pulsado → seleccionar y empezar a arrastrar (háptico)
-       * Con el ratón se conserva el arrastre directo de toda la vida.
+       * Con el dedo, tocar una pieza NUNCA la mueve de inmediato —
+       * ni siquiera si ya está seleccionada. Se espera a ver la
+       * intención, porque recorrer la página pasando por encima de
+       * las piezas es lo que más se hace y no puede descolocarlas.
+       *
+       *   · el dedo recorre antes de HOLD_MS → DESPLAZAR la página
+       *     (la pieza no se toca ni un píxel)
+       *   · el dedo aguanta quieto HOLD_MS  → modo mover (háptico)
+       *   · se levanta sin recorrido        → SELECCIONAR
+       *
+       * Para arrastrar sin esperar está el asa de mover del marco
+       * de selección, que empieza el arrastre al instante.
+       * Con ratón se conserva el arrastre directo de toda la vida.
        */
-      if (e.pointerType === 'touch' && !yaElegido && !e.shiftKey) {
+      if (e.pointerType === 'touch' && !e.shiftKey) {
+        const HOLD_MS = yaElegido ? 160 : 380;   // ya elegido: responde antes
         const mantener = setTimeout(() => {
-          if (!this.gesture || this.gesture.decidir !== id) return;
-          this.store.select(id);
+          const g = this.gesture;
+          if (!g || g.decidir !== id) return;
+          if (!yaElegido) this.store.select(id);
           if (navigator.vibrate) navigator.vibrate(12);
-          if (!node.locked) this.#startMove({ clientX: this.gesture.startX, clientY: this.gesture.startY, pointerType: 'touch' });
-        }, 380);
+          if (!node.locked) {
+            this.#startMove({ clientX: g.startX, clientY: g.startY, pointerType: 'touch' });
+            this.gesture.umbral = 0;            // ya hubo intención: sin más demora
+          }
+        }, HOLD_MS);
         this.gesture = {
-          kind: 'pan', decidir: id, mantener,
+          kind: 'pan', decidir: id, mantener, eraElegido: yaElegido,
           startX: e.clientX, startY: e.clientY, startPan: { ...this.store.pan },
         };
         return;
       }
 
-      if (!yaElegido) {
-        this.store.select(id, e.shiftKey);
-        if (e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(8); // háptico al seleccionar
-      }
+      if (!yaElegido) this.store.select(id, e.shiftKey);
       if (node.locked) return;
       this.#startMove(e);
       return;
@@ -330,10 +346,11 @@ export class Interactions {
       let deg = g.startRotation + ((angle - g.startAngle) * 180) / Math.PI;
       if (e.shiftKey) deg = Math.round(deg / 15) * 15;
       else {
-        // Imán angular: cerca de 0/45/90/135… engancha solo (±3°).
-        // Con el dedo es casi imposible clavar un ángulo recto a pulso.
+        // Imán angular: cerca de 0/45/90/135… engancha solo (±5°).
+        // Con el dedo es casi imposible clavar un ángulo recto a pulso,
+        // y el asa ahora es grande: el margen tiene que ser generoso.
         const recto = Math.round(deg / 45) * 45;
-        if (Math.abs(deg - recto) <= 3) deg = recto;
+        if (Math.abs(deg - recto) <= 5) deg = recto;
       }
       this.store.setFrame(g.node, { rotation: Math.round(deg) });
       const elem = this.#nodeEl(g.node.id);
@@ -568,6 +585,14 @@ export class Interactions {
         rot.className = 'handle h-rotate';
         rot.dataset.handle = 'rotate';
         box.append(rot);
+        // Asa de MOVER en el centro: arrastre inmediato, sin esperas,
+        // para quien prefiera no mantener pulsado.
+        const mov = document.createElement('div');
+        mov.className = 'handle h-move';
+        mov.dataset.handle = 'move';
+        mov.title = 'Arrastra para mover';
+        mov.innerHTML = ic('drag', 20);
+        box.append(mov);
       }
       overlay.append(box);
 
@@ -612,6 +637,25 @@ export class Interactions {
     if (!animate) bar.classList.add('no-anim');
     host.replaceChildren(bar);
     this.#placeQuickbar(node);
+    this.#hintQuickbar(bar);
+  }
+
+  /**
+   * Pista de desplazamiento: si la barra no cabe entera, se difumina el
+   * borde por el que queda algo más, para que se vea que hay más
+   * herramientas. Si cabe, no se difumina nada (no engaña al ojo).
+   */
+  #hintQuickbar(bar) {
+    const pista = bar.querySelector('.qb-scroll');
+    if (!pista) return;
+    const marcar = () => {
+      const resto = pista.scrollWidth - pista.clientWidth;
+      bar.classList.toggle('mas-izq', resto > 2 && pista.scrollLeft > 2);
+      bar.classList.toggle('mas-der', resto > 2 && pista.scrollLeft < resto - 2);
+    };
+    pista.addEventListener('scroll', marcar, { passive: true });
+    marcar();
+    requestAnimationFrame(marcar);   // tras el primer layout real
   }
 
   /** Coloca la barra junto al elemento (solo en pantalla ancha). */
@@ -640,24 +684,53 @@ export class Interactions {
     bar.style.top = `${Math.round(top)}px`;
   }
 
-  /** Barra rápida contextual: acciones al alcance del pulgar. */
+  /**
+   * BARRA DE EDICIÓN del elemento seleccionado.
+   *
+   * En el teléfono es una barra inferior de verdad: botones grandes con
+   * icono Y etiqueta, agrupados por función y separados entre sí, con
+   * estado visible (activo cuando la pieza está bloqueada u oculta) y
+   * desplazamiento horizontal solo si no caben. Nada comprimido.
+   */
   #buildQuickbar(node) {
     const store = this.store;
-    const btn = (icon, title, onclick, cls = '') => el('button', {
-      class: cls, title, 'aria-label': title, html: ic(icon, 15),
-      onpointerdown: (e) => e.stopPropagation(), // no inicia drag del nodo
+    const boton = ({ icon, label, title, onclick, cls = '', activo = false }) => el('button', {
+      class: `qb-btn${cls ? ` ${cls}` : ''}${activo ? ' activo' : ''}`,
+      title: title || label, 'aria-label': title || label,
+      'aria-pressed': activo ? 'true' : null,
+      onpointerdown: (e) => e.stopPropagation(), // no inicia gesto sobre el nodo
       onclick,
-    });
-    const bar = el('div', { class: 'quickbar' }, [
-      btn('duplicate', 'Duplicar', () => store.duplicateNodes([node.id])),
-      btn('copy', 'Copiar', () => { store.select([node.id]); store.copy(); }),
-      btn(node.locked ? 'lock' : 'unlock', node.locked ? 'Desbloquear' : 'Bloquear', () => store.toggleFlag(node.id, 'locked')),
-      btn(node.hidden ? 'eyeOff' : 'eye', node.hidden ? 'Mostrar' : 'Ocultar', () => store.toggleFlag(node.id, 'hidden')),
-      btn('front', 'Traer al frente', () => store.bringToFront(node.id)),
-      btn('back', 'Enviar al fondo', () => store.sendToBack(node.id)),
-      btn('sliders', 'Diseño y lógica', () => document.dispatchEvent(new CustomEvent('wb:open-design'))),
-      btn('trash', 'Eliminar', () => store.removeNodes([node.id]), 'danger'),
+    }, [
+      el('span', { class: 'qb-ic', html: ic(icon, 24) }),
+      el('span', { class: 'qb-lbl', text: label }),
     ]);
-    return bar;
+    const separador = () => el('span', { class: 'qb-sep' });
+
+    return el('div', { class: 'quickbar' }, [
+      el('div', { class: 'qb-scroll' }, [
+        boton({
+          icon: 'sliders', label: 'Editar', title: 'Abrir diseño, animación y lógica',
+          cls: 'principal', onclick: () => document.dispatchEvent(new CustomEvent('wb:open-design')),
+        }),
+        boton({ icon: 'duplicate', label: 'Duplicar', onclick: () => store.duplicateNodes([node.id]) }),
+        boton({ icon: 'copy', label: 'Copiar', onclick: () => { store.select([node.id]); store.copy(); } }),
+        separador(),
+        boton({ icon: 'front', label: 'Al frente', title: 'Traer al frente', onclick: () => store.bringToFront(node.id) }),
+        boton({ icon: 'back', label: 'Al fondo', title: 'Enviar al fondo', onclick: () => store.sendToBack(node.id) }),
+        separador(),
+        boton({
+          icon: node.locked ? 'lock' : 'unlock', label: node.locked ? 'Bloqueado' : 'Bloquear',
+          title: node.locked ? 'Desbloquear para poder moverlo' : 'Bloquear para no moverlo sin querer',
+          activo: !!node.locked, onclick: () => store.toggleFlag(node.id, 'locked'),
+        }),
+        boton({
+          icon: node.hidden ? 'eyeOff' : 'eye', label: node.hidden ? 'Oculto' : 'Ocultar',
+          title: node.hidden ? 'Volver a mostrar' : 'Ocultar en la página',
+          activo: !!node.hidden, onclick: () => store.toggleFlag(node.id, 'hidden'),
+        }),
+        separador(),
+        boton({ icon: 'trash', label: 'Eliminar', cls: 'peligro', onclick: () => store.removeNodes([node.id]) }),
+      ]),
+    ]);
   }
 }

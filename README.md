@@ -77,15 +77,25 @@ presionado, y **Razones por las que te amo** con tarjetas 3D interactivas.
 
 ### 📱 Interfaz pastel, hecha para el pulgar
 Estética suave —crema, rosa y menta sobre tarjetas blancas— con sombras
-ligeras, esquinas generosas y animaciones cortas. La barra superior deja
-a la vista solo lo de cada minuto (deshacer, rehacer, zoom, **Vista
-previa**) y el resto vive en la hoja **Más**. Los paneles son hojas
-inferiores que se cierran deslizando, y al seleccionar algo aparece una
-**barra contextual completa** abajo, nunca recortada.
+ligeras, esquinas generosas y animaciones cortas. Nada es una versión
+encogida del escritorio: los tamaños están pensados para el dedo y
+ningún botón baja de 44 px. La barra superior deja a la vista solo lo
+de cada minuto (deshacer, rehacer, zoom, **Vista previa**) y el resto
+vive en la hoja **Más**. Los paneles son hojas inferiores que se
+cierran deslizando.
 **Un dedo** desplaza el lienzo con inercia y rebote —pase por donde
 pase—. **Dos dedos** hacen zoom. **Desliza una capa o página a la
 izquierda** para borrarla (con «Deshacer» al instante) y **mantén
 pulsada** una capa para selección múltiple.
+
+### 🧰 Barra de edición grande, con nombre y todo
+Al seleccionar una pieza aparece abajo una barra de verdad: ocho
+acciones —**Editar · Duplicar · Copiar | Al frente · Al fondo |
+Bloquear · Ocultar | Eliminar**— con **icono grande y etiqueta**,
+agrupadas por función y con estado visible (se nota cuándo algo está
+bloqueado u oculto). Si no caben todas, la fila se desplaza de lado y
+el borde se difumina para que se vea que hay más; si caben, no se
+difumina nada. Nunca queda recortada ni comprimida.
 
 ### 📐 Escala del contenido, en una barra
 En el panel de edición hay un **deslizador vertical**: arrástralo hacia
@@ -96,10 +106,17 @@ distancia entre ellas, así que la composición no se desarma. Un solo
 "deshacer" revierte el gesto entero.
 
 ### 👆 Deslizar ya no descoloca nada
-Si recorres la página con el dedo y pasas por encima de una pieza, la
-pieza **no se mueve**. Toca para seleccionarla, arrastra lo que ya está
-seleccionado para moverlo, o mantén pulsado para seleccionar y arrastrar
-de una vez. Con ratón, el arrastre directo de siempre.
+Con el dedo, **el desplazamiento siempre gana**: si recorres la página
+y pasas por encima de una pieza —esté seleccionada o no— la pieza no se
+mueve ni un píxel. Mover algo es una decisión, no un accidente:
+
+1. **tocas** la pieza → queda seleccionada, con su marco y sus controles;
+2. arrastras desde el **asa redonda del centro** → se mueve al instante;
+3. o **mantienes pulsado** un momento (vibra) y arrastras sin soltar;
+4. tocas fuera → se deselecciona y el dedo vuelve a desplazar.
+
+Los tiradores del marco redimensionan y giran al momento, y el giro se
+imanta solo a 0/45/90°. Con ratón, el arrastre directo de siempre.
 
 ### 🎨 Temas y paletas
 Cuatro temas del editor —**Claro · Oscuro · Baddie · Pixel Art**— y ocho
