@@ -114,10 +114,10 @@ async function boot() {
 /* ── Barra superior ──────────────────────────────────── */
 
 /**
- * BARRA SUPERIOR — una sola definición de acciones para dos destinos:
- * en pantalla ancha se despliegan todas en la barra; en el teléfono
- * solo quedan las de uso constante y el resto vive en el menú "Más"
- * (hoja inferior, al alcance del pulgar). Ninguna función se pierde.
+ * BARRA SUPERIOR — arriba solo vive lo que se toca a cada minuto
+ * (deshacer, rehacer, zoom y Vista previa). TODO lo demás está a un
+ * toque en la hoja "Más", al alcance del pulgar. Una sola definición
+ * de acciones, un solo destino: no hay variante de escritorio.
  */
 function buildTopbar(store, view, exporter, assets, repaint) {
   const bar = document.getElementById('topbar');
@@ -127,14 +127,13 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     setTimeout(() => savedDot.classList.remove('flash'), 600);
   });
 
-  /* Selector de dispositivo: se instancia dos veces (barra y menú) y
-     ambas copias se mantienen sincronizadas por el evento del store. */
-  const DEVICE_IC = { desktop: 'desktop', tablet: 'tablet', mobile: 'mobile' };
+  /* Tamaño del proyecto que se está creando: base, tablet o móvil. */
+  const DEVICE_IC = { desktop: 'heart', tablet: 'tablet', mobile: 'mobile' };
   const deviceSeg = () => {
     const seg = el('div', { class: 'seg' }, Object.entries(DEVICES).map(([key, meta]) =>
       el('button', {
         class: `seg-btn${store.device === key ? ' active' : ''}`,
-        html: `${ic(DEVICE_IC[key], 15)}<span>${meta.label}</span>`,
+        html: `${ic(DEVICE_IC[key])}<span>${meta.label}</span>`,
         dataset: { device: key },
         title: `${meta.width}px`,
         onclick: () => store.setDevice(key),
@@ -144,10 +143,13 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     return seg;
   };
 
+  /* El zoom flota sobre el lienzo, no en la barra: arriba el ancho es
+     oro y aquí se lee igual de bien. Tocarlo ajusta a pantalla. */
   const zoomLabel = el('button', {
     class: 'zoom-label', text: '100%', title: 'Ajustar a pantalla',
     onclick: () => view.fit(),
   });
+  document.getElementById('stage-area').append(zoomLabel);
   store.on('view', () => { zoomLabel.textContent = `${Math.round(store.zoom * 100)}%`; });
 
   const fileInput = el('input', {
@@ -229,14 +231,27 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     class: `btn${a.cls ? ` ${a.cls}` : ''}${withLabel ? ' block' : ''}`,
     html: `${ic(a.icon)}<span>${a.label}</span>`,
     title: a.title,
-    onclick: (e) => a.run(e.currentTarget),
+    onclick: (e) => {
+      a.run(e.currentTarget);
+      // Elegida la acción, el menú sobra: deja ver lo que acaba de pasar
+      document.dispatchEvent(new CustomEvent('wb:close-sheets'));
+    },
   });
 
   /* Menú "Más": hoja inferior con todo lo que no cabe en el teléfono */
   const menuSheet = el('aside', { id: 'menu-sheet', class: 'sheet' }, [
     el('h3', { class: 'sheet-title', text: 'Proyecto' }),
     el('div', { class: 'sheet-body' }, [
-      el('h4', { class: 'panel-heading', text: 'Tamaño de pantalla' }),
+      el('h4', { class: 'panel-heading', text: 'Vista del lienzo' }),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn', html: `${ic('minus')}<span>Alejar</span>`, title: 'Alejar',
+          onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
+        el('button', { class: 'btn', html: `${ic('plus')}<span>Acercar</span>`, title: 'Acercar',
+          onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
+        el('button', { class: 'btn', html: `${ic('fit')}<span>Ajustar</span>`, title: 'Ajustar a pantalla',
+          onclick: () => view.fit() }),
+      ]),
+      el('h4', { class: 'panel-heading', text: 'Tamaño del proyecto' }),
       deviceSeg(),
       el('h4', { class: 'panel-heading', text: 'Herramientas' }),
       ...PROJECT_ACTIONS.map((a) => actionButton(a, true)),
@@ -248,39 +263,23 @@ function buildTopbar(store, view, exporter, assets, repaint) {
   document.addEventListener('wb:close-sheets', closeMenu);
 
   bar.append(
-    el('div', { class: 'brand', html: `${ic('heart', 15)}<span>BuilderYNTHN<small>_M-Beta</small></span>` }),
+    el('div', { class: 'brand', html: ic('heart'), title: 'BuilderYNTHN_M-Beta' }),
     savedDot,
-    el('div', { class: 'sep' }),
-    el('button', { class: 'btn btn-ic', html: ic('undo'), title: 'Deshacer (Ctrl+Z)', onclick: () => store.undo() }),
-    el('button', { class: 'btn btn-ic', html: ic('redo'), title: 'Rehacer (Ctrl+Y)', onclick: () => store.redo() }),
-    el('div', { class: 'sep only-wide' }),
-    el('div', { class: 'only-wide', style: { display: 'contents' } }, [deviceSeg()]),
-    el('div', { class: 'sep only-wide' }),
-    el('button', { class: 'btn btn-ic only-wide', html: ic('minus'), title: 'Alejar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 0.85) }),
-    zoomLabel,
-    el('button', { class: 'btn btn-ic only-wide', html: ic('plus'), title: 'Acercar', onclick: () => view.zoomAt(innerWidth / 2, innerHeight / 2, 1.18) }),
-    el('button', { class: 'btn btn-ic only-wide', html: ic('fit'), title: 'Ajustar a pantalla', onclick: () => view.fit() }),
-    el('div', { class: 'sep only-wide' }),
+    el('button', { class: 'btn btn-ic', html: ic('undo'), title: 'Deshacer', onclick: () => store.undo() }),
+    el('button', { class: 'btn btn-ic', html: ic('redo'), title: 'Rehacer', onclick: () => store.redo() }),
     fileInput,
-    // En pantalla ancha: todas las acciones a la vista
-    ...PROJECT_ACTIONS.map((a) => {
-      const btn = actionButton(a, false);
-      btn.classList.add('only-wide');
-      return btn;
-    }),
     el('span', { class: 'spacer' }),
     el('button', {
       class: 'btn primary', title: 'Ver la página como la verá ella',
-      html: `${ic('play')}<span class="lbl-wide">Vista previa</span><span class="lbl-narrow">Previa</span>`,
+      html: `${ic('play')}<span class="lbl">Previa</span>`,
       onclick: () => togglePreview(store, view, repaint, assets),
     }),
-    // En el teléfono: el resto vive aquí, a un toque del pulgar
     el('button', {
-      class: 'btn btn-ic only-narrow', html: ic('more'), title: 'Más opciones del proyecto',
+      class: 'btn btn-ic', html: ic('more'), title: 'Más opciones del proyecto',
       onclick: () => {
-        const wasOpen = menuSheet.classList.contains('open');
+        const abierta = menuSheet.classList.contains('open');
         document.dispatchEvent(new CustomEvent('wb:close-sheets'));
-        if (!wasOpen) {
+        if (!abierta) {
           menuSheet.classList.add('open');
           document.body.classList.add('sheet-open');
           if (navigator.vibrate) navigator.vibrate(8);
@@ -312,10 +311,9 @@ function parseProjectFromHTML(html) {
 /* ── Barra de navegación móvil ───────────────────────── */
 
 /**
- * En pantallas táctiles pequeñas los paneles laterales se convierten
- * en HOJAS DESLIZANTES (bottom sheets) controladas por esta barra
- * inferior — el lienzo ocupa toda la pantalla y el zoom es correcto.
- * En escritorio la barra queda oculta por CSS.
+ * Los paneles son HOJAS DESLIZANTES (bottom sheets) gobernadas por
+ * esta barra inferior: el lienzo se queda con toda la pantalla y cada
+ * herramienta aparece cuando hace falta, al alcance del pulgar.
  */
 function buildMobileNav(store, panels, view) {
   const left = document.getElementById('left-panel');
@@ -374,10 +372,14 @@ function buildMobileNav(store, panels, view) {
   // Con algo seleccionado manda la barra contextual: el FAB se aparta
   store.on('selection', () => document.body.classList.toggle('has-selection', store.selection.length > 0));
 
+  /* Cerrar significa CERRAR TODO — paneles y hoja "Más". Antes esto
+     llamaba a closeAll(), que solo conoce los paneles: al entrar en la
+     libreta desde "Más", la hoja se quedaba tapando el lienzo. */
+  const cerrarTodo = () => document.dispatchEvent(new CustomEvent('wb:close-sheets'));
   // Tocar el lienzo cierra las hojas → edición sin estorbos
-  view.viewport.addEventListener('pointerdown', closeAll);
+  view.viewport.addEventListener('pointerdown', cerrarTodo);
   // Entrar en la libreta de dibujo también las cierra (lienzo despejado)
-  store.on('tool', () => { if (store.tool === 'draw') closeAll(); });
+  store.on('tool', () => { if (store.tool === 'draw') cerrarTodo(); });
   // La barra rápida del lienzo abre el panel de Diseño
   document.addEventListener('wb:open-design', () => {
     if (getComputedStyle(nav).display !== 'none') { openSheet(right); }
@@ -407,13 +409,16 @@ function makeSheetDismissable(sheet, close) {
   sheet.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     delta = Math.max(0, e.clientY - startY);
-    sheet.style.transform = `translateY(${delta}px)`;
+    // Solo el desplazamiento vertical. Escribir `transform` entero
+    // borraba el centrado horizontal de la hoja en tablet y saltaba
+    // media pantalla a la derecha en mitad del gesto.
+    sheet.style.setProperty('--arrastre', `${delta}px`);
   });
   const finish = () => {
     if (!dragging) return;
     dragging = false;
     sheet.style.transition = '';
-    sheet.style.transform = '';
+    sheet.style.removeProperty('--arrastre');
     if (delta > 110) { close(); if (navigator.vibrate) navigator.vibrate(8); }
   };
   sheet.addEventListener('pointerup', finish);

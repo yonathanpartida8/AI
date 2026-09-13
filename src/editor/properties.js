@@ -149,7 +149,7 @@ export class PropertiesPanel {
           onchange: (e) => this.store.updateNode(node.id, 'root', { name: e.target.value }),
         }),
       ]),
-      el('p', { class: 'device-note', text: this.store.device === 'desktop' ? 'Editando estilos base (Escritorio)' : `Override para ${this.store.device === 'tablet' ? 'Tablet' : 'Móvil'}` }),
+      el('p', { class: 'device-note', text: this.store.device === 'desktop' ? 'Editando los estilos base' : `Ajuste solo para ${this.store.device === 'tablet' ? 'Tablet' : 'Móvil'}` }),
     );
 
     /* Posición y tamaño */

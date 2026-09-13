@@ -34,13 +34,66 @@ export function wbParticles(canvas) {
   // Los fondos procedurales (aurora/ondas) calculan CADA píxel del canvas:
   // en móvil, 1.25x de densidad es indistinguible y cuesta ~60% menos.
   var dpr = Math.min(window.devicePixelRatio || 1, touch ? (isQuadMode ? 1.25 : 2) : 2.5);
+  /*
+   * PRESUPUESTO DE PÍXELES — la lección más cara de todas.
+   *
+   * El lienzo se medía con clientWidth, que es su tamaño de MAQUETA
+   * e ignora las transformaciones. Un fondo de 1280 px dentro del
+   * editor al 29 % de zoom se veía a 390 px reales... y se dibujaba a
+   * 2560x1640 = 4,2 megapíxeles. Doce veces más de lo que la pantalla
+   * podía enseñar, sesenta veces por segundo, y con mezcla aditiva.
+   * De ahí los tirones.
+   *
+   * getBoundingClientRect() sí incluye las transformaciones: da el
+   * tamaño REAL en pantalla, tanto en el editor (zoom del lienzo) como
+   * en el sitio exportado (escalado de wbFit). Encima se aplica un
+   * techo de megapíxeles, por si el fondo ocupa una pantalla enorme.
+   */
+  var MAXPX = touch ? 1300000 : 3000000;
+
+  function medida() {
+    var r = canvas.getBoundingClientRect();
+    var w = Math.round(r.width) || canvas.clientWidth || 300;
+    var h = Math.round(r.height) || canvas.clientHeight || 200;
+    return [Math.max(1, w), Math.max(1, h)];
+  }
+
+  /*
+   * `densidad` = píxeles de lienzo por píxel de DISEÑO.
+   *
+   * El tamaño y la velocidad de las partículas son parámetros de la
+   * composición: un corazón mide lo que mide dentro de la página, no
+   * dentro de la pantalla de quien mira. Como el lienzo ya no se
+   * dibuja a tamaño de maqueta, hay que convertir: si no, al bajar la
+   * resolución las partículas se quedaban del mismo tamaño en píxeles
+   * y salían gigantes y a toda velocidad.
+   */
+  var densidad = 1;
 
   function resize() {
-    var w = canvas.clientWidth || 300, h = canvas.clientHeight || 200;
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    var m = medida(), w = m[0], h = m[1];
+    var esc = Math.min(dpr, Math.sqrt(MAXPX / (w * h)));
+    if (esc < 0.4) esc = 0.4;                       // nunca ilegible
+    var nw = Math.max(1, Math.round(w * esc));
+    var nh = Math.max(1, Math.round(h * esc));
+    if (nw === canvas.width && nh === canvas.height) return false;
+    canvas.width = nw; canvas.height = nh;
+    densidad = nw / (canvas.clientWidth || w || 1);
+    gl.viewport(0, 0, nw, nh);
+    return true;
   }
   resize();
+
+  var resembrar = null;                 // lo define la rama de point sprites
+  function alRedimensionar() {
+    var antesW = canvas.width, antesH = canvas.height;
+    if (!resize()) return;
+    // Un cambio grande deja partículas fuera del nuevo lienzo. Las que
+    // dan la vuelta vuelven solas; las fijas (estrellas) no volverían
+    // jamás, así que se resiembran cuando el cambio es de verdad.
+    var cambio = Math.abs(canvas.width - antesW) / (antesW || 1) + Math.abs(canvas.height - antesH) / (antesH || 1);
+    if (resembrar && cambio > 0.25) resembrar();
+  }
 
   function hexRGB(c) {
     var v = parseInt(String(c || '#818cf8').replace('#', ''), 16);
@@ -75,8 +128,21 @@ export function wbParticles(canvas) {
   }
   var io = new IntersectionObserver(function (e) { visible = e[0].isIntersecting; });
   io.observe(canvas);
-  var ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+  var ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(function () { alRedimensionar(); }) : null;
   if (ro) ro.observe(canvas);
+
+  /*
+   * El zoom del lienzo es una transformación: no cambia el tamaño de
+   * maqueta, así que ResizeObserver no se entera. Se comprueba el
+   * rectángulo real dos veces por segundo — un coste inapreciable que
+   * evita seguir dibujando a la resolución de antes del zoom.
+   */
+  var proximaRevision = 0;
+  function revisar(now) {
+    if (now < proximaRevision) return;
+    proximaRevision = now + 500;
+    alRedimensionar();
+  }
 
   var isQuad = isQuadMode;
 
@@ -100,7 +166,7 @@ export function wbParticles(canvas) {
       '  float fill=smoothstep(0.0,0.45,uv.y-lvl-w)*0.28;\n' +
       '  col+=uColor*(line*0.9+fill);alpha=max(alpha,line*0.9+fill);}\n' +
       '}\no=vec4(col,alpha);}');
-    var qbuf = gl.createBuffer();
+  var qbuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, qbuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     var qa = gl.getAttribLocation(qp, 'aPos');
@@ -119,6 +185,7 @@ export function wbParticles(canvas) {
       raf = requestAnimationFrame(stepQ);
       if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
       if (fpsCapped(now)) return;
+      revisar(now);
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now; t += dt * speed;
       gl.uniform2f(quRes, canvas.width, canvas.height);
@@ -158,18 +225,31 @@ export function wbParticles(canvas) {
     gl.uniform3fv(gl.getUniformLocation(pp, 'uColor'), rgb);
     gl.uniform1i(gl.getUniformLocation(pp, 'uShape'), shapeId);
     gl.uniform1f(gl.getUniformLocation(pp, 'uAlpha'), globalAlpha);
-    gl.uniform1f(gl.getUniformLocation(pp, 'uSize'), baseSize * dpr * (shapeId > 0 ? 7 : 2.2));
+    var puSize = gl.getUniformLocation(pp, 'uSize');
+    var factorSprite = baseSize * (shapeId > 0 ? 7 : 2.2);
+    var densidadSprite = -1;
+    var ajustarSprite = function () {
+      if (densidad === densidadSprite) return;
+      densidadSprite = densidad;
+      gl.uniform1f(puSize, factorSprite * densidad);
+    };
+    ajustarSprite();
     var puRes = gl.getUniformLocation(pp, 'uRes');
     var W = function () { return canvas.width; }, H = function () { return canvas.height; };
     var pos = new Float32Array(count * 2), vel = new Float32Array(count * 2);
     var life = new Float32Array(count), seed = new Float32Array(count), orb = new Float32Array(count * 2);
-    for (var i = 0; i < count; i++) {
-      pos[i * 2] = Math.random() * W(); pos[i * 2 + 1] = Math.random() * H();
-      vel[i * 2] = (Math.random() - 0.5) * 0.6; vel[i * 2 + 1] = (Math.random() - 0.5) * 0.6;
-      life[i] = Math.random(); seed[i] = Math.random();
-      orb[i * 2] = 40 + Math.random() * Math.min(W(), H()) / 2;
-      orb[i * 2 + 1] = Math.random() * 6.283;
-    }
+    var sembrar = function (todo) {
+      for (var i = 0; i < count; i++) {
+        pos[i * 2] = Math.random() * W(); pos[i * 2 + 1] = Math.random() * H();
+        orb[i * 2] = 40 + Math.random() * Math.min(W(), H()) / 2;
+        if (!todo) continue;                       // al resembrar se conserva el carácter
+        vel[i * 2] = (Math.random() - 0.5) * 0.6; vel[i * 2 + 1] = (Math.random() - 0.5) * 0.6;
+        life[i] = Math.random(); seed[i] = Math.random();
+        orb[i * 2 + 1] = Math.random() * 6.283;
+      }
+    };
+    sembrar(true);
+    resembrar = function () { sembrar(false); };
     var pb = gl.createBuffer(), lb = gl.createBuffer();
     var aPos = gl.getAttribLocation(pp, 'aPos'), aLife = gl.getAttribLocation(pp, 'aLife');
     gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aLife);
@@ -182,6 +262,7 @@ export function wbParticles(canvas) {
       raf = requestAnimationFrame(stepP);
       if (!visible || document.body.classList.contains('wb-gesturing')) { last = now; return; }
       if (fpsCapped(now)) return;
+      revisar(now);
       var dt = Math.min((now - last) / 1000 || 0.016, 0.05);
       last = now;
       var k = dt * 60 * speed;
@@ -190,30 +271,30 @@ export function wbParticles(canvas) {
       for (i = 0; i < count; i++) {
         var s = seed[i];
         if (mode === 'corazones') { // suben flotando con vaivén
-          pos[i * 2 + 1] -= (0.5 + s * 1.3) * k * dpr;
+          pos[i * 2 + 1] -= (0.5 + s * 1.3) * k * densidad;
           pos[i * 2] += Math.sin(t * (0.8 + s) + i) * 0.5 * k;
           life[i] = 0.5 + 0.5 * Math.sin(t * (1 + s) + i);
           if (pos[i * 2 + 1] < -20) { pos[i * 2 + 1] = H() + 20; pos[i * 2] = Math.random() * W(); }
         } else if (mode === 'nieve') { // caen con viento suave
-          pos[i * 2 + 1] += (0.6 + s * 1.6) * k * dpr;
+          pos[i * 2 + 1] += (0.6 + s * 1.6) * k * densidad;
           pos[i * 2] += Math.sin(t * (0.6 + s) + i) * 0.4 * k;
           if (pos[i * 2 + 1] > H() + 8) { pos[i * 2 + 1] = -8; pos[i * 2] = Math.random() * W(); }
           life[i] = 0.4 + s * 0.6;
         } else if (mode === 'pétalos') { // caen meciéndose de lado a lado
-          pos[i * 2 + 1] += (0.35 + s * 0.9) * k * dpr;
+          pos[i * 2 + 1] += (0.35 + s * 0.9) * k * densidad;
           pos[i * 2] += Math.sin(t * (0.7 + s) + i * 1.3) * 1.1 * k;
           life[i] = 0.45 + 0.55 * Math.sin(t * (0.6 + s) + i);
           if (pos[i * 2 + 1] > H() + 16) { pos[i * 2 + 1] = -16; pos[i * 2] = Math.random() * W(); }
         } else if (mode === 'burbujas') { // suben con bamboleo suave
-          pos[i * 2 + 1] -= (0.4 + s * 1.1) * k * dpr;
+          pos[i * 2 + 1] -= (0.4 + s * 1.1) * k * densidad;
           pos[i * 2] += Math.sin(t * (1.2 + s) + i * 2.1) * 0.35 * k;
           life[i] = 0.5 + 0.5 * Math.sin(t * (0.5 + s) + i);
           if (pos[i * 2 + 1] < -14) { pos[i * 2 + 1] = H() + 14; pos[i * 2] = Math.random() * W(); }
         } else if (mode === 'estrellas') { // fijas, titilan
           life[i] = 0.5 + 0.5 * Math.sin(t * (0.8 + s * 2.5) + i * 1.7);
         } else if (mode === 'luciérnagas') { // vagan lentas y pulsan
-          pos[i * 2] += vel[i * 2] * 0.35 * k * dpr + Math.sin(t * 0.5 + i) * 0.15 * k;
-          pos[i * 2 + 1] += vel[i * 2 + 1] * 0.35 * k * dpr + Math.cos(t * 0.4 + i * 2.0) * 0.15 * k;
+          pos[i * 2] += vel[i * 2] * 0.35 * k * densidad + Math.sin(t * 0.5 + i) * 0.15 * k;
+          pos[i * 2 + 1] += vel[i * 2 + 1] * 0.35 * k * densidad + Math.cos(t * 0.4 + i * 2.0) * 0.15 * k;
           life[i] = Math.max(0, Math.sin(t * (0.7 + s) + i * 2.3));
           if (pos[i * 2] < 0) pos[i * 2] = W(); else if (pos[i * 2] > W()) pos[i * 2] = 0;
           if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H(); else if (pos[i * 2 + 1] > H()) pos[i * 2 + 1] = 0;
@@ -223,17 +304,18 @@ export function wbParticles(canvas) {
           pos[i * 2 + 1] = cy + Math.sin(orb[i * 2 + 1]) * orb[i * 2] * 0.6;
           life[i] += 0.01 * k; if (life[i] > 1) life[i] = 0;
         } else if (mode === 'lluvia') {
-          pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * dpr;
+          pos[i * 2 + 1] += (1.5 + life[i] * 2.5) * k * densidad;
           if (pos[i * 2 + 1] > H()) { pos[i * 2 + 1] = -4; pos[i * 2] = Math.random() * W(); }
           life[i] += 0.01 * k; if (life[i] > 1) life[i] = 0;
         } else { // nebulosa
-          pos[i * 2] += vel[i * 2] * k * dpr + Math.sin(t + i) * 0.1 * k;
-          pos[i * 2 + 1] += vel[i * 2 + 1] * k * dpr + Math.cos(t * 0.7 + i) * 0.1 * k;
+          pos[i * 2] += vel[i * 2] * k * densidad + Math.sin(t + i) * 0.1 * k;
+          pos[i * 2 + 1] += vel[i * 2 + 1] * k * densidad + Math.cos(t * 0.7 + i) * 0.1 * k;
           if (pos[i * 2] < 0) pos[i * 2] = W(); else if (pos[i * 2] > W()) pos[i * 2] = 0;
           if (pos[i * 2 + 1] < 0) pos[i * 2 + 1] = H(); else if (pos[i * 2 + 1] > H()) pos[i * 2 + 1] = 0;
           life[i] += 0.01 * k; if (life[i] > 1) life[i] = 0;
         }
       }
+      ajustarSprite();
       gl.uniform2f(puRes, W(), H());
       gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       gl.bindBuffer(gl.ARRAY_BUFFER, pb);

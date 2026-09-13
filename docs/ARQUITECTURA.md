@@ -710,6 +710,136 @@ con etiquetas) → herramientas de edición (hoja de Diseño) → opciones
 secundarias (secciones plegadas, hoja «Más»). Un solo elemento lleva
 degradado por pantalla, y es siempre la acción principal.
 
+## v14 — Solo móvil y tablet, y a 60 fps de verdad
+
+La v13 ya era táctil, pero seguía arrastrando una capa de escritorio
+entera (rejilla de tres columnas, reglas, ramas `only-wide`) y, sobre
+todo, un fallo de rendimiento que se comía la mitad de los fotogramas.
+
+### El fallo que costaba 45 fps
+
+Los fondos de partículas dimensionaban su lienzo con `clientWidth`,
+que es el tamaño de MAQUETA e ignora las transformaciones. Un fondo de
+1280 px dentro del editor al 29 % de zoom se ve a 390 px reales... y se
+dibujaba a **2560 x 1640 = 4,2 megapíxeles**. Doce veces más de lo que
+la pantalla podía enseñar, sesenta veces por segundo y con mezcla
+aditiva. Medido con la CPU frenada x4 (gama media), el editor en
+reposo iba a **15 fps**.
+
+`getBoundingClientRect()` sí incluye las transformaciones: da el tamaño
+REAL en pantalla, tanto en el editor (zoom del lienzo) como en el sitio
+exportado (escalado de `wbFit`). Con eso, un techo de megapíxeles y una
+revisión del rectángulo dos veces por segundo (el zoom es una
+transformación: no dispara `ResizeObserver`), el mismo editor pasa a
+**16,7 ms por fotograma — 60 fps clavados — incluso con la CPU a x4**.
+
+Dos consecuencias que hubo que corregir a la vez:
+
+- El **tamaño y la velocidad** de las partículas iban atados al `dpr`.
+  Al bajar la resolución se quedaban del mismo tamaño en píxeles y
+  salían gigantes y disparadas. Ahora se miden en `densidad` =
+  píxeles de lienzo por píxel de DISEÑO: un corazón mide lo que mide
+  dentro de la página, no dentro de la pantalla de quien mira.
+- Un cambio grande de tamaño deja partículas fuera del lienzo. Las que
+  dan la vuelta vuelven solas; las fijas (estrellas) no volverían
+  jamás, así que se **resiembran** cuando el cambio es de verdad.
+
+Las escenas de Three.js tenían exactamente el mismo problema
+(`setPixelRatio` sobre el tamaño de maqueta) y el mismo arreglo.
+
+### El marco de selección ya no se reconstruye por frame
+
+Arrastrar, escalar o girar dispara un `change` por fotograma, y el
+marco se rehacía entero: doce divs (uno con SVG dentro) más la barra
+de edición completa, creados y tirados sesenta veces por segundo.
+
+Ahora hay dos vías. Si la selección cambió, se construye. Si es la
+misma, solo se **mueve** lo que ya está puesto —y ni eso cuando las
+medidas no han cambiado—. Medido: **0 nodos creados** durante un
+arrastre de sesenta pasos, frente a los cientos de antes.
+
+### Fuera el escritorio
+
+- La rejilla de tres columnas, los paneles laterales fijos y las reglas
+  (con sus dos `<canvas>` y su repintado por frame) ya no existen.
+- Las ramas `only-wide` / `only-narrow` desaparecen: una sola barra
+  superior con lo de cada minuto —deshacer, rehacer, Previa y «Más»—
+  y el zoom como píldora flotante sobre el lienzo.
+- La barra de edición es SIEMPRE una barra inferior fija: la coloca el
+  CSS. Ya no hay variante flotante que recolocar por JS en cada gesto,
+  ni un `getBoundingClientRect` por frame al hacer zoom.
+- El selector de tamaños del proyecto pasa a **Base · Tablet · Móvil**
+  (la clave interna `desktop` se conserva por compatibilidad con los
+  proyectos ya guardados: es donde viven los estilos base), y los
+  tamaños rápidos son solo de teléfono y tablet.
+- **Tablet no es otra interfaz**: la misma, con más aire. Las hojas se
+  centran y se ensanchan, las rejillas ganan columnas y los bloques
+  pasan a dos columnas. Nunca aparece una barra lateral.
+
+### Cero desenfoques de fondo
+
+`backdrop-filter` cuesta un pase de GPU por fotograma y en un teléfono
+se nota. Se ha eliminado de toda la interfaz: las superficies son casi
+opacas y se ven mejor. En los componentes del sitio se quitaron los dos
+que eran invisibles a simple vista pero permanentes (las fichas del
+contador y la tapa del mensaje oculto); el mensaje flotante estilo iOS
+lo conserva porque ahí SÍ se ve y dura un segundo.
+
+La transición de página «desenfoque» animaba `filter: blur(16px)` a
+pantalla completa. Ahora son 12 px con un pelín de escala: se lee igual
+de bien (o mejor, parece que la página enfoca) por bastante menos.
+
+### Tres niveles de superficie
+
+El rediseño se apoya en una regla que no admite excepciones:
+
+| nivel | qué es | color |
+|---|---|---|
+| 0 | la hoja | `--surface-2` (tinte suave) |
+| 1 | tarjetas, secciones, campos | `--surface` (blanco) |
+| 2 | lo que vive dentro de una tarjeta | `--surface-2` otra vez |
+
+Campos y botones alternan con el nivel en que caen. Verificado por
+prueba automática: **cero controles del mismo color que su fondo**, en
+los cuatro temas y las ocho paletas.
+
+### Bugs de verdad que salieron a la luz
+
+- **La libreta de dibujo no recibía un solo trazo.** `#draw-layer` era
+  `pointer-events: none` y la clase `.active` que le pone el JS no
+  tenía ninguna regla CSS detrás. Se dibujaba en el vacío. (Las pruebas
+  con `dispatchEvent` no lo detectaban porque los eventos sintéticos no
+  hacen hit-testing: hizo falta entrada real.)
+- **Arrastrar una hoja para cerrarla la descolocaba en tablet.** El
+  gesto escribía `transform` entero y borraba el centrado horizontal.
+  Ahora el arrastre va en su propia variable, `--arrastre`.
+- **El selector de color se abría fuera de la pantalla.** Su tamaño
+  estaba escrito a mano (236x380) y había dejado de coincidir con el
+  CSS; encima se medía con `getBoundingClientRect` durante la animación
+  de entrada, así que medía el fotograma y no la caja. Ahora usa
+  `offsetWidth/Height` y un recorte final al viewport.
+- **«Dibujar» dejaba la hoja «Más» tapando el lienzo**, porque cerraba
+  solo los paneles. Cerrar significa cerrar TODO.
+- **La pieza «Texto» pedía un icono `'T'` que no existe** y caía en el
+  comodín: salía una estrellita genérica en la paleta.
+- Las **estrellas desaparecían** al girar el teléfono (partículas fijas
+  fuera del nuevo lienzo, sin resembrado).
+
+### Lo que se midió
+
+Con la CPU frenada x4 (gama media) en un iPhone 12 emulado:
+
+| escena | antes | después |
+|---|---|---|
+| editor en reposo | 50–67 ms/frame | 16,7 ms |
+| desplazar el lienzo | p95 66,7 ms | p95 16,8 ms |
+| arrastrar una pieza | cientos de nodos/s | 0 nodos creados |
+| sitio exportado | 4,2 Mpx por fondo | 0,39 Mpx |
+
+Veinte ciclos de uso intenso (añadir, escalar, duplicar, borrar,
+cambiar de página, abrir y cerrar hojas, deshacer y rehacer): heap
+plano, contextos WebGL estables, cero errores de consola.
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección
@@ -726,6 +856,18 @@ degradado por pantalla, y es siempre la acción principal.
 - Un imán angular de ±3° es demasiado fino para un asa grande movida a
   pulso; con ±5° los ángulos rectos se clavan solos sin impedir los
   intermedios.
+- `clientWidth` es el tamaño de MAQUETA: ignora las transformaciones.
+  Para saber cuántos píxeles hacen falta de verdad —lienzos WebGL,
+  Three.js, cualquier cosa que se dibuje— el bueno es
+  `getBoundingClientRect()`.
+- Un `dispatchEvent` sintético NO hace hit-testing: atraviesa
+  `pointer-events: none` como si nada. Una prueba así puede dar verde
+  sobre un control que en el móvil no responde.
+- `getBoundingClientRect()` incluye las transformaciones, y eso muerde
+  al medir algo que está entrando con una animación de escala: devuelve
+  el fotograma, no la caja. Para maquetar, `offsetWidth/offsetHeight`.
+- Escribir `transform` entero desde JS borra lo que el CSS había puesto
+  ahí. Si una capa combina centrado y gesto, cada cosa en su variable.
 
 ## Hoja de ruta natural
 

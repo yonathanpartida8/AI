@@ -231,12 +231,25 @@ export function openColorPicker(anchor, initial, onChange) {
   document.body.append(pop);
   activePicker = pop;
 
-  // Posicionamiento junto al ancla, sin salirse de la pantalla
+  /*
+   * Colocación junto al ancla, pero SIEMPRE dentro de la pantalla.
+   *
+   * Antes el tamaño estaba escrito a mano (236x380) y había dejado de
+   * coincidir con el CSS, así que el cálculo fallaba: con el ancla
+   * abajo del todo de una hoja con scroll, el selector se abría fuera
+   * de la pantalla y no había forma de usarlo. Ahora se mide de
+   * verdad y se remata con un recorte que no admite excepciones.
+   */
   const rect = anchor.getBoundingClientRect();
-  const pw = 236, ph = 380;
-  let left = Math.min(Math.max(8, rect.left), innerWidth - pw - 8);
+  // offsetWidth/Height, NO getBoundingClientRect: el selector entra con
+  // una animación de escala y el rectángulo mediría el fotograma, no
+  // la caja real (y el cálculo se quedaba corto por unos píxeles).
+  const pw = pop.offsetWidth || 264, ph = pop.offsetHeight || 400;
+  const M = 10;
+  let left = Math.min(Math.max(M, rect.left), Math.max(M, innerWidth - pw - M));
   let top = rect.bottom + 8;
-  if (top + ph > innerHeight) top = Math.max(8, rect.top - ph - 8);
+  if (top + ph > innerHeight - M) top = rect.top - ph - 8;   // mejor encima
+  top = Math.min(Math.max(M, top), Math.max(M, innerHeight - ph - M));
   Object.assign(pop.style, { left: `${left}px`, top: `${top}px` });
 
   // Cierre al tocar fuera

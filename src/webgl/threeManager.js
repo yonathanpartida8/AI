@@ -104,7 +104,23 @@ export class ThreeManager {
     const customCode = kind === 'custom' ? (elem.querySelector('script[type="text/wb-3d"]')?.textContent || '') : '';
     const w = elem.clientWidth || 300, h = elem.clientHeight || 240;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+    /*
+     * Resolución por lo que SE VE, no por lo que mide la maqueta.
+     *
+     * setSize() usa el tamaño de diseño del elemento (300 px, pongamos)
+     * y el pixel ratio lo multiplica. Pero dentro del editor ese
+     * elemento se enseña al 29 % de zoom: 86 px reales. Renderizar a
+     * 750 px para enseñar 86 es pagar setenta veces lo necesario.
+     * getBoundingClientRect() sí incluye la transformación, así que
+     * dice cuántos píxeles hacen falta de verdad.
+     */
+    const densidadUtil = () => {
+      const maqueta = elem.clientWidth || 1;
+      const enPantalla = elem.getBoundingClientRect().width || maqueta;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      return Math.max(0.5, Math.min(dpr, (enPantalla / maqueta) * dpr));
+    };
+    renderer.setPixelRatio(densidadUtil());
     renderer.setSize(w, h);
     elem.append(renderer.domElement);
 
@@ -215,10 +231,26 @@ export class ThreeManager {
       window.addEventListener('pointerup', onWinUp);
     }
 
-    const tick = () => {
+    // El zoom del lienzo es una transformación: no dispara el
+    // ResizeObserver. Se revisa la densidad dos veces por segundo.
+    let proximaRevision = 0, densidadPuesta = renderer.getPixelRatio();
+    const revisarDensidad = (ahora) => {
+      if (ahora < proximaRevision) return;
+      proximaRevision = ahora + 500;
+      const d = densidadUtil();
+      if (Math.abs(d - densidadPuesta) < 0.12) return;
+      densidadPuesta = d;
+      renderer.setPixelRatio(d);
+      renderer.setSize(elem.clientWidth || 300, elem.clientHeight || 240);
+    };
+
+    const tick = (ahora) => {
       if (disposed) return;
       raf = requestAnimationFrame(tick);
-      if (!visible) return;
+      // Mientras el dedo recorre el lienzo, la escena aguanta el frame:
+      // el gesto manda y así va suave hasta en un teléfono modesto.
+      if (!visible || document.body.classList.contains('wb-gesturing')) { clock.getDelta(); return; }
+      revisarDensidad(ahora || 0);
       const dt = clock.getDelta();
       if (autoRotate && !dragging && kind !== 'custom') pivot.rotation.y += dt * 0.6 * rotSpeed;
       if (kind === 'heart') pivot.position.y = Math.sin(clock.elapsedTime * 1.4) * 0.08; // latido flotante

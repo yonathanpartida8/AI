@@ -45,8 +45,8 @@ export class Interactions {
     // OJO: nada de redibujar la superposición en 'view'. Las cajas de
     // selección viven DENTRO de #world: el pan/zoom ya las mueve gratis
     // por transform; reconstruirlas por frame hacía parpadear la barra
-    // rápida durante todo el gesto.
-    store.on('view', () => { const n = this.store.selectedNodes; if (n.length === 1) this.#placeQuickbar(n[0]); });
+    // de edición durante todo el gesto. Y la barra es fija (la coloca
+    // el CSS), así que tampoco hay nada que recolocar al hacer zoom.
     store.on('page', () => this.#stopMomentum());
     store.on('device', () => this.#stopMomentum());
 
@@ -552,19 +552,75 @@ export class Interactions {
     box.style.height = `${Math.abs(g.y1 - g.y0)}px`;
   }
 
+  /**
+   * MARCO DE SELECCIÓN.
+   *
+   * Se reconstruía entero en cada 'change' — y arrastrar, escalar o
+   * girar dispara uno por frame. Eran doce divs (uno con SVG dentro)
+   * más la barra de edición completa creados y tirados sesenta veces
+   * por segundo: basura pura y trabajo de layout gratis.
+   *
+   * Ahora hay dos vías:
+   *   · la selección cambió  → se construye el marco (rara vez)
+   *   · la misma selección   → solo se MUEVE lo que ya está puesto
+   */
   #renderOverlay() {
+    const selected = this.store.selectedNodes;
+    // Ids para decidir si la selección es otra (y si se anima la entrada);
+    // ids + estado para decidir si hay que reconstruir (la barra de
+    // edición muestra si la pieza está bloqueada u oculta).
+    const claveIds = selected.map((n) => n.id).join(',');
+    const claveEstado = selected.map((n) => `${n.id}:${n.locked ? 1 : 0}:${n.hidden ? 1 : 0}`).join(',');
+    const seleccionNueva = claveIds !== this.claveIds;
+
+    if (claveEstado === this.claveEstado && this.marco && this.marco.overlay.isConnected) {
+      this.#moverMarco(selected);
+      return;
+    }
+    this.claveIds = claveIds;
+    this.claveEstado = claveEstado;
+    this.#construirMarco(selected, seleccionNueva);
+  }
+
+  /** Vía rápida: la misma selección en otro sitio o de otro tamaño. */
+  #moverMarco(selected) {
+    const piezas = this.marco.piezas;
+    if (piezas.length !== selected.length) { this.marco = null; this.#renderOverlay(); return; }
+    for (let i = 0; i < selected.length; i++) {
+      const node = selected[i];
+      const p = piezas[i];
+      const f = this.store.frame(node);
+      const medidas = `${f.x}px|${f.y}px|${f.w}px|${f.h}px|${f.rotation || 0}`;
+      if (p.medidas === medidas) continue;      // ni una escritura de más
+      p.medidas = medidas;
+      const s = p.box.style;
+      s.left = `${f.x}px`; s.top = `${f.y}px`; s.width = `${f.w}px`; s.height = `${f.h}px`;
+      s.transform = `rotate(${f.rotation || 0}deg)`;
+      if (p.affix) {
+        const a = p.affix.style;
+        a.left = `${f.x}px`; a.top = `${f.y}px`; a.width = `${f.w}px`; a.height = `${f.h}px`;
+      }
+      if (p.label) {
+        // Mover no cambia el texto (nombre · ancho×alto): escribirlo
+        // igualmente reemplaza el nodo de texto en cada frame.
+        const texto = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
+        if (p.label.textContent !== texto) p.label.textContent = texto;
+      }
+    }
+  }
+
+  /** Vía lenta: la selección cambió, se monta el marco de cero. */
+  #construirMarco(selected, animar) {
     const overlay = this.view.overlay;
     const marquee = document.getElementById('marquee');
     overlay.innerHTML = '';
     if (marquee) overlay.append(marquee);
-    const selected = this.store.selectedNodes;
-    const single = selected.length === 1;
+    // Los refrescos que solo cambian estado (bloquear, ocultar) no
+    // deben reproducir la animación de entrada: parpadearía.
+    overlay.classList.toggle('sin-anim', !animar);
 
-    // La animación de entrada solo se reproduce cuando CAMBIA la selección;
-    // los refrescos por edición (sliders, nudges) no deben hacerla parpadear.
-    const key = selected.map((n) => n.id).join(',');
-    const isNewSelection = key !== this.lastOverlayKey;
-    this.lastOverlayKey = key;
+    const single = selected.length === 1;
+    const piezas = [];
 
     for (const node of selected) {
       const f = this.store.frame(node);
@@ -596,8 +652,10 @@ export class Interactions {
       }
       overlay.append(box);
 
-      // Etiqueta y barra rápida en un ANCLAJE SIN ROTAR: sobre un nodo
-      // girado (las polaroids lo están) deben verse siempre derechas.
+      const pieza = { box, affix: null, label: null, medidas: `${f.x}px|${f.y}px|${f.w}px|${f.h}px|${f.rotation || 0}` };
+
+      // Etiqueta y barra de edición en un ANCLAJE SIN ROTAR: sobre un
+      // nodo girado (las polaroids lo están) deben verse siempre derechas.
       if (single) {
         const affix = document.createElement('div');
         affix.className = 'sel-affix';
@@ -607,12 +665,16 @@ export class Interactions {
           label.className = 'sel-label';
           label.textContent = `${node.name} · ${Math.round(f.w)}×${Math.round(f.h)}`;
           affix.append(label);
+          pieza.label = label;
         }
         overlay.append(affix);
-        this.#showQuickbar(node, isNewSelection);
+        pieza.affix = affix;
+        this.#showQuickbar(node, animar);
       }
+      piezas.push(pieza);
     }
     if (!single) this.#hideQuickbar();
+    this.marco = { overlay, piezas };
   }
 
   /* ── Barra rápida: vive FUERA del lienzo escalado ──────
@@ -636,7 +698,6 @@ export class Interactions {
     const bar = this.#buildQuickbar(node);
     if (!animate) bar.classList.add('no-anim');
     host.replaceChildren(bar);
-    this.#placeQuickbar(node);
     this.#hintQuickbar(bar);
   }
 
@@ -656,32 +717,6 @@ export class Interactions {
     pista.addEventListener('scroll', marcar, { passive: true });
     marcar();
     requestAnimationFrame(marcar);   // tras el primer layout real
-  }
-
-  /** Coloca la barra junto al elemento (solo en pantalla ancha). */
-  #placeQuickbar(node) {
-    const host = this.qbHost;
-    const bar = host?.firstElementChild;
-    if (!bar) return;
-    // Misma condición que el CSS: compacto por ancho O por alto
-    if (window.matchMedia('(max-width: 820px), (max-height: 540px)').matches) {
-      host.classList.add('docked');       // barra inferior fija: la coloca el CSS
-      bar.style.left = bar.style.top = '';
-      return;
-    }
-    host.classList.remove('docked');
-    bar.style.bottom = 'auto';
-    const elem = this.#nodeEl(node.id);
-    if (!elem) return;
-    const r = elem.getBoundingClientRect();
-    const w = bar.offsetWidth || 300, h = bar.offsetHeight || 44;
-    const pad = 8;
-    let left = r.left + (r.width - w) / 2;
-    let top = r.top - h - pad;
-    if (top < 60) top = Math.min(r.bottom + pad, window.innerHeight - h - pad);
-    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
-    bar.style.left = `${Math.round(left)}px`;
-    bar.style.top = `${Math.round(top)}px`;
   }
 
   /**

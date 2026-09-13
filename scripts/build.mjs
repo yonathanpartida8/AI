@@ -61,12 +61,7 @@ ${css}
   <div id="draw-toolbar-slot"></div>
 
   <div id="workspace">
-    <aside id="left-panel"></aside>
-
     <main id="stage-area">
-      <div id="ruler-corner"></div>
-      <div id="ruler-h-wrap"><canvas id="ruler-h"></canvas></div>
-      <div id="ruler-v-wrap"><canvas id="ruler-v"></canvas></div>
       <div id="viewport">
         <div id="world">
           <div id="artboard"></div>
@@ -77,6 +72,8 @@ ${css}
       </div>
     </main>
 
+    <!-- Paneles: hojas inferiores, siempre (no hay modo escritorio) -->
+    <aside id="left-panel"></aside>
     <aside id="right-panel"></aside>
   </div>
 

@@ -25,8 +25,15 @@ const LS_KEY = 'nocode-builder:project';
 // así que 200 pasos cubren sesiones largas sin presión de memoria.
 const HISTORY_LIMIT = 200;
 
+/*
+ * Los tres tamaños del PROYECTO que se está creando. La clave
+ * `desktop` se conserva por compatibilidad con los proyectos ya
+ * guardados (es donde viven los estilos BASE), pero se presenta como
+ * "Base": aquí no hay escritorio, solo el lienzo de partida y sus dos
+ * ajustes para tablet y teléfono.
+ */
 export const DEVICES = {
-  desktop: { label: 'Escritorio', width: 1280, icon: '🖥' },
+  desktop: { label: 'Base', width: 1280, icon: '🎀' },
   tablet: { label: 'Tablet', width: 768, icon: '📱' },
   mobile: { label: 'Móvil', width: 390, icon: '📲' },
 };

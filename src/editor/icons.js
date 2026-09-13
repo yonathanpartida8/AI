@@ -16,7 +16,6 @@ const L = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
 const ICONS = {
   undo: P('M9 14 4 9l5-5') + P('M4 9h10a6 6 0 0 1 0 12h-3'),
   redo: P('M15 14l5-5-5-5') + P('M20 9H10a6 6 0 0 0 0 12h3'),
-  desktop: R(3, 4.5, 18, 12, 3.5) + L(9, 20, 15, 20) + L(12, 16.5, 12, 20),
   tablet: R(5, 3, 14, 18, 4) + L(11, 18, 13, 18),
   mobile: R(7, 2.5, 10, 19, 3.5) + L(11, 18, 13, 18),
   minus: L(5, 12, 19, 12),
@@ -81,8 +80,6 @@ const ICONS = {
   eyedrop: P('m4 20 1-4L15 6l3 3L8 19l-4 1z') + P('m13.5 4.5 2-2a2.1 2.1 0 0 1 3 3l-2 2'),
   check: P('m5 12.5 4.5 4.5L19 7.5'),
   more: C(5, 12, 1.6) + C(12, 12, 1.6) + C(19, 12, 1.6),
-  home: P('m4 11 8-7 8 7') + P('M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9'),
-  folder: P('M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9.5V17A1.5 1.5 0 0 1 19 18.5H5A1.5 1.5 0 0 1 3.5 17V7z'),
   divider: L(3, 12, 21, 12) + C(12, 12, 2),
 };
 
@@ -116,6 +113,5 @@ export const BLOCK_ICONS = {
   romanticHero: 'sparkles', letter: 'mail', timelineB: 'clock', countdownB: 'hourglass',
   polaroids: 'camera', secret: 'eyeOff', chapter: 'pages', music: 'music',
   reasons: 'heart', coupons: 'gift', question: 'ring', gift: 'gift', calendar: 'calendar',
-  game: 'gamepad', quotes: 'quote', hero: 'sparkles', features: 'grid', quote: 'quote',
   gallery: 'grid', faq: 'menu', contact: 'mail', cta: 'arrowRight', footer: 'rows',
 };

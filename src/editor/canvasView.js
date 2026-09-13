@@ -1,9 +1,9 @@
 /* ============================================================
- * editor/canvasView.js — Lienzo infinito del editor
+ * editor/canvasView.js — Lienzo del editor (táctil)
  *
  * Estructura de capas (de abajo a arriba):
  *
- *   #viewport  (área visible, captura wheel/pointer)
+ *   #viewport  (área visible, captura los gestos)
  *    └─ #world (transform: translate(pan) scale(zoom))
  *        ├─ #artboard   (la "página": nodos renderizados)
  *        ├─ #guides     (SVG: guías inteligentes de snap)
@@ -12,11 +12,9 @@
  *
  * El zoom/pan es UNA transform CSS en #world → el navegador lo
  * compone en GPU; repintar nodos nunca es necesario al navegar.
- * Las reglas se dibujan en <canvas> propios y solo se repintan
- * cuando cambia la vista (render bajo demanda).
  * ============================================================ */
 
-import { clamp, throttleRAF } from '../utils/helpers.js';
+import { clamp } from '../utils/helpers.js';
 
 export class CanvasView {
   constructor(store) {
@@ -27,15 +25,10 @@ export class CanvasView {
     this.guides = document.getElementById('guides');
     this.drawLayer = document.getElementById('draw-layer');
     this.overlay = document.getElementById('overlay');
-    this.rulerH = document.getElementById('ruler-h');
-    this.rulerV = document.getElementById('ruler-v');
 
-    // Las reglas se repintan como mucho una vez por frame (zoom/pan fluidos)
-    this.drawRulers = throttleRAF(this.drawRulers.bind(this));
     store.on('view', () => this.apply());
     store.on('change', () => this.syncSize());
     store.on('device', () => this.fit());
-    window.addEventListener('resize', () => this.drawRulers());
     this.apply();
   }
 
@@ -44,7 +37,6 @@ export class CanvasView {
     this.world.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
     // Los tiradores compensan el zoom para mantener tamaño constante en pantalla
     this.world.style.setProperty('--izoom', 1 / zoom);
-    this.drawRulers();
   }
 
   syncSize() {
@@ -93,7 +85,9 @@ export class CanvasView {
   fit() {
     const width = this.store.project.settings.breakpoints[this.store.device];
     const vw = this.viewport.clientWidth || window.innerWidth;
-    const margin = vw < 700 ? 24 : 120;
+    // Un respiro a los lados: el lienzo nunca pega contra el borde,
+    // y en tablet el margen crece un poco para que respire igual.
+    const margin = vw < 560 ? 24 : 48;
     const zoom = clamp((vw - margin) / width, 0.1, 1.5);
     this.store.setView(zoom, { x: (vw - width * zoom) / 2, y: 24 });
     this.syncSize();
@@ -110,37 +104,4 @@ export class CanvasView {
   }
 
   clearGuides() { this.guides.innerHTML = ''; }
-
-  /* ── Reglas ────────────────────────────────────────── */
-
-  drawRulers() {
-    const { zoom, pan } = this.store;
-    for (const [canvas, horizontal] of [[this.rulerH, true], [this.rulerV, false]]) {
-      if (!canvas) continue;
-      // En móvil las reglas están ocultas: no gastes un canvas 2D por frame
-      if (canvas.parentElement.offsetParent === null) continue;
-      const length = horizontal ? canvas.parentElement.clientWidth : canvas.parentElement.clientHeight;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = (horizontal ? length : 24) * dpr;
-      canvas.height = (horizontal ? 24 : length) * dpr;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-      ctx.fillStyle = '#0d1220';
-      ctx.fillRect(0, 0, horizontal ? length : 24, horizontal ? 24 : length);
-      ctx.fillStyle = '#5b6478';
-      ctx.strokeStyle = '#2a3244';
-      ctx.font = '9px system-ui';
-      const step = zoom > 1.5 ? 50 : zoom > 0.6 ? 100 : 250;
-      const offset = horizontal ? pan.x : pan.y;
-      const start = Math.floor(-offset / zoom / step) * step;
-      const end = start + length / zoom + step;
-      ctx.beginPath();
-      for (let value = start; value < end; value += step) {
-        const px = value * zoom + offset;
-        if (horizontal) { ctx.moveTo(px, 14); ctx.lineTo(px, 24); ctx.fillText(String(value), px + 3, 11); }
-        else { ctx.moveTo(14, px); ctx.lineTo(24, px); ctx.save(); ctx.translate(11, px + 3); ctx.rotate(-Math.PI / 2); ctx.fillText(String(value), 0, 0); ctx.restore(); }
-      }
-      ctx.stroke();
-    }
-  }
 }

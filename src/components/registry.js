@@ -46,7 +46,7 @@ const TEXT_STYLE = [
 export const Components = {
   /* ── Elementos básicos ─────────────────────────────── */
   text: {
-    label: 'Texto', icon: 'T', cat: 'Básicos', size: [320, 60],
+    label: 'Texto', icon: 'type', cat: 'Básicos', size: [320, 60],
     defaults: {
       props: { text: 'Doble clic para editar', tag: 'p', textFx: 'ninguno' },
       styles: { fontSize: 28, color: '#e2e8f0', fontWeight: '600', textAlign: 'left', fontFamily: 'system-ui' },

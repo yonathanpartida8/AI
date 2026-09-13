@@ -90,7 +90,7 @@ export const COMPONENT_CSS = `
 /* ── Mensaje oculto ── */
 .wb-hiddenmsg{position:relative;width:100%;height:100%;cursor:pointer;border-radius:inherit;overflow:hidden}
 .wb-hiddenmsg .wb-hm-secret{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8%;text-align:center;filter:blur(14px);opacity:.4;transition:filter .9s,opacity .9s;white-space:pre-line}
-.wb-hiddenmsg .wb-hm-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(10,8,28,.55);backdrop-filter:blur(2px);font-weight:600;transition:opacity .6s;border-radius:inherit}
+.wb-hiddenmsg .wb-hm-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(10,8,28,.55);font-weight:600;transition:opacity .6s;border-radius:inherit}
 .wb-hiddenmsg.revealed .wb-hm-secret{filter:blur(0);opacity:1}
 .wb-hiddenmsg.revealed .wb-hm-cover{opacity:0;pointer-events:none}
 
@@ -107,7 +107,7 @@ export const COMPONENT_CSS = `
 
 /* ── Contador de amor ── */
 .wb-count{display:flex;gap:10px;width:100%;height:100%;align-items:center;justify-content:center}
-.wb-count-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;height:100%;background:rgba(255,255,255,.07);border:1px solid rgba(244,114,182,.35);border-radius:14px;backdrop-filter:blur(4px)}
+.wb-count-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;height:100%;background:rgba(255,255,255,.07);border:1px solid rgba(244,114,182,.35);border-radius:14px}
 .wb-count-tile b{font-size:2em;font-weight:900;font-variant-numeric:tabular-nums}
 .wb-count-tile small{opacity:.7;font-size:.72em;text-transform:uppercase;letter-spacing:.08em}
 .wb-count-label{position:absolute;top:-26px;left:0;right:0;text-align:center;font-size:14px;opacity:.85}
@@ -205,7 +205,7 @@ export const COMPONENT_CSS = `
 @keyframes wb-page-fade{from{opacity:0}to{opacity:1}}
 @keyframes wb-page-slide{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
 @keyframes wb-page-zoom{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
-@keyframes wb-page-blur{from{opacity:0;filter:blur(16px)}to{opacity:1;filter:blur(0)}}
+@keyframes wb-page-blur{from{opacity:0;filter:blur(12px);transform:scale(1.03)}to{opacity:1;filter:blur(0);transform:none}}
 @keyframes wb-page-circulo{from{clip-path:circle(0% at 50% 50%)}to{clip-path:circle(140% at 50% 50%)}}
 @keyframes wb-page-cortina{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes wb-page-giro3d{from{opacity:0;transform:perspective(1100px) rotateY(-24deg) scale(.94)}to{opacity:1;transform:perspective(1100px) rotateY(0) scale(1)}}

@@ -554,13 +554,16 @@ ${asset.url}`
     // ── Proyecto y pantalla: Hz, resoluciones y orientación ──
     const settings = this.store.project.settings;
     const bps = settings.breakpoints;
+    // Solo tamaños de móvil y tablet: es para lo que se diseña aquí.
     const RES_PRESETS = [
-      ['', 'Resoluciones rápidas…'], ['390', 'Teléfono · 390'], ['844', 'Teléfono horizontal · 844'],
-      ['768', 'Tablet · 768'], ['1024', 'Tablet horizontal · 1024'], ['1280', 'Portátil · 1280'],
-      ['1440', 'Escritorio · 1440'], ['1920', 'TV / Monitor · 1920'],
+      ['', 'Tamaños rápidos…'],
+      ['360', 'Teléfono pequeño · 360'], ['390', 'Teléfono · 390'], ['430', 'Teléfono grande · 430'],
+      ['844', 'Teléfono horizontal · 844'],
+      ['768', 'Tablet · 768'], ['834', 'Tablet grande · 834'], ['1024', 'Tablet horizontal · 1024'],
+      ['1280', 'Tablet XL horizontal · 1280'],
     ];
     // Pares retrato ↔ paisaje para el giro de orientación
-    const FLIP = { 390: 844, 844: 390, 768: 1024, 1024: 768, 1280: 800, 800: 1280, 1440: 900, 900: 1440, 1920: 1080, 1080: 1920 };
+    const FLIP = { 360: 780, 780: 360, 390: 844, 844: 390, 430: 932, 932: 430, 768: 1024, 1024: 768, 834: 1194, 1194: 834, 1280: 800, 800: 1280 };
     const applyWidth = (width) => {
       if (!width || width < 120) return;
       this.store.snapshot();

@@ -1,9 +1,16 @@
 # BuilderYNTHN_M-Beta — Creador de Experiencias Románticas
 
-**Interfaz pastel pensada para el pulgar** (crema, rosa y menta, con
-temas Claro · Oscuro · Baddie · Pixel Art) y **motor de render incremental**: edita proyectos con decenas de elementos,
-HTML importado, 3D y partículas sin tirones — solo se reconstruye lo que
-cambia, y los iframes/WebGL sobreviven intactos entre ediciones.
+**Una app de móvil y tablet, no una web adaptada.** Aquí no hay versión
+de escritorio: una sola interfaz táctil, pensada para el pulgar, que en
+tablet respira más en vez de convertirse en otra cosa. Estética pastel
+—crema, rosa y menta— con temas Claro · Oscuro · Baddie · Pixel Art.
+
+**60 fps de verdad, también en un teléfono modesto.** Medido con la CPU
+frenada a un cuarto: 16,7 ms por fotograma en reposo, desplazando el
+lienzo, con una hoja abierta y arrastrando una pieza. Cero desenfoques
+de fondo, cero nodos creados durante un arrastre y **motor de render
+incremental**: solo se reconstruye lo que cambia, y los iframes/WebGL
+sobreviven intactos entre ediciones.
 
 **Carpetas de contenido propias** (`contenido/`): suelta tus escenas 3D,
 widgets HTML+CSS+JS, @keyframes y MP3 en sus carpetas y aparecen en el
@@ -75,14 +82,19 @@ Bloques con lógica precableada listos para usar: **La gran pregunta (Sí/No)**
 con celebración de corazones, **Cupones de amor** canjeables manteniendo
 presionado, y **Razones por las que te amo** con tarjetas 3D interactivas.
 
-### 📱 Interfaz pastel, hecha para el pulgar
+### 📱 Solo móvil y tablet, hecha para el pulgar
 Estética suave —crema, rosa y menta sobre tarjetas blancas— con sombras
-ligeras, esquinas generosas y animaciones cortas. Nada es una versión
-encogida del escritorio: los tamaños están pensados para el dedo y
-ningún botón baja de 44 px. La barra superior deja a la vista solo lo
-de cada minuto (deshacer, rehacer, zoom, **Vista previa**) y el resto
-vive en la hoja **Más**. Los paneles son hojas inferiores que se
-cierran deslizando.
+cortas, esquinas generosas y animaciones que nunca pasan de un tercio
+de segundo. Los tamaños están pensados para el dedo desde la base:
+ningún botón baja de 44 px, y cuando algo no cabe **se desplaza, no se
+encoge**. La barra superior deja a la vista solo lo de cada minuto
+(deshacer, rehacer y **Previa**); el zoom flota sobre el lienzo y el
+resto vive en la hoja **Más**. Los paneles son hojas inferiores que se
+cierran deslizando, con el lienzo atenuado detrás.
+
+En **tablet** es exactamente la misma app: las hojas se centran y se
+ensanchan, las rejillas ganan columnas y todo respira. Nunca aparece
+una barra lateral ni nada que pida un ratón.
 **Un dedo** desplaza el lienzo con inercia y rebote —pase por donde
 pase—. **Dos dedos** hacen zoom. **Desliza una capa o página a la
 izquierda** para borrarla (con «Deshacer» al instante) y **mantén
@@ -207,6 +219,25 @@ El sitio exportado ejecuta **los mismos runtimes que el editor** (se inyectan
 con `Function.toString()`): cero divergencia entre lo que diseñas y lo que
 compartes.
 
+### ⚡ Rendimiento medido, no prometido
+El editor se perfila con la CPU frenada a un cuarto (gama media) en un
+iPhone 12 emulado. Antes iba a 15 fps en reposo: los fondos de
+partículas se dibujaban a 4,2 megapíxeles para enseñarse en 390 px,
+porque medían su lienzo con el tamaño de maqueta y no con el real.
+Corregido eso —y el mismo fallo en las escenas 3D—, y con el marco de
+selección que ya no se reconstruye en cada fotograma de arrastre:
+
+| escena | antes | ahora |
+|---|---|---|
+| editor en reposo | 50–67 ms/frame | **16,7 ms** |
+| desplazar el lienzo | p95 66,7 ms | **p95 16,8 ms** |
+| arrastrar una pieza | cientos de nodos/s | **0 nodos creados** |
+| sitio exportado | 4,2 Mpx por fondo | **0,39 Mpx** |
+
+Veinte ciclos de uso intenso seguidos: memoria plana, contextos WebGL
+estables y cero errores. Las partículas y el 3D **aguantan el frame
+mientras el dedo recorre el lienzo**, así que el gesto siempre manda.
+
 ## Arquitectura
 
 Documentación técnica en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
@@ -221,7 +252,10 @@ Editor visual → ProjectStore (JSON) → Renderer compartido
      └─ Exportador (ZIP con carpeta assets/ · HTML de 1 archivo)
 ```
 
-## Atajos
+## Si conectas un teclado
+
+Todo se hace con el dedo, pero si enchufas un teclado a la tablet estos
+atajos siguen ahí (nunca han hecho falta, y no estorban):
 
 | | |
 |---|---|
@@ -229,5 +263,4 @@ Editor visual → ProjectStore (JSON) → Renderer compartido
 | Ctrl+C / V / D | copiar / pegar / duplicar |
 | Ctrl+Shift+C / V | copiar / pegar estilo |
 | Supr · Flechas | eliminar · mover (Shift ×10) |
-| Ctrl+rueda · Espacio+arrastrar | zoom · pan |
-| Doble clic en texto | editar inline |
+| Doble toque en un texto | editarlo ahí mismo |
