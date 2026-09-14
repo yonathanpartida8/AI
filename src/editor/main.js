@@ -14,7 +14,9 @@
  * conoce a otro directamente → sustituibles y testeables.
  * ============================================================ */
 
-import { el, download } from '../utils/helpers.js';
+import { el, download, showSnack } from '../utils/helpers.js';
+import { avisar, elegir } from '../utils/dialogo.js';
+import { makeSheetDismissable } from './bottomSheet.js';
 import { ic } from './icons.js';
 import { ProjectStore, DEVICES } from '../storage/projectStore.js';
 import { AssetManager } from '../assets/assetManager.js';
@@ -217,17 +219,35 @@ function buildTopbar(store, view, exporter, assets, repaint) {
           delete data.assetsData;
         }
         store.importJSON(data);
-      } catch (err) { alert(`No se pudo importar: ${err.message}`); }
+      } catch (err) {
+        avisar({ titulo: 'No se pudo importar', texto: err.message });
+      }
       e.target.value = '';
     },
   });
 
   /* Acciones de proyecto: mismas funciones, dos presentaciones */
-  const guard = async (btn, run, verbo) => {
+  /**
+   * Envuelve una acción larga: el botón se marca como ocupado (con su
+   * propio estado visual), y si falla se explica en un diálogo en vez
+   * de en una ventana del navegador.
+   */
+  const guard = async (btn, run, verbo, trabajando) => {
     btn.disabled = true;
-    try { await run(); }
-    catch (err) { alert(`Error al ${verbo}: ${err.message}`); console.error(err); }
-    btn.disabled = false;
+    btn.classList.add('cargando');
+    const aviso = trabajando ? showSnack(trabajando, null, null, 0) : null;
+    try {
+      await run();
+      aviso?.cerrar();
+      if (trabajando) showSnack('Listo, ya lo tienes descargado');
+    } catch (err) {
+      console.error(err);
+      aviso?.cerrar();
+      avisar({ titulo: `No se pudo ${verbo}`, texto: err.message || 'Ha fallado algo por el camino.' });
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('cargando');
+    }
   };
   const PROJECT_ACTIONS = [
     {
@@ -240,28 +260,39 @@ function buildTopbar(store, view, exporter, assets, repaint) {
     },
     {
       icon: 'download', label: 'Guardar', title: 'Descarga el proyecto COMPLETO (incluye tus GIFs, imágenes y vídeos)',
-      run: () => {
+      run: (btn) => guard(btn, async () => {
         // El .json incluye los assets → el archivo es 100% autocontenido
         const data = { ...store.exportJSON(), assetsData: assets.exportData() };
         download(`${store.project.meta.name}.json`, new Blob([JSON.stringify(data)], { type: 'application/json' }));
-      },
+      }, 'guardar', 'Preparando la copia…'),
     },
     {
       icon: 'file', label: 'HTML (1 archivo)', cls: 'primary',
       title: 'Todo el sitio en un único archivo autocontenido: ábrelo directamente en el móvil',
-      run: (btn) => guard(btn, () => exporter.exportSingle(), 'exportar'),
+      run: (btn) => guard(btn, () => exporter.exportSingle(), 'exportar', 'Montando el archivo…'),
     },
     {
       icon: 'archive', label: 'Sitio (.zip)', cls: 'primary',
       title: 'Carpeta de proyecto completa para subir a un hosting',
-      run: (btn) => guard(btn, () => exporter.export(), 'exportar'),
+      run: (btn) => guard(btn, () => exporter.export(), 'exportar', 'Empaquetando el sitio…'),
     },
     {
       icon: 'trash', label: 'Nuevo', cls: 'danger', title: 'Proyecto nuevo (borra el actual)',
-      run: () => {
-        if (!confirm('¿Empezar un proyecto nuevo? El actual se descartará.')) return;
-        const template = confirm('¿Empezar con la plantilla de ejemplo?\n(Aceptar = plantilla · Cancelar = lienzo en blanco)');
-        store.reset(!template);
+      run: async () => {
+        // Una sola pregunta con las dos salidas, en vez de encadenar
+        // dos confirmaciones del navegador donde "Cancelar" quería
+        // decir cosas distintas cada vez.
+        const cómo = await elegir({
+          titulo: 'Empezar de nuevo',
+          texto: 'El proyecto actual se descartará. ¿Con qué quieres empezar?',
+          opciones: [
+            { texto: 'Con la plantilla romántica', valor: 'plantilla', cls: 'primary' },
+            { texto: 'Con el lienzo en blanco', valor: 'blanco' },
+          ],
+        });
+        if (!cómo) return;
+        store.reset(cómo === 'blanco');
+        showSnack(cómo === 'blanco' ? 'Lienzo en blanco listo' : 'Plantilla cargada');
       },
     },
   ];
@@ -425,140 +456,6 @@ function buildMobileNav(store, panels, view) {
   // Deslizar hacia abajo cierra cualquier hoja (gesto natural)
   makeSheetDismissable(left, closeAll);
   makeSheetDismissable(right, closeAll);
-}
-
-/**
- * CAJÓN TÁCTIL DE VERDAD (bottom sheet).
- *
- * La hoja sigue al dedo desde CUALQUIER punto, no solo desde el asa.
- * Lo difícil no es arrastrarla: es no arrastrarla cuando lo que
- * quieres es recorrer la lista de dentro. La regla:
- *
- *   · el dedo va claramente de lado        → no es cosa nuestra
- *   · la lista NO está arriba del todo     → es scroll de la lista
- *   · la lista está arriba y bajas el dedo → arrastras el cajón
- *
- * La decisión se toma una sola vez, tras 8 px de recorrido, y ya no
- * cambia en todo el gesto: nada de cajones que empiezan a moverse a
- * mitad de un scroll. Y al soltar, el cajón solo se cierra si lo has
- * bajado de verdad (60 % de su altura) o si lo has lanzado hacia
- * abajo; si no, vuelve a su sitio con un muelle.
- */
-function makeSheetDismissable(sheet, close) {
-  const UMBRAL = 8;          // px antes de decidir qué gesto es
-  const CIERRA = 0.6;        // fracción de la altura que hay que bajar
-  // 1,4 px/ms son unos 1400 px/s: un lanzamiento de verdad. Con menos
-  // (0,9) un arrastre decidido a media altura ya cerraba, y lo que se
-  // pide es justo lo contrario: bajarlo hasta abajo o no se cierra.
-  const LANZA = 1.4;         // px/ms hacia abajo que cierra de un gesto
-  const RESISTE = 4;         // cuánto cuesta tirar hacia arriba
-
-  let puntero = null, y0 = 0, x0 = 0, avance = 0, modo = null, lista = null;
-  let ultimaY = 0, ultimaT = 0, velocidad = 0;
-
-  /** El contenedor con scroll bajo el dedo (o la hoja, si scrollea ella). */
-  const listaBajo = (destino) => {
-    let n = destino;
-    while (n && n !== sheet.parentElement) {
-      if (n.scrollHeight > n.clientHeight + 1) {
-        const ov = getComputedStyle(n).overflowY;
-        if (ov === 'auto' || ov === 'scroll') return n;
-      }
-      if (n === sheet) break;
-      n = n.parentElement;
-    }
-    return null;
-  };
-
-  /** Controles que se manejan con su propio arrastre: no se tocan. */
-  const esSuyo = (destino) => destino.closest(
-    'input, textarea, select, canvas, .scale-track, .layer-grip, .swipeable, .cp-pop, [data-handle]',
-  );
-
-  const soltarPuntero = () => {
-    if (puntero == null) return;
-    try { sheet.releasePointerCapture(puntero); } catch { /* ya liberado */ }
-    puntero = null;
-  };
-
-  sheet.addEventListener('pointerdown', (e) => {
-    if (!sheet.classList.contains('open') || puntero != null) return;
-    if (esSuyo(e.target)) return;
-    puntero = e.pointerId;
-    x0 = e.clientX; y0 = e.clientY;
-    ultimaY = e.clientY; ultimaT = e.timeStamp;
-    avance = 0; velocidad = 0; modo = null;
-    lista = listaBajo(e.target);
-  }, { passive: true });
-
-  sheet.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== puntero) return;
-    const dy = e.clientY - y0;
-    const dx = e.clientX - x0;
-
-    // ── Se decide UNA vez, y para todo el gesto ──
-    if (!modo) {
-      if (Math.abs(dy) < UMBRAL && Math.abs(dx) < UMBRAL) return;
-      if (Math.abs(dx) > Math.abs(dy) * 1.2) { modo = 'lado'; soltarPuntero(); return; }
-      // Bajar con la lista ya arriba del todo = arrastrar el cajón.
-      // En cualquier otro caso manda el scroll de dentro.
-      const arriba = !lista || lista.scrollTop <= 0;
-      if (dy > 0 && arriba) {
-        modo = 'cajon';
-        sheet.style.transition = 'none';
-        try { sheet.setPointerCapture(e.pointerId); } catch { /* sintético */ }
-      } else {
-        modo = 'scroll';
-        soltarPuntero();
-        return;
-      }
-    }
-    if (modo !== 'cajon') return;
-
-    // Velocidad instantánea, para saber si lo ha lanzado
-    const dt = e.timeStamp - ultimaT;
-    if (dt > 0) velocidad = (e.clientY - ultimaY) / dt;
-    ultimaY = e.clientY; ultimaT = e.timeStamp;
-
-    // Hacia arriba el cajón se resiste (ya está en su tope)
-    avance = dy >= 0 ? dy : dy / RESISTE;
-    sheet.style.setProperty('--arrastre', `${avance}px`);
-  }, { passive: true });
-
-  const terminar = (e) => {
-    if (e.pointerId !== puntero && puntero != null) return;
-    const eraCajon = modo === 'cajon';
-    soltarPuntero();
-    modo = null; lista = null;
-    if (!eraCajon) return;
-
-    sheet.style.transition = '';
-    const alto = sheet.offsetHeight || 400;
-    /*
-     * Manda la DISTANCIA: hay que bajarlo hasta el 60 % de su altura.
-     * Lanzarlo hacia abajo no lo cierra por sí solo, solo rebaja lo
-     * que hace falta recorrer (al 50 %). Así el gesto tiene inercia
-     * sin que un arrastre a media altura cierre el cajón sin querer.
-     */
-    const necesario = alto * (velocidad > LANZA ? 0.5 : CIERRA);
-
-    if (avance > necesario) {
-      // Se cierra desde donde está: quitar .open lleva el transform
-      // hasta abajo y --arrastre vuelve a 0 en el mismo movimiento.
-      sheet.style.removeProperty('--arrastre');
-      close();
-      if (navigator.vibrate) navigator.vibrate(8);
-    } else {
-      // No ha llegado: vuelve con muelle
-      sheet.style.transition = 'transform .34s cubic-bezier(.28,1.35,.5,1)';
-      sheet.style.removeProperty('--arrastre');
-      const limpiar = () => { sheet.style.transition = ''; sheet.removeEventListener('transitionend', limpiar); };
-      sheet.addEventListener('transitionend', limpiar);
-    }
-    avance = 0;
-  };
-  sheet.addEventListener('pointerup', terminar);
-  sheet.addEventListener('pointercancel', terminar);
 }
 
 /* ── Vista previa dentro del editor ──────────────────── */

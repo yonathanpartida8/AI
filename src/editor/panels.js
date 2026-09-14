@@ -11,6 +11,8 @@
  * ============================================================ */
 
 import { el, formatBytes, debounce, showSnack } from '../utils/helpers.js';
+import { confirmar, preguntar, avisar } from '../utils/dialogo.js';
+import { makeSheetDismissable } from './bottomSheet.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS, THEMES } from '../storage/templates.js';
@@ -78,6 +80,13 @@ function enableSwipeDelete(row, onDelete) {
   }, true);
   return row;
 }
+
+/** Nombre presentable de cada carpeta de la biblioteca. */
+const NOMBRE_CARPETA = {
+  images: 'Imágenes', gifs: 'GIFs', videos: 'Vídeos', audio: 'Audio',
+  models: 'Modelos 3D', fonts: 'Fuentes', html: 'Páginas HTML',
+  'online assets': 'Traídos de internet',
+};
 
 export class Panels {
   constructor(store, assets, view) {
@@ -284,7 +293,27 @@ export class Panels {
   #renderAssets(body) {
     const input = el('input', {
       type: 'file', multiple: 'true', accept: ACCEPT_ATTR, style: { display: 'none' },
-      onchange: async (e) => { await this.assets.importFiles([...e.target.files]); e.target.value = ''; },
+      onchange: async (e) => {
+        const archivos = [...e.target.files];
+        e.target.value = '';
+        if (!archivos.length) return;
+        // Subir varias fotos grandes tarda: se dice por dónde va y,
+        // si alguna falla, se cuenta cuál en vez de callar.
+        const aviso = showSnack(`Subiendo 0 de ${archivos.length}…`, null, null, 0);
+        const hechos = await this.assets.importFiles(archivos, {
+          alProgreso: (n, total) => aviso?.actualizar(`Subiendo ${n} de ${total}…`),
+        });
+        aviso?.cerrar();
+        const fallos = hechos.fallos || [];
+        if (fallos.length) {
+          showSnack(`${hechos.length} subido(s) · no se pudo con ${fallos.length}`, 'Ver', () => avisar({
+            titulo: 'Archivos que no entraron',
+            texto: fallos.join('\n'),
+          }));
+        } else if (hechos.length) {
+          showSnack(`${hechos.length} recurso${hechos.length === 1 ? '' : 's'} en la biblioteca`);
+        }
+      },
     });
 
     /* ── Online assets: recursos por URL, cacheados como locales ──
@@ -410,11 +439,6 @@ export class Panels {
     const ICONO_TIPO = { audio: 'music', model: 'cube', font: 'type', html: 'globe', video: 'video', gif: 'film' };
 
     // Agrupado por carpeta: "online assets" y lo que tú organices
-    const NOMBRE_CARPETA = {
-      images: 'Imágenes', gifs: 'GIFs', videos: 'Vídeos', audio: 'Audio',
-      models: 'Modelos 3D', fonts: 'Fuentes', html: 'Páginas HTML',
-      'online assets': 'Traídos de internet',
-    };
     const carpetas = new Map();
     for (const asset of list) {
       const clave = asset.folder || 'otros';
@@ -429,17 +453,31 @@ export class Panels {
       }
       for (const asset of recursos) {
         const kind = asset.kind;
+        // Si el archivo está roto, la tarjeta lo DICE en vez de dejar
+        // un hueco blanco que parece un fallo del editor.
+        const roto = (e) => {
+          const t = e.currentTarget;
+          t.replaceWith(el('div', { class: 'asset-thumb kind-icon roto', html: ic('close'), title: 'No se pudo leer este archivo' }));
+        };
         const preview = kind === 'video'
-          ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb' })
+          ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb', onerror: roto })
           : ['image', 'gif', 'svg'].includes(kind)
-            ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async' })
+            ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async', onerror: roto })
             : el('div', { class: 'asset-thumb kind-icon', html: ic(ICONO_TIPO[kind] || 'file') });
 
         grid.append(el('div', {
           class: `asset-card${asset.remote ? ' remote' : ''}${usados.has(asset.id) ? ' en-uso' : ''}`,
           draggable: 'true',
           ondragstart: (e) => e.dataTransfer.setData('application/x-wb-asset', asset.id),
+          // Mantener pulsado abre la ficha; un toque normal lo usa
+          onpointerdown: (e) => this.#armarFicha(e, asset),
+          oncontextmenu: (e) => { e.preventDefault(); this.#abrirFichaAsset(asset); },
           onclick: () => {
+            // Tras abrir la ficha el navegador suele lanzar un clic de
+            // propina. Se descarta por TIEMPO, no con un testigo: un
+            // testigo que nadie consuma se queda pegado y se come el
+            // siguiente toque de verdad.
+            if (performance.now() - (this.fichaDesde || 0) < 600) return;
             this.#useAsset(asset);
             if (navigator.vibrate) navigator.vibrate(8);
           },
@@ -459,11 +497,136 @@ export class Panels {
           ]),
           el('button', {
             class: 'asset-del', html: ic('close'), title: 'Eliminar asset',
-            onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${asset.name}"?`)) this.assets.remove(asset.id); },
+            onclick: async (e) => {
+              e.stopPropagation();
+              const fuera = await confirmar({
+                titulo: `¿Eliminar "${asset.name}"?`,
+                texto: 'Las piezas que lo estén usando se quedarán sin él.',
+                aceptar: 'Eliminar', peligro: true,
+              });
+              if (fuera) this.assets.remove(asset.id);
+            },
           }),
         ]));
       }
     }
+  }
+
+  /** Pulsación larga (450 ms sin moverse) sobre una tarjeta → ficha. */
+  #armarFicha(e, asset) {
+    if (e.pointerType === 'mouse') return;          // con ratón, clic derecho
+    const x0 = e.clientX, y0 = e.clientY;
+    const tarjeta = e.currentTarget;
+    let temporizador = setTimeout(() => {
+      temporizador = null;
+      this.fichaDesde = performance.now();          // el clic de propina se ignora
+      if (navigator.vibrate) navigator.vibrate(12);
+      this.#abrirFichaAsset(asset);
+    }, 450);
+    const cancelar = (ev) => {
+      if (ev.type === 'pointermove' && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 10) return;
+      clearTimeout(temporizador);
+      tarjeta.removeEventListener('pointermove', cancelar);
+      tarjeta.removeEventListener('pointerup', cancelar);
+      tarjeta.removeEventListener('pointercancel', cancelar);
+    };
+    tarjeta.addEventListener('pointermove', cancelar);
+    tarjeta.addEventListener('pointerup', cancelar);
+    tarjeta.addEventListener('pointercancel', cancelar);
+  }
+
+  /**
+   * FICHA DEL RECURSO — lo que un `title` nunca podrá contar.
+   *
+   * Vista previa grande de verdad (el vídeo se ve, el audio suena),
+   * nombre y etiquetas editables —las etiquetas ya se podían buscar
+   * pero no había forma de ponerlas—, dónde se usa y las acciones.
+   * Se abre manteniendo pulsada la tarjeta.
+   */
+  #abrirFichaAsset(asset) {
+    document.querySelector('#asset-sheet')?.remove();
+
+    const usos = this.store.pageNodes().filter((n) => {
+      const p = n.props || {};
+      return p.assetId === asset.id || (Array.isArray(p.assetIds) && p.assetIds.includes(asset.id));
+    });
+
+    const vista = asset.kind === 'video'
+      ? el('video', { class: 'ficha-vista', src: asset.data, controls: 'true', playsinline: 'true' })
+      : asset.kind === 'audio'
+        ? el('audio', { class: 'ficha-audio', src: asset.data, controls: 'true' })
+        : ['image', 'gif', 'svg'].includes(asset.kind)
+          ? el('img', { class: 'ficha-vista', src: asset.data, alt: asset.name })
+          : el('div', { class: 'ficha-vista ficha-icono', html: ic({ model: 'cube', font: 'type', html: 'globe' }[asset.kind] || 'file') });
+
+    const nombre = el('input', { class: 'input', value: asset.name });
+    const etiquetas = el('input', {
+      class: 'input', value: (asset.tags || []).join(', '),
+      placeholder: 'romántico, fondo, ella…',
+    });
+
+    const cerrar = () => {
+      hoja.classList.remove('open');
+      document.body.classList.remove('sheet-open');
+      setTimeout(() => hoja.remove(), 340);
+    };
+    const guardar = async () => {
+      await this.assets.rename(asset.id, nombre.value);
+      await this.assets.setTags(asset.id, etiquetas.value.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean));
+      showSnack('Guardado');
+      cerrar();
+    };
+
+    const hoja = el('aside', { id: 'asset-sheet', class: 'sheet' }, [
+      el('h3', { class: 'sheet-title', text: asset.name, title: asset.name }),
+      el('div', { class: 'sheet-body' }, [
+        el('div', { class: 'ficha-marco' }, [vista]),
+        el('dl', { class: 'ficha-datos' }, [
+          el('div', {}, [el('dt', { text: 'Tipo' }), el('dd', { text: ASSET_KINDS[asset.kind]?.label || asset.kind })]),
+          el('div', {}, [el('dt', { text: 'Peso' }), el('dd', { text: formatBytes(asset.size) })]),
+          el('div', {}, [el('dt', { text: 'Carpeta' }), el('dd', { text: NOMBRE_CARPETA[asset.folder] || asset.folder || '—' })]),
+          el('div', {}, [el('dt', { text: 'En esta página' }), el('dd', {
+            class: usos.length ? 'si' : '',
+            text: usos.length ? `${usos.length} ${usos.length === 1 ? 'pieza' : 'piezas'}` : 'sin usar',
+          })]),
+        ]),
+        this.#field('Nombre', nombre),
+        this.#field('Etiquetas (separadas por comas)', etiquetas),
+        el('p', { class: 'panel-hint', text: 'Las etiquetas sirven para encontrarlo desde el buscador.' }),
+        el('div', { class: 'btn-row' }, [
+          el('button', {
+            class: 'btn primary', html: `${ic('plus')}<span>Usar</span>`,
+            onclick: () => { this.#useAsset(asset); cerrar(); },
+          }),
+          el('button', { class: 'btn', html: `${ic('check')}<span>Guardar</span>`, onclick: guardar }),
+        ]),
+        el('button', {
+          class: 'btn danger block', html: `${ic('trash')}<span>Eliminar recurso</span>`,
+          onclick: async () => {
+            const fuera = await confirmar({
+              titulo: `¿Eliminar "${asset.name}"?`,
+              texto: usos.length
+                ? `Lo están usando ${usos.length} ${usos.length === 1 ? 'pieza' : 'piezas'} de esta página.`
+                : 'No lo está usando nada ahora mismo.',
+              aceptar: 'Eliminar', peligro: true,
+            });
+            if (!fuera) return;
+            await this.assets.remove(asset.id);
+            cerrar();
+          },
+        }),
+      ]),
+    ]);
+    document.body.append(hoja);
+    makeSheetDismissable(hoja, cerrar);
+    // Primero se cierran las demás hojas y DESPUÉS se escucha el
+    // aviso: al revés, la ficha se cerraba a sí misma al nacer.
+    document.dispatchEvent(new CustomEvent('wb:close-sheets'));
+    document.addEventListener('wb:close-sheets', cerrar, { once: true });
+    requestAnimationFrame(() => {
+      hoja.classList.add('open');
+      document.body.classList.add('sheet-open');
+    });
   }
 
   #useAsset(asset, at = null) {
@@ -653,9 +816,13 @@ export class Panels {
         el('span', { class: 'page-body' }, [
           el('span', {
             class: 'page-name', text: page.name, title: 'Toca dos veces para renombrar',
-            ondblclick: (e) => {
+            ondblclick: async (e) => {
               e.stopPropagation();
-              const name = prompt('Nombre de la página:', page.name);
+              const name = await preguntar({
+                titulo: 'Nombre de la página',
+                etiqueta: 'Cómo se llama',
+                valor: page.name,
+              });
               if (name) this.store.renamePage(page.id, name);
             },
           }),
@@ -666,8 +833,13 @@ export class Panels {
           el('button', { html: ic('down'), title: 'Bajar', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, 1); } }),
           el('button', { html: ic('duplicate'), title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
         ]),
-      ]), () => {
-        if (canDelete && confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id);
+      ]), async () => {
+        const fuera = canDelete && await confirmar({
+          titulo: `¿Eliminar "${page.name}"?`,
+          texto: 'Se borra la página con todo lo que tenga dentro.',
+          aceptar: 'Eliminar', peligro: true,
+        });
+        if (fuera) this.store.deletePage(page.id);
         else this.render(); // restaura la fila si se canceló
       }));
     });
@@ -797,7 +969,40 @@ export class Panels {
     );
   }
 
-  /* ── Capas ─────────────────────────────────────────── */
+  /**
+   * Construye una lista larga POR TANDAS.
+   *
+   * Montar 51 capas de una vez era una tarea de 95 ms: el dedo se
+   * quedaba pegado mientras subía el cajón. Se pintan las primeras
+   * (las que caben en pantalla) y el resto entra en tandas, un frame
+   * cada una, así que ninguna tarea bloquea.
+   *
+   * El testigo `tandaId` cancela lo pendiente si se vuelve a pintar
+   * el panel: nunca se mezclan dos listas.
+   */
+  #porTandas(elementos, construir, destino, primeras = 10, tanda = 6) {
+    const mío = (this.tandaId = (this.tandaId || 0) + 1);
+    const hasta = Math.min(primeras, elementos.length);
+    for (let i = 0; i < hasta; i++) destino.append(construir(elementos[i], i));
+    if (hasta >= elementos.length) return;
+
+    let desde = hasta;
+    // Tandas pequeñas y en los huecos libres: mientras el cajón sube,
+    // el navegador tiene otras cosas que hacer y esto puede esperar.
+    const cuandoSePueda = window.requestIdleCallback
+      ? (fn) => window.requestIdleCallback(fn, { timeout: 200 })
+      : (fn) => requestAnimationFrame(fn);
+    const seguir = () => {
+      if (mío !== this.tandaId || !destino.isConnected) return;   // se repintó
+      const fin = Math.min(desde + tanda, elementos.length);
+      const trozo = document.createDocumentFragment();
+      for (let i = desde; i < fin; i++) trozo.append(construir(elementos[i], i));
+      destino.append(trozo);
+      desde = fin;
+      if (desde < elementos.length) cuandoSePueda(seguir);
+    };
+    cuandoSePueda(seguir);
+  }
 
   /* ── Capas ─────────────────────────────────────────────
    * Cada fila dice de un vistazo qué es, si se ve y si está fija.
@@ -827,7 +1032,7 @@ export class Panels {
         : `${visibles.length} de ${nodes.length} capas`,
     }));
 
-    for (const node of visibles) {
+    const filaDeCapa = (node) => {
       const selected = this.store.selection.includes(node.id);
       const fila = el('div', {
         class: `layer-item${selected ? ' active' : ''}${node.hidden ? ' oculta' : ''}${node.locked ? ' fija' : ''}`,
@@ -862,12 +1067,13 @@ export class Panels {
           onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'locked'); },
         }),
       ]);
-      list.append(enableSwipeDelete(fila, () => {
+      return enableSwipeDelete(fila, () => {
         this.store.removeNodes([node.id]);
         showSnack(`"${node.name}" eliminada`, 'Deshacer', () => this.store.undo());
-      }));
-    }
+      });
+    };
     body.append(list);
+    this.#porTandas(visibles, filaDeCapa, list);
   }
 
   /**

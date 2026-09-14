@@ -10,7 +10,7 @@
  *   nodo `drawing` totalmente editable (mover, escalar, animar…).
  * ============================================================ */
 
-import { el, download, fileToDataURL } from '../utils/helpers.js';
+import { el, download, fileToDataURL, showSnack } from '../utils/helpers.js';
 import { ic } from './icons.js';
 
 /** Texturas de papel de la libreta (fondo visual del lienzo de dibujo). */
@@ -244,7 +244,7 @@ export class DrawTool {
         }
       }
     }
-    if (!found) { alert('El lienzo de dibujo está vacío.'); return; }
+    if (!found) { showSnack('El lienzo de dibujo está vacío'); return; }
     const pad = 6;
     minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
     maxX = Math.min(width, maxX + pad); maxY = Math.min(height, maxY + pad);

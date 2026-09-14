@@ -101,6 +101,25 @@ Y el **teclado virtual** ya no tapa nada: cuando aparece, la barra
 inferior se aparta, el cajón se apoya justo encima del teclado y el
 campo que estás escribiendo se coloca a la vista.
 
+### 🪟 Nada de ventanas del navegador
+Ni un `alert`, ni un `confirm`, ni un `prompt`. Esos diálogos congelan
+la página entera (animaciones y WebGL incluidos) y se ven como lo que
+son. En su lugar hay diálogos propios: se cierran tocando fuera o con
+Escape, y las preguntas con dos salidas se hacen **una sola vez** en
+lugar de encadenar dos confirmaciones.
+
+### ⏳ Siempre se sabe qué está pasando
+Los botones de acciones largas se marcan como ocupados, exportar y
+guardar avisan mientras trabajan y confirman al terminar, y subir
+varias fotos dice por dónde va — si una falla, **las demás entran
+igual** y te dice cuál no pudo.
+
+### 🔖 Ficha de cada recurso
+Mantén pulsado un asset y se abre su ficha: vista previa grande (el
+vídeo se ve, el audio suena), tipo, peso, carpeta, en cuántas piezas se
+usa, y su **nombre y etiquetas editables**. Las etiquetas luego sirven
+para encontrarlo desde el buscador.
+
 ### 🗂️ Cajones que se manejan con el dedo
 Los paneles son cajones de verdad. Siguen al dedo desde cualquier
 punto, pero saben distinguir: si vas de lado no se mueven, si la lista
@@ -253,6 +272,15 @@ selección que ya no se reconstruye en cada fotograma de arrastre:
 | desplazar el lienzo | p95 66,7 ms | **p95 16,8 ms** |
 | arrastrar una pieza | cientos de nodos/s | **0 nodos creados** |
 | sitio exportado | 4,2 Mpx por fondo | **0,39 Mpx** |
+
+Abrir cada panel también se midió, y se arregló: las listas largas se
+montan por tandas y lo que no se ve no se maqueta.
+
+| panel | antes | ahora |
+|---|---|---|
+| Capas (51 piezas) | 167 ms, con un parón de 112 ms | **9,7 ms, sin parones** |
+| Piezas | 87 ms, parón de 57 ms | **13 ms, sin parones** |
+| Páginas | 87 ms, parón de 60 ms | **11,5 ms, sin parones** |
 
 Y un barrido de **once dispositivos** (iPhone SE/12/15 Pro Max, Galaxy
 A14/S24+, Pixel 8, iPad mini/Pro y tres en horizontal), siete pantallas

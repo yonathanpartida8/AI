@@ -202,7 +202,13 @@ button { background: none; border: none; cursor: pointer; }
 button, [draggable], .palette-item, .block-item, .tab-btn, .seg-btn, .chip,
 .asset-card, .page-item, .layer-item, .qb-btn, .mn-label { user-select: none; -webkit-user-select: none; }
 
-.ic { width: var(--ic); height: var(--ic); flex: none; }
+/* Los atributos comunes de la iconografía viven AQUÍ, una sola vez,
+   en vez de repetirse en cada uno de los SVG del documento. */
+.ic {
+  width: var(--ic); height: var(--ic); flex: none;
+  fill: none; stroke: currentColor;
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+}
 .mn-icon .ic { width: var(--ic-lg); height: var(--ic-lg); }
 .palette-icon .ic { width: 30px; height: 30px; }
 
@@ -509,7 +515,10 @@ body.sheet-open .zoom-label, body.preview .zoom-label { opacity: 0; pointer-even
 .panel-body > .panel-heading:first-child, .sheet-body > .panel-heading:first-child { margin-top: 4px; }
 .panel-hint { margin: 10px 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--text-dim); }
 
-.sheet-title { padding: 6px 20px 6px; font-size: var(--fs-lg); font-weight: 850; letter-spacing: -.02em; }
+.sheet-title {
+  padding: 6px 20px 6px; font-size: var(--fs-lg); font-weight: 850; letter-spacing: -.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .sheet-body {
   flex: 1; min-height: 0; padding: 4px 16px 12px;
   overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
@@ -733,6 +742,8 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
   display: block;
 }
 .asset-thumb.kind-icon { display: grid; place-items: center; color: var(--accent); }
+/* Archivo ilegible: se nota que el fallo es del archivo, no del editor */
+.asset-thumb.kind-icon.roto { color: var(--danger-deep); background: var(--danger-soft); }
 .asset-thumb.kind-icon .ic { width: 34px; height: 34px; }
 
 /* Etiqueta del tipo: en el móvil nadie ve un `title` */
@@ -774,6 +785,44 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 }
 .asset-card.loading { opacity: .55; }
 .online-block { margin-top: 8px; background: var(--surface); }
+
+/* ══ FICHA DE UN RECURSO ═════════════════════════════════
+   Lo que un `title` nunca podrá contar en un móvil: vista previa
+   de verdad, datos y las etiquetas, que hasta ahora se podían
+   buscar pero no poner. */
+
+.ficha-marco {
+  display: grid; place-items: center;
+  min-height: 180px; padding: 14px; margin-bottom: 14px;
+  background: var(--bg); border-radius: var(--r);
+}
+.ficha-vista {
+  max-width: 100%; max-height: 260px;
+  border-radius: var(--r-sm); display: block;
+  object-fit: contain;
+}
+.ficha-vista.ficha-icono {
+  display: grid; place-items: center;
+  width: 96px; height: 96px; color: var(--accent);
+  background: var(--surface); box-shadow: var(--shadow-xs);
+}
+.ficha-vista.ficha-icono .ic { width: 48px; height: 48px; }
+.ficha-audio { width: 100%; }
+
+.ficha-datos {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.ficha-datos > div {
+  padding: 11px 13px;
+  background: var(--surface-2); border-radius: var(--r-sm);
+}
+.ficha-datos dt {
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 3px;
+}
+.ficha-datos dd { font-size: var(--fs-sm); font-weight: 750; }
+.ficha-datos dd.si { color: var(--mint-deep); }
 
 /* ══ PÁGINAS Y CAPAS ═════════════════════════════════════ */
 
@@ -880,6 +929,23 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 }
 .swipeable.swiping::after { opacity: 1; }
 .swipeable.will-delete::after { background: var(--danger-deep); }
+
+/* ══ LISTAS LARGAS ═══════════════════════════════════════
+   Las filas que no se ven no se maquetan ni se pintan. El tamaño
+   declarado evita que la barra de scroll pegue saltos al entrar y
+   salir del área visible. */
+
+.layer-item, .asset-card, .page-item, .music-row, .block-item {
+  content-visibility: auto;
+}
+.layer-item { contain-intrinsic-size: auto 68px; }
+.page-item { contain-intrinsic-size: auto 82px; }
+.music-row { contain-intrinsic-size: auto 74px; }
+.block-item { contain-intrinsic-size: auto 108px; }
+.asset-card { contain-intrinsic-size: auto 221px; }
+
+/* La fila que se está arrastrando SÍ tiene que maquetarse siempre */
+.layer-item.moviendo, .swipeable.swiping { content-visibility: visible; }
 
 /* ══ INSPECTOR ═══════════════════════════════════════════ */
 
@@ -1206,6 +1272,23 @@ body.sheet-open #fab-add, body.has-selection #fab-add { transform: scale(.4); op
   opacity: .38; pointer-events: none;
 }
 
+/* ── Trabajando ───────────────────────────────────────────
+   Un botón que está haciendo algo lo DICE: se atenúa el texto y
+   gira un aro en su sitio. Sin esto, exportar parecía no hacer
+   nada durante varios segundos. */
+.btn.cargando { position: relative; color: transparent !important; opacity: 1; }
+.btn.cargando > * { visibility: hidden; }
+.btn.cargando::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 20px; height: 20px; margin: -10px 0 0 -10px;
+  border: 2.5px solid currentColor; border-top-color: transparent;
+  border-radius: 50%;
+  color: var(--on-accent);
+  animation: girar .7s linear infinite;
+}
+.btn.cargando:not(.primary)::after { color: var(--accent); }
+@keyframes girar { to { transform: rotate(360deg); } }
+
 /* ══ BARRA DE DIBUJO ═════════════════════════════════════ */
 
 #draw-toolbar-slot { flex: none; }
@@ -1315,6 +1398,49 @@ body.preview #artboard .wb-node { user-select: text; }
 body.preview #artboard .wb-embed iframe { pointer-events: auto; }
 body.preview #artboard .wb-placeholder { background: none; border: none; }
 
+/* ══ DIÁLOGOS PROPIOS ════════════════════════════════════
+   Sustituyen a alert/confirm/prompt, que bloquean el hilo entero y
+   se ven como lo que son: una ventana del navegador. */
+
+.dlg-velo {
+  position: fixed; inset: 0; z-index: 400;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(58, 47, 53, .42);
+  opacity: 0;
+  transition: opacity var(--t) var(--ease);
+}
+.dlg-velo.abierto { opacity: 1; }
+
+.dlg {
+  width: min(400px, 100%);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 22px;
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  transform: scale(.94) translateY(10px);
+  transition: transform var(--t) var(--spring);
+  /* Con el teclado abierto sigue cabiendo y se puede recorrer */
+  max-height: calc(100dvh - var(--teclado) - 40px);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.dlg-velo.abierto .dlg { transform: none; }
+
+.dlg-titulo { font-size: var(--fs-lg); font-weight: 850; letter-spacing: -.025em; }
+.dlg-texto { font-size: var(--fs); line-height: 1.5; color: var(--text-soft); }
+.dlg .field { margin-top: 12px; margin-bottom: 2px; }
+.dlg .input { background: var(--surface-2); }
+
+.dlg-acciones { display: flex; flex-direction: column; gap: 9px; margin-top: 18px; }
+.dlg-acciones .btn { width: 100%; min-height: var(--ctrl); }
+/* La acción principal va ABAJO: es donde cae el pulgar */
+.dlg-acciones .btn:not(.primary):not(.danger) { background: var(--surface-2); box-shadow: none; }
+
+@media (min-width: 520px) {
+  .dlg-acciones { flex-direction: row; justify-content: flex-end; }
+  .dlg-acciones .btn { width: auto; min-width: 118px; }
+}
+
 /* ══ AVISO FLOTANTE (snackbar) ═══════════════════════════ */
 
 .wb-snack {
@@ -1330,6 +1456,14 @@ body.preview #artboard .wb-placeholder { background: none; border: none; }
 }
 .wb-snack.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
 .wb-snack-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Mientras algo está en marcha, un aro girando delante del texto */
+.wb-snack.trabajando::before {
+  content: ''; flex: none;
+  width: 17px; height: 17px;
+  border: 2.2px solid rgba(255, 255, 255, .35); border-top-color: #fff;
+  border-radius: 50%;
+  animation: girar .7s linear infinite;
+}
 .wb-snack-act { padding: 7px 10px; border-radius: var(--r-xs); color: var(--rose); font-weight: 850; }
 .wb-snack-act:active { background: rgba(255, 255, 255, .16); }
 

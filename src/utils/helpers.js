@@ -79,23 +79,43 @@ export function el(tag, attrs = {}, children = []) {
  * Reutiliza un único elemento (pool) — mostrarlo mil veces no crea nodos.
  */
 let _snack = null, _snackTimer = 0;
-export function showSnack(message, actionLabel, onAction) {
+/**
+ * Aviso flotante. Devuelve un mando para las tareas que duran:
+ * `.actualizar(texto)` cambia el mensaje sin reiniciar la animación
+ * y `.cerrar()` lo retira. Con `duración = 0` se queda hasta que se
+ * cierre a mano (subidas, exportaciones…).
+ */
+export function showSnack(message, actionLabel, onAction, duración = 4200) {
   if (!_snack) {
     _snack = el('div', { class: 'wb-snack', role: 'status' });
     document.body.append(_snack);
   }
   clearTimeout(_snackTimer);
-  _snack.replaceChildren(
-    el('span', { class: 'wb-snack-msg', text: message }),
-    actionLabel ? el('button', {
+  const texto = el('span', { class: 'wb-snack-msg', text: message });
+  // OJO: replaceChildren(x, null) NO ignora el null — lo convierte en
+  // el TEXTO "null" y lo pega al mensaje. Todos los avisos sin botón
+  // llevaban un "null" pegado al final.
+  const partes = [texto];
+  if (actionLabel) {
+    partes.push(el('button', {
       class: 'wb-snack-act', text: actionLabel,
       onclick: () => { _snack.classList.remove('show'); onAction?.(); },
-    }) : null,
-  );
+    }));
+  }
+  _snack.replaceChildren(...partes);
+  _snack.classList.toggle('trabajando', duración === 0);
   _snack.classList.remove('show');
   void _snack.offsetWidth;
   _snack.classList.add('show');
-  _snackTimer = setTimeout(() => _snack.classList.remove('show'), 4200);
+  if (duración > 0) _snackTimer = setTimeout(() => _snack.classList.remove('show'), duración);
+  return {
+    actualizar: (t) => { if (texto.isConnected) texto.textContent = t; },
+    cerrar: () => {
+      if (!texto.isConnected) return;      // ya lo reemplazó otro aviso
+      clearTimeout(_snackTimer);
+      _snack.classList.remove('show', 'trabajando');
+    },
+  };
 }
 
 /** Descarga un Blob como archivo. */

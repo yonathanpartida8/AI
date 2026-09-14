@@ -949,6 +949,108 @@ A14/S24+, Pixel 8, iPad mini/Pro y tres en horizontal), siete
 pantallas cada uno: sin desbordes, sin elementos cortados, sin nada
 tocable por debajo de 34 px y sin texto por debajo de 11 px.
 
+## v16 — Que nada bloquee y que nada sea del navegador
+
+Esta vuelta empezó midiendo, no pintando. Abrir cada panel con la CPU
+frenada a un cuarto costaba entre 62 y 167 ms de bloqueo, con tareas
+largas de hasta 112 ms en Capas. Y quedaban nueve ventanas del
+navegador (`alert`, `confirm`, `prompt`) en mitad de una app.
+
+### El sprite de iconos: probado y descartado
+
+La hipótesis era buena: 204 SVG completos por panel se podían sustituir
+por un `<symbol>` definido una vez y 204 `<use>`. Se implementó y se
+midió:
+
+| | DOM | abrir Capas | por fila |
+|---|---|---|---|
+| SVG inline | 1244 nodos | **110 ms** | **0,46 ms** |
+| sprite + `<use>` | 826 nodos | 127 ms | 0,65 ms |
+
+Resolver cada `<use>` sale MÁS caro que parsear el SVG entero. Se
+revirtió. Lo que sí se quedó es sacar los atributos comunes (trazo,
+remates, relleno) del marcado a la regla `.ic`: cada icono ocupa la
+mitad y hay cinco atributos menos que parsear por icono.
+
+**La lección no es "los sprites son malos", es que una optimización sin
+medir es una corazonada.** Queda escrito en el código para que nadie lo
+vuelva a intentar a ciegas.
+
+### Listas por tandas: cero tareas largas
+
+Lo que de verdad costaba era montar 51 filas de golpe. Ahora se pintan
+las primeras catorce —las que caben— y el resto entra en tandas de seis
+por los huecos libres (`requestIdleCallback`, con `requestAnimationFrame`
+de reserva). Un testigo cancela lo pendiente si el panel se repinta, así
+que nunca se mezclan dos listas.
+
+Encima, `content-visibility: auto` con un `contain-intrinsic-size`
+declarado: las filas que no se ven no se maquetan ni se pintan, y la
+barra de scroll no pega saltos al entrar y salir del área visible.
+
+Resultado con la CPU a x4:
+
+| panel | antes | ahora |
+|---|---|---|
+| Capas | 167 ms · tarea larga de 112 ms | **9,7 ms · ninguna tarea larga** |
+| Piezas | 87 ms · tarea larga de 57 ms | **13 ms · ninguna** |
+| Páginas | 87 ms · tarea larga de 60 ms | **11,5 ms · ninguna** |
+
+### Diálogos propios (`utils/dialogo.js`)
+
+`alert`, `confirm` y `prompt` **bloquean el hilo entero**: se congelan
+las animaciones, el WebGL y el scroll. Además salen con la tipografía
+del sistema, el nombre del archivo encima y ningún parecido con el
+resto. Fuera los nueve.
+
+En su lugar, cuatro funciones que devuelven una promesa: `confirmar`,
+`preguntar`, `avisar` y `elegir`. Se cierran tocando fuera o con
+Escape, atrapan el tabulador, devuelven el foco a donde estaba y
+respetan `--teclado`.
+
+`elegir` además arregló una interacción de las malas: empezar un
+proyecto nuevo encadenaba dos `confirm` donde «Cancelar» significaba
+una cosa distinta cada vez. Ahora es **una pregunta con sus dos
+salidas** a la vista.
+
+### Estados: trabajando, error y roto
+
+- Los botones de acción larga se marcan como ocupados (aro girando en
+  su sitio) y no se pueden pulsar dos veces.
+- Exportar y guardar enseñan un aviso persistente mientras trabajan y
+  confirman al terminar. Antes no pasaba nada visible durante segundos.
+- Subir varios archivos dice por dónde va (`Subiendo 3 de 8…`) y, si
+  alguno falla, **los demás entran igual** y se cuenta cuáles no. Antes
+  un archivo corrupto tiraba la importación entera.
+- Un asset ilegible enseña una miniatura roja: el fallo es del archivo,
+  no del editor.
+
+### La ficha de un recurso
+
+`setTags` existía en el gestor desde siempre… sin ninguna interfaz: se
+podían BUSCAR etiquetas que no había forma de poner. Manteniendo
+pulsada una tarjeta se abre su ficha: vista previa grande de verdad (el
+vídeo se ve, el audio suena), tipo, peso, carpeta, en cuántas piezas se
+usa, y nombre y etiquetas editables.
+
+El toque corto sigue insertando. El clic de propina que el navegador
+lanza tras una pulsación larga se descarta **por tiempo**, no con un
+testigo: un testigo que nadie consuma se queda pegado y se come el
+siguiente toque de verdad.
+
+### El cajón, a su propio módulo
+
+La física del bottom sheet vivía dentro de `main.js` y no se podía
+reutilizar. Ahora es `editor/bottomSheet.js` y la usan los dos paneles,
+el menú «Más» y la ficha de un recurso: un solo sitio, un solo
+comportamiento.
+
+### Un bug que llevaba tiempo a la vista
+
+`replaceChildren(x, null)` **no ignora el null**: lo convierte en el
+texto `"null"`. Todos los avisos sin botón llevaban un «null» pegado al
+final del mensaje.
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección
@@ -985,6 +1087,16 @@ tocable por debajo de 34 px y sin texto por debajo de 11 px.
 - El teclado virtual encoge el viewport VISUAL, no el de maqueta: todo
   lo que esté anclado con `position: fixed` al fondo se queda detrás.
   `visualViewport` es la única fuente fiable de cuánto ocupa.
+- `replaceChildren(x, null)` NO ignora el null: lo convierte en el
+  texto `"null"` y lo pega al contenido. Se filtra antes.
+- `alert`, `confirm` y `prompt` bloquean el hilo entero: se paran las
+  animaciones y el WebGL mientras están abiertos.
+- Descartar el clic que sigue a una pulsación larga con un testigo
+  booleano es una trampa: si ese clic no llega nunca, el testigo se
+  queda puesto y se come el siguiente toque. Se descarta por TIEMPO.
+- Registrar un listener de «ciérrate» y disparar el evento justo
+  después hace que la hoja recién abierta se cierre a sí misma. Primero
+  se avisa a las demás, luego se escucha.
 
 ## Hoja de ruta natural
 

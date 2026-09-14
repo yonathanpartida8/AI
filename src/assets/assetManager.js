@@ -97,28 +97,59 @@ export class AssetManager extends EventBus {
   folders() { return [...new Set([...this.#byId.values()].map((a) => a.folder))].sort(); }
 
   /** Importa una lista de File (input file / drop de la galería). */
-  async importFiles(files, { folder } = {}) {
+  /**
+   * Importa archivos del dispositivo.
+   *
+   * Cada archivo va por su cuenta: si uno falla (corrupto, demasiado
+   * grande, sin permiso) los demás entran igual. Antes una sola foto
+   * mala tiraba la importación entera y no se subía ninguna.
+   *
+   * `alProgreso(hechos, total, nombre)` permite enseñar por dónde va.
+   * Los fallos se devuelven en `.fallos` del array resultante.
+   */
+  async importFiles(files, { folder, alProgreso } = {}) {
     const imported = [];
+    const fallos = [];
+    let hechos = 0;
     for (const file of files) {
-      const kind = kindOfFile(file);
-      const asset = {
-        id: uid('as'),
-        name: file.name,
-        kind,
-        mime: file.type || 'application/octet-stream',
-        size: file.size,
-        folder: folder || ASSET_KINDS[kind].folder,
-        tags: [],
-        created: Date.now(),
-        data: await fileToDataURL(file),
-      };
-      this.#byId.set(asset.id, asset);
-      await DB.putAsset(asset).catch(console.warn);
-      imported.push(asset);
+      alProgreso?.(hechos, files.length, file.name);
+      try {
+        const kind = kindOfFile(file);
+        const asset = {
+          id: uid('as'),
+          name: file.name,
+          kind,
+          mime: file.type || 'application/octet-stream',
+          size: file.size,
+          folder: folder || ASSET_KINDS[kind].folder,
+          tags: [],
+          created: Date.now(),
+          data: await fileToDataURL(file),
+        };
+        this.#byId.set(asset.id, asset);
+        await DB.putAsset(asset).catch(console.warn);
+        imported.push(asset);
+      } catch (err) {
+        console.warn('asset', file.name, err);
+        fallos.push(file.name);
+      }
+      alProgreso?.(++hechos, files.length, file.name);
     }
+    imported.fallos = fallos;
     this.#syncProject();
     this.emit('change');
     return imported;
+  }
+
+  /** Cambia el nombre visible de un recurso. */
+  async rename(id, name) {
+    const asset = this.#byId.get(id);
+    const limpio = String(name || '').trim();
+    if (!asset || !limpio || asset.name === limpio) return;
+    asset.name = limpio;
+    await DB.putAsset(asset).catch(console.warn);
+    this.#syncProject();
+    this.emit('change');
   }
 
   /** Crea un asset desde un dataURL ya generado (p.ej. Canvas Draw). */
