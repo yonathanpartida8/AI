@@ -14,6 +14,7 @@ import { el, formatBytes, debounce, showSnack } from '../utils/helpers.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
 import { Components, CATEGORIES } from '../components/registry.js';
 import { BLOCKS, THEMES } from '../storage/templates.js';
+import { DEVICES } from '../storage/projectStore.js';
 import { ASSET_KINDS, ACCEPT_ATTR } from '../assets/assetManager.js';
 import { MUSIC_TRACKS, trackURL } from '../config/musicLibrary.js';
 import { MY_3D } from '../../contenido/3d/index.js';
@@ -144,30 +145,60 @@ export class Panels {
     }));
     const match = (label) => !pq || label.toLowerCase().includes(pq);
 
-    // Estilos de proyecto: estéticas completas de un toque
+    /* ── Estilos de proyecto ───────────────────────────────
+       Dos, y cada uno se enseña como lo que es: una miniatura con
+       sus colores, su tipografía y su forma de botón. Se elige
+       mirando la estética, no leyendo un nombre. */
     const themeEntries = Object.entries(THEMES).filter(([, t]) => match(t.label));
     if (themeEntries.length) {
       body.append(el('h4', { class: 'panel-heading', text: 'Estilos de proyecto' }));
-      const themeList = el('div', { class: 'block-list' });
+      const rejilla = el('div', { class: 'estilo-grid' });
       for (const [key, theme] of themeEntries) {
-        themeList.append(el('button', {
-          class: 'block-item', title: 'Aplica esta estética y añade su portada',
+        const v = theme.vista || {};
+        rejilla.append(el('button', {
+          class: `estilo-card estilo-${key}`,
+          title: `${theme.label}: ${theme.nota || ''}`.trim(),
           onclick: () => this.#applyTheme(key),
-        }, [el('span', { class: 'palette-icon', html: ic('sparkles') }), el('span', { text: theme.label })]));
+        }, [
+          // Miniatura: el estilo dibujado en pequeño, con sus colores
+          el('span', { class: 'estilo-vista', style: { background: v.fondo || '#222' } }, [
+            el('span', {
+              class: 'estilo-tarjeta',
+              style: {
+                background: v.tarjeta || 'rgba(255,255,255,.1)',
+                borderColor: v.borde || 'transparent',
+                borderRadius: `${v.radio ?? 12}px`,
+              },
+            }, [
+              el('span', { class: 'estilo-titulo', style: { background: v.titulo, fontFamily: v.tipo } }),
+              el('span', { class: 'estilo-texto', style: { background: v.texto } }),
+              el('span', { class: 'estilo-boton', style: { background: v.boton, borderRadius: `${Math.min(v.radio ?? 12, 10)}px` } }),
+            ]),
+          ]),
+          el('span', { class: 'estilo-pie' }, [
+            el('strong', { class: 'estilo-nombre', text: theme.label }),
+            el('span', { class: 'estilo-nota', text: theme.nota || '' }),
+          ]),
+        ]));
       }
-      body.append(themeList);
+      body.append(rejilla);
     }
 
     // Bloques prediseñados: secciones completas listas para usar
     const blockEntries = Object.entries(BLOCKS).filter(([, b]) => match(b.label));
     if (blockEntries.length) {
       body.append(el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
-      const blockList = el('div', { class: 'block-list' });
+      // En dos columnas: una fila por bloque dejaba media hoja vacía
+      // y obligaba a recorrer una lista larguísima.
+      const blockList = el('div', { class: 'block-grid' });
       for (const [key, block] of blockEntries) {
         blockList.append(el('button', {
           class: 'block-item', title: 'Añade esta sección al final de la página',
           onclick: () => this.store.addBlock(key),
-        }, [el('span', { class: 'palette-icon', html: ic(BLOCK_ICONS[key] || 'sparkles') }), el('span', { text: block.label })]));
+        }, [
+          el('span', { class: 'palette-icon', html: ic(BLOCK_ICONS[key] || 'sparkles') }),
+          el('span', { class: 'block-lbl', text: block.label }),
+        ]));
       }
       body.append(blockList);
     }
@@ -280,9 +311,9 @@ export class Panels {
       el('div', { class: 'props-section-body' }, [
         urlInput,
         el('div', { class: 'btn-row' }, [
-          el('button', { class: 'btn primary', html: `${ic('globe', 14)}<span>Traer</span>`, onclick: (e) => traer(e.currentTarget) }),
+          el('button', { class: 'btn primary', html: `${ic('globe')}<span>Traer</span>`, onclick: (e) => traer(e.currentTarget) }),
           el('button', {
-            class: 'btn', html: `${ic('redo', 14)}<span>Actualizar</span>`,
+            class: 'btn', html: `${ic('redo')}<span>Actualizar</span>`,
             title: 'Vuelve a descargar los recursos online por si cambiaron',
             onclick: async (e) => {
               e.currentTarget.disabled = true;
@@ -304,12 +335,12 @@ export class Panels {
       input,
       el('div', { class: 'btn-row' }, [
         el('button', {
-          class: 'btn primary', html: `${ic('upload', 15)}<span>Subir</span>`,
+          class: 'btn primary', html: `${ic('upload')}<span>Subir</span>`,
           title: 'Fotos, GIFs, vídeos, audio, modelos o fuentes desde tu galería',
           onclick: () => input.click(),
         }),
         el('button', {
-          class: 'btn', html: `${ic('globe', 15)}<span>Desde URL</span>`,
+          class: 'btn', html: `${ic('globe')}<span>Desde URL</span>`,
           title: 'Traer un recurso de internet',
           onclick: () => { onlineBlock.open = true; onlineBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); urlInput.focus(); },
         }),
@@ -344,37 +375,94 @@ export class Panels {
     );
   }
 
+  /** Los assets que YA se usan en la página abierta. */
+  #assetsEnUso() {
+    const usados = new Set();
+    for (const n of this.store.pageNodes()) {
+      const p = n.props || {};
+      if (p.assetId) usados.add(p.assetId);
+      if (Array.isArray(p.assetIds)) p.assetIds.forEach((id) => usados.add(id));
+    }
+    return usados;
+  }
+
+  /**
+   * Rejilla de la biblioteca, agrupada por carpeta.
+   *
+   * En un móvil no hay `hover`, así que el atributo `title` no lo lee
+   * nadie: el tipo, el peso y si el recurso ya está puesto en la
+   * página van IMPRESOS en la tarjeta.
+   */
   #renderAssetGrid() {
     const grid = this.assetGrid;
     grid.innerHTML = '';
     const list = this.assets.list(this.assetFilter);
     if (!list.length) {
-      grid.append(el('p', { class: 'panel-hint', text: 'Sin assets todavía. Sube imágenes, GIFs, vídeos, audio o modelos GLB.' }));
+      grid.append(el('p', {
+        class: 'panel-hint',
+        text: this.assetFilter.query || this.assetFilter.kind
+          ? 'Nada con ese filtro. Prueba con "Todo".'
+          : 'Sin assets todavía. Sube imágenes, GIFs, vídeos, audio o modelos GLB.',
+      }));
       return;
     }
+    const usados = this.#assetsEnUso();
+    const ICONO_TIPO = { audio: 'music', model: 'cube', font: 'type', html: 'globe', video: 'video', gif: 'film' };
+
+    // Agrupado por carpeta: "online assets" y lo que tú organices
+    const NOMBRE_CARPETA = {
+      images: 'Imágenes', gifs: 'GIFs', videos: 'Vídeos', audio: 'Audio',
+      models: 'Modelos 3D', fonts: 'Fuentes', html: 'Páginas HTML',
+      'online assets': 'Traídos de internet',
+    };
+    const carpetas = new Map();
     for (const asset of list) {
-      const preview = asset.kind === 'video'
-        ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb' })
-        : ['image', 'gif', 'svg'].includes(asset.kind)
-          ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async' })
-          : el('div', { class: 'asset-thumb kind-icon', html: ic({ audio: 'music', model: 'cube', font: 'type', html: 'globe' }[asset.kind] || 'file', 26) });
-      const card = el('div', {
-        class: `asset-card${asset.remote ? ' remote' : ''}`, draggable: 'true',
-        title: asset.remote
-          ? `${asset.name} · ${formatBytes(asset.size)} · online
-${asset.url}`
-          : `${asset.name} · ${formatBytes(asset.size)} · carpeta: ${asset.folder}`,
-        ondragstart: (e) => e.dataTransfer.setData('application/x-wb-asset', asset.id),
-        onclick: () => this.#useAsset(asset),
-      }, [
-        preview,
-        el('span', { class: 'asset-name', text: asset.name }),
-        el('button', {
-          class: 'asset-del', html: ic('close', 11), title: 'Eliminar asset',
-          onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${asset.name}"?`)) this.assets.remove(asset.id); },
-        }),
-      ]);
-      grid.append(card);
+      const clave = asset.folder || 'otros';
+      if (!carpetas.has(clave)) carpetas.set(clave, []);
+      carpetas.get(clave).push(asset);
+    }
+
+    for (const [carpeta, recursos] of carpetas) {
+      if (carpetas.size > 1) {
+        const nombre = NOMBRE_CARPETA[carpeta] || carpeta;
+        grid.append(el('h5', { class: 'asset-carpeta', text: `${nombre} · ${recursos.length}` }));
+      }
+      for (const asset of recursos) {
+        const kind = asset.kind;
+        const preview = kind === 'video'
+          ? el('video', { src: asset.data, muted: 'true', class: 'asset-thumb' })
+          : ['image', 'gif', 'svg'].includes(kind)
+            ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async' })
+            : el('div', { class: 'asset-thumb kind-icon', html: ic(ICONO_TIPO[kind] || 'file') });
+
+        grid.append(el('div', {
+          class: `asset-card${asset.remote ? ' remote' : ''}${usados.has(asset.id) ? ' en-uso' : ''}`,
+          draggable: 'true',
+          ondragstart: (e) => e.dataTransfer.setData('application/x-wb-asset', asset.id),
+          onclick: () => {
+            this.#useAsset(asset);
+            if (navigator.vibrate) navigator.vibrate(8);
+          },
+        }, [
+          el('span', { class: 'asset-marco' }, [
+            preview,
+            // Una imagen ya se ve que es una imagen: la etiqueta solo
+            // aparece cuando la miniatura no cuenta la historia entera.
+            ['image', 'svg'].includes(kind)
+              ? null
+              : el('span', { class: 'asset-tipo', text: (ASSET_KINDS[kind]?.label || kind).toUpperCase() }),
+            usados.has(asset.id) ? el('span', { class: 'asset-usado', html: ic('check'), title: 'Ya está en esta página' }) : null,
+          ].filter(Boolean)),
+          el('span', { class: 'asset-pie' }, [
+            el('span', { class: 'asset-name', text: asset.name }),
+            el('span', { class: 'asset-peso', text: formatBytes(asset.size) }),
+          ]),
+          el('button', {
+            class: 'asset-del', html: ic('close'), title: 'Eliminar asset',
+            onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${asset.name}"?`)) this.assets.remove(asset.id); },
+          }),
+        ]));
+      }
     }
   }
 
@@ -398,71 +486,87 @@ ${asset.url}`
 
   /* ── Pestaña de Música (repositorio de GitHub) ─────── */
 
+  /* ── Música ────────────────────────────────────────────
+   * La pista que suena se ve: fila resaltada, botón en pausa y un
+   * ecualizador de tres barras que SOLO se anima mientras suena. */
+
   #renderMusic(body) {
-    body.append(
-      el('h4', { class: 'panel-heading', text: '♫ Tu música desde GitHub' }),
-      el('p', { class: 'panel-hint', html: 'Estas pistas se leen de <b>src/config/musicLibrary.js</b> — cambia ahí los nombres de archivo (musica1.mp3, musica2.mp3…) y tu repositorio.' }),
-    );
+    // El contenido primero; la explicación, al final y en corto.
+    body.append(el('h4', { class: 'panel-heading', text: 'Tus canciones' }));
     if (!this.previewAudio) {
       this.previewAudio = new Audio();
       // listener único (los re-render del panel no lo duplican)
-      this.previewAudio.addEventListener('ended', () => {
-        this.root.querySelectorAll('.music-play').forEach((b) => { b.innerHTML = ic('play', 15); });
-      });
+      this.previewAudio.addEventListener('ended', () => this.#pintarPista(null));
     }
     const list = el('div', { class: 'music-list' });
+
     MUSIC_TRACKS.forEach((track) => {
       const url = trackURL(track);
-      const playBtn = el('button', {
-        class: 'music-play', html: ic('play', 15),
-        onclick: () => {
-          if (this.previewAudio.src === url && !this.previewAudio.paused) {
-            this.previewAudio.pause();
-            playBtn.innerHTML = ic('play', 15);
-          } else {
+      const sonando = () => this.previewAudio.src === url && !this.previewAudio.paused;
+      const fila = el('div', { class: 'music-row', dataset: { url } }, [
+        el('button', {
+          class: 'music-play', title: 'Escuchar',
+          html: ic('play'),
+          onclick: () => {
+            if (sonando()) { this.previewAudio.pause(); this.#pintarPista(null); return; }
             this.previewAudio.src = url;
-            this.previewAudio.play().catch(() => alert('No se pudo cargar la pista.\nRevisa tu repositorio en src/config/musicLibrary.js'));
-            list.querySelectorAll('.music-play').forEach((b) => { b.innerHTML = ic('play', 15); });
-            playBtn.innerHTML = ic('stop', 14);
-          }
-        },
-      });
-      list.append(el('div', { class: 'music-row' }, [
-        playBtn,
+            this.previewAudio.play()
+              .then(() => this.#pintarPista(url))
+              .catch(() => showSnack('No se pudo cargar la pista. Revisa src/config/musicLibrary.js'));
+          },
+        }),
         el('div', { class: 'music-meta' }, [
           el('strong', { text: track.title }),
           el('span', { text: track.artist }),
-          el('small', { text: track.file }),
         ]),
+        el('span', { class: 'music-eq', html: '<i></i><i></i><i></i>', 'aria-hidden': 'true' }),
         el('button', {
-          class: 'btn primary btn-ic', html: ic('plus', 15), title: 'Añadir reproductor a la página',
+          class: 'music-add', html: ic('plus'), title: 'Añadir reproductor a la página',
           onclick: () => {
             const width = this.store.project.settings.breakpoints[this.store.device];
             this.store.addNode('musicPlayer', { x: Math.round(width / 2 - 180), y: 140 }, {
               props: { assetId: null, srcUrl: url, title: track.title, artist: track.artist },
             });
+            showSnack(`"${track.title}" añadida a la página`);
           },
         }),
-      ]));
+      ]);
+      list.append(fila);
     });
     body.append(list);
+    this.#pintarPista(this.previewAudio.paused ? null : this.previewAudio.src);
+    body.append(el('p', { class: 'panel-hint', html: 'Cambia tus pistas en <b>src/config/musicLibrary.js</b>.' }));
 
     // Pega una URL de audio directa (mp3/ogg/m4a…)
     const urlInput = el('input', { class: 'input', placeholder: 'https://…/cancion.mp3' });
     body.append(
-      el('h4', { class: 'panel-heading', text: 'O pega una URL de audio directa' }),
+      el('h4', { class: 'panel-heading', text: 'O pega una URL de audio' }),
       urlInput,
       el('p', { class: 'panel-hint', text: 'Sirve cualquier enlace que termine en el archivo de audio (mp3, ogg, m4a…), por ejemplo desde tu repositorio de GitHub.' }),
       el('button', {
-        class: 'btn block', html: `${ic('plus', 13)}<span>Añadir reproductor con esa URL</span>`,
+        class: 'btn block', html: `${ic('plus')}<span>Añadir reproductor con esa URL</span>`,
         onclick: () => {
           if (!urlInput.value.trim()) return;
           this.store.addNode('musicPlayer', { x: 200, y: 140 }, {
             props: { assetId: null, srcUrl: urlInput.value.trim(), title: 'Mi canción', artist: '♡' },
           });
+          showSnack('Reproductor añadido');
         },
       }),
     );
+  }
+
+  /** Marca qué pista suena (o ninguna) sin volver a pintar el panel. */
+  #pintarPista(url) {
+    this.root.querySelectorAll('.music-row').forEach((fila) => {
+      const activa = !!url && fila.dataset.url === url;
+      fila.classList.toggle('sonando', activa);
+      const btn = fila.querySelector('.music-play');
+      if (btn) {
+        btn.innerHTML = ic(activa ? 'pause' : 'play');
+        btn.title = activa ? 'Pausar' : 'Escuchar';
+      }
+    });
   }
 
   /* ── Drop sobre el lienzo (componentes, assets, archivos del SO) ── */
@@ -499,56 +603,103 @@ ${asset.url}`
 
   /* ── Páginas ───────────────────────────────────────── */
 
+  /* ── Páginas ───────────────────────────────────────────
+   * Cada página se enseña con una MINIATURA de verdad: un mapa de
+   * su contenido dibujado con las cajas reales de sus piezas. No es
+   * una captura (cara de generar y de mantener), es el plano —
+   * y basta para reconocer la página de un vistazo. */
+
+  /** Mini mapa SVG de una página: el fondo y la silueta de sus piezas. */
+  #pageThumb(page) {
+    const w = this.store.project.settings.breakpoints.desktop || 1280;
+    const h = Math.max(page.height || 800, 200);
+    const cajas = (page.nodes || []).slice(0, 26).map((id) => {
+      const n = this.store.project.nodes[id];
+      if (!n || n.hidden) return '';
+      const f = n.base || {};
+      const x = ((f.x || 0) / w) * 100;
+      const y = ((f.y || 0) / h) * 100;
+      const bw = Math.max(1.5, ((f.w || 40) / w) * 100);
+      const bh = Math.max(1.2, ((f.h || 40) / h) * 100);
+      if (x > 100 || y > 100) return '';
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.4"/>`;
+    }).join('');
+    const fondo = typeof page.background === 'string' && page.background.startsWith('#') ? page.background : '#efe7ec';
+    return el('span', {
+      class: 'page-thumb', style: { background: fondo },
+      html: `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${cajas}</svg>`,
+    });
+  }
+
   #renderPages(body) {
-    body.append(el('button', { class: 'btn primary block', html: `${ic('plus', 14)}<span>Nueva página</span>`, onclick: () => this.store.addPage() }));
+    const paginas = this.store.project.pages;
+    body.append(el('button', {
+      class: 'btn primary block', html: `${ic('plus')}<span>Nueva página</span>`,
+      onclick: () => this.store.addPage(),
+    }));
     const list = el('div', { class: 'page-list' });
     const pq = (this.pageQuery || '').toLowerCase();
-    for (const page of this.store.project.pages) {
-      if (pq && !page.name.toLowerCase().includes(pq)) continue;
+    paginas.forEach((page, i) => {
+      if (pq && !page.name.toLowerCase().includes(pq)) return;
       const active = page.id === this.store.pageId;
-      const canDelete = this.store.project.pages.length > 1;
-      list.append(enableSwipeDelete(el('div', { class: `page-item${active ? ' active' : ''}`, onclick: () => this.store.setPage(page.id) }, [
-        el('span', {
-          class: 'page-name', text: page.name, title: 'Doble clic para renombrar',
-          ondblclick: (e) => {
-            e.stopPropagation();
-            const name = prompt('Nombre de la página:', page.name);
-            if (name) this.store.renamePage(page.id, name);
-          },
-        }),
+      const canDelete = paginas.length > 1;
+      const piezas = (page.nodes || []).length;
+      list.append(enableSwipeDelete(el('div', {
+        class: `page-item${active ? ' active' : ''}`,
+        onclick: () => this.store.setPage(page.id),
+      }, [
+        el('span', { class: 'page-num', text: String(i + 1) }),
+        this.#pageThumb(page),
+        el('span', { class: 'page-body' }, [
+          el('span', {
+            class: 'page-name', text: page.name, title: 'Toca dos veces para renombrar',
+            ondblclick: (e) => {
+              e.stopPropagation();
+              const name = prompt('Nombre de la página:', page.name);
+              if (name) this.store.renamePage(page.id, name);
+            },
+          }),
+          el('span', { class: 'page-meta', text: `${piezas} ${piezas === 1 ? 'pieza' : 'piezas'}${active ? ' · abierta' : ''}` }),
+        ]),
         el('span', { class: 'page-actions' }, [
-          el('button', { html: ic('up', 13), title: 'Subir', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, -1); } }),
-          el('button', { html: ic('down', 13), title: 'Bajar', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, 1); } }),
-          el('button', { html: ic('duplicate', 13), title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
-          el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); if (confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id); } }),
+          el('button', { html: ic('up'), title: 'Subir', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, -1); } }),
+          el('button', { html: ic('down'), title: 'Bajar', onclick: (e) => { e.stopPropagation(); this.store.movePage(page.id, 1); } }),
+          el('button', { html: ic('duplicate'), title: 'Duplicar', onclick: (e) => { e.stopPropagation(); this.store.duplicatePage(page.id); } }),
         ]),
       ]), () => {
         if (canDelete && confirm(`¿Eliminar "${page.name}"?`)) this.store.deletePage(page.id);
         else this.render(); // restaura la fila si se canceló
       }));
-    }
+    });
     body.append(list);
+    body.append(el('p', { class: 'panel-hint', text: 'Desliza una página a la izquierda para eliminarla.' }));
 
-    // ── Apariencia del editor: tema y paleta (se recuerdan) ──
-    const TEMAS = [['', 'Claro'], ['oscuro', 'Oscuro'], ['baddie', 'Baddie'], ['pixel', 'Pixel Art']];
-    const PALETAS = [['', 'Base'], ['rosa', 'Rosa'], ['menta', 'Menta'], ['lavanda', 'Lavanda'],
-      ['azul', 'Azul'], ['crema', 'Crema'], ['beige', 'Beige'], ['melocoton', 'Melocotón'], ['lila', 'Lila']];
-    const aplicar = (clave, valor) => {
-      const attr = clave === 'tema' ? 'theme' : 'palette';
-      if (valor) { localStorage.setItem(`wb-${attr}`, valor); document.body.dataset[attr] = valor; }
-      else { localStorage.removeItem(`wb-${attr}`); delete document.body.dataset[attr]; }
+    /* ── Color del editor ──────────────────────────────────
+       El editor es SIEMPRE claro y pastel: aquí solo se decide qué
+       manda entre el rosa y el verde. Cada opción se enseña con sus
+       dos colores, no con un nombre a secas. */
+    const PALETAS = [
+      ['', 'Rosa y menta', '#f4b3cb', '#8fd3b6'],
+      ['rosa', 'Más rosa', '#f0a8c4', '#f7cfdd'],
+      ['menta', 'Más verde', '#8ed1b4', '#c8ead9'],
+      ['lavanda', 'Lavanda', '#c3aee6', '#a9dcc6'],
+    ];
+    const paletaActiva = localStorage.getItem('wb-palette') || '';
+    const aplicarPaleta = (valor) => {
+      if (valor) { localStorage.setItem('wb-palette', valor); document.body.dataset.palette = valor; }
+      else { localStorage.removeItem('wb-palette'); delete document.body.dataset.palette; }
       this.render();
     };
     body.append(
-      el('h4', { class: 'panel-heading', text: 'Apariencia del editor' }),
-      el('div', { class: 'chip-row' }, TEMAS.map(([v, label]) => el('button', {
-        class: `chip${(localStorage.getItem('wb-theme') || '') === v ? ' active' : ''}`,
-        text: label, onclick: () => aplicar('tema', v),
-      }))),
-      el('div', { class: 'chip-row' }, PALETAS.map(([v, label]) => el('button', {
-        class: `chip${(localStorage.getItem('wb-palette') || '') === v ? ' active' : ''}`,
-        text: label, onclick: () => aplicar('paleta', v),
-      }))),
+      el('h4', { class: 'panel-heading', text: 'Color del editor' }),
+      el('div', { class: 'tinte-row' }, PALETAS.map(([v, label, c1, c2]) => el('button', {
+        class: `tinte${paletaActiva === v ? ' active' : ''}`,
+        title: label,
+        onclick: () => aplicarPaleta(v),
+      }, [
+        el('span', { class: 'tinte-bola', style: { background: `linear-gradient(135deg, ${c1} 0 50%, ${c2} 50% 100%)` } }),
+        el('span', { class: 'tinte-lbl', text: label }),
+      ]))),
     );
 
     // ── Proyecto y pantalla: Hz, resoluciones y orientación ──
@@ -573,7 +724,7 @@ ${asset.url}`
     };
     body.append(
       el('h4', { class: 'panel-heading', text: 'Proyecto y pantalla' }),
-      this.#field(`Ancho del lienzo (${this.store.device}) px`, el('input', {
+      this.#field(`Ancho del lienzo · ${DEVICES[this.store.device]?.label || 'Base'} (px)`, el('input', {
         class: 'input', type: 'number', min: 120, max: 3840, value: bps[this.store.device],
         onchange: (e) => applyWidth(+e.target.value),
       })),
@@ -582,7 +733,7 @@ ${asset.url}`
         onchange: (e) => { applyWidth(+e.target.value); e.target.value = ''; },
       }, RES_PRESETS.map(([v, label]) => el('option', { value: v, text: label }))),
       el('button', {
-        class: 'btn block', html: `${ic('tablet', 14)}<span>Girar orientación (vertical ↔ horizontal)</span>`,
+        class: 'btn block', html: `${ic('tablet')}<span>Girar orientación (vertical ↔ horizontal)</span>`,
         onclick: () => applyWidth(FLIP[bps[this.store.device]] || Math.round(bps[this.store.device] * (bps[this.store.device] > 700 ? 0.6 : 1.7))),
       }),
       this.#field('Frecuencia de refresco (WebGL)', el('select', {
@@ -648,65 +799,135 @@ ${asset.url}`
 
   /* ── Capas ─────────────────────────────────────────── */
 
+  /* ── Capas ─────────────────────────────────────────────
+   * Cada fila dice de un vistazo qué es, si se ve y si está fija.
+   * El orden se cambia arrastrando el asa: antes esto usaba el
+   * drag-and-drop de HTML5, que en un móvil NO existe — el asa se
+   * veía pero no hacía nada. Ahora va por eventos de puntero. */
+
   #renderLayers(body) {
     const nodes = this.store.pageNodes();
     if (!nodes.length) {
       body.append(el('p', { class: 'panel-hint', text: 'La página está vacía. Añade piezas y dale vida.' }));
       return;
     }
-    // Búsqueda de capas (proyectos grandes)
     body.append(el('input', {
       class: 'input block', type: 'search', placeholder: 'Buscar capa…', value: this.layerQuery || '',
       oninput: (e) => { this.layerQuery = e.target.value; this.render(); },
     }));
     const q = (this.layerQuery || '').toLowerCase();
     const list = el('div', { class: 'layer-list' });
-    // De arriba (último en pintar) a abajo — arrastra para reordenar
-    for (const node of [...nodes].reverse()) {
-      if (q && !node.name.toLowerCase().includes(q)) continue;
+
+    // De arriba (lo último en pintarse) hacia abajo
+    const visibles = [...nodes].reverse().filter((n) => !q || n.name.toLowerCase().includes(q));
+    body.append(el('p', {
+      class: 'panel-hint',
+      text: visibles.length === nodes.length
+        ? `${nodes.length} capas · la de arriba es la que tapa a las demás`
+        : `${visibles.length} de ${nodes.length} capas`,
+    }));
+
+    for (const node of visibles) {
       const selected = this.store.selection.includes(node.id);
-      list.append(enableSwipeDelete(el('div', {
-        class: `layer-item${selected ? ' active' : ''}`,
-        draggable: 'true',
-        // Pulsación larga (táctil) = añadir a la selección múltiple
+      const fila = el('div', {
+        class: `layer-item${selected ? ' active' : ''}${node.hidden ? ' oculta' : ''}${node.locked ? ' fija' : ''}`,
+        dataset: { id: node.id },
+        // Pulsación larga = añadir a la selección múltiple
         oncontextmenu: (e) => {
           e.preventDefault();
           this.store.select(node.id, true);
           if (navigator.vibrate) navigator.vibrate(10);
         },
-        ondragstart: (e) => { e.dataTransfer.setData('text/wb-layer', node.id); e.dataTransfer.effectAllowed = 'move'; },
-        ondragover: (e) => { e.preventDefault(); e.currentTarget.classList.add('drop-hint'); },
-        ondragleave: (e) => e.currentTarget.classList.remove('drop-hint'),
-        ondrop: (e) => {
-          e.preventDefault();
-          e.currentTarget.classList.remove('drop-hint');
-          const dragId = e.dataTransfer.getData('text/wb-layer');
-          if (!dragId || dragId === node.id) return;
-          this.store.snapshot('layer');
-          const arr = this.store.page.nodes;
-          const from = arr.indexOf(dragId);
-          arr.splice(from, 1);
-          arr.splice(arr.indexOf(node.id), 0, dragId);
-          this.store.commit();
-        },
         onclick: (e) => this.store.select(node.id, e.shiftKey),
       }, [
-        el('span', { class: 'layer-grip', html: ic('drag', 13), title: 'Arrastra para reordenar' }),
-        el('span', { class: 'layer-icon', html: typeIcon(node.type, 15) }),
-        el('span', { class: 'layer-name', text: node.name, title: node.name }),
-        el('span', { class: 'layer-actions' }, [
-          el('button', { html: ic('up', 13), title: 'Subir capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, 1); } }),
-          el('button', { html: ic('down', 13), title: 'Bajar capa', onclick: (e) => { e.stopPropagation(); this.store.moveLayer(node.id, -1); } }),
-          el('button', { html: ic(node.locked ? 'lock' : 'unlock', 13), title: 'Bloquear', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'locked'); } }),
-          el('button', { html: ic(node.hidden ? 'eyeOff' : 'eye', 13), title: 'Ocultar', onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'hidden'); } }),
-          el('button', { html: ic('trash', 13), title: 'Eliminar', onclick: (e) => { e.stopPropagation(); this.store.removeNodes([node.id]); } }),
+        el('span', {
+          class: 'layer-grip', html: ic('drag'), title: 'Arrastra para cambiar el orden',
+          onpointerdown: (e) => this.#empezarReordenCapa(e, node.id, list),
+        }),
+        el('span', { class: 'layer-icon', html: typeIcon(node.type) }),
+        el('span', { class: 'layer-body' }, [
+          el('span', { class: 'layer-name', text: node.name, title: node.name }),
+          el('span', { class: 'layer-tipo', text: node.locked ? 'fija' : node.hidden ? 'oculta' : (Components[node.type]?.label || node.type) }),
         ]),
-      ]), () => {
+        el('button', {
+          class: `layer-tog${node.hidden ? '' : ' si'}`,
+          html: ic(node.hidden ? 'eyeOff' : 'eye'),
+          title: node.hidden ? 'Mostrar en la página' : 'Ocultar en la página',
+          onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'hidden'); },
+        }),
+        el('button', {
+          class: `layer-tog${node.locked ? ' fijada' : ''}`,
+          html: ic(node.locked ? 'lock' : 'unlock'),
+          title: node.locked ? 'Desbloquear para poder moverla' : 'Fijar para no moverla sin querer',
+          onclick: (e) => { e.stopPropagation(); this.store.toggleFlag(node.id, 'locked'); },
+        }),
+      ]);
+      list.append(enableSwipeDelete(fila, () => {
         this.store.removeNodes([node.id]);
         showSnack(`"${node.name}" eliminada`, 'Deshacer', () => this.store.undo());
       }));
     }
     body.append(list);
+  }
+
+  /**
+   * Reordenar capas con el dedo.
+   *
+   * Se arrastra la fila y las demás se apartan; al soltar, el orden
+   * real del proyecto se reescribe de una vez. Nada de HTML5 drag,
+   * que en táctil no se dispara jamás.
+   */
+  #empezarReordenCapa(e, id, list) {
+    e.preventDefault();
+    e.stopPropagation();
+    const fila = list.querySelector(`.layer-item[data-id="${id}"]`);
+    if (!fila) return;
+    const filas = [...list.querySelectorAll('.layer-item')];
+    const alto = fila.offsetHeight + 8;            // fila + hueco
+    const desde = filas.indexOf(fila);
+    let salto = 0;
+    const y0 = e.clientY;
+
+    fila.classList.add('moviendo');
+    if (navigator.vibrate) navigator.vibrate(10);
+    try { fila.setPointerCapture(e.pointerId); } catch { /* sintético */ }
+
+    const mover = (ev) => {
+      const dy = ev.clientY - y0;
+      fila.style.transform = `translateY(${dy}px)`;
+      const nuevo = Math.max(-desde, Math.min(filas.length - 1 - desde, Math.round(dy / alto)));
+      if (nuevo === salto) return;
+      salto = nuevo;
+      // Las demás filas se apartan para dejar el hueco
+      filas.forEach((f, i) => {
+        if (f === fila) return;
+        let d = 0;
+        if (salto > 0 && i > desde && i <= desde + salto) d = -alto;
+        if (salto < 0 && i < desde && i >= desde + salto) d = alto;
+        f.style.transform = d ? `translateY(${d}px)` : '';
+      });
+    };
+    const soltar = () => {
+      fila.removeEventListener('pointermove', mover);
+      fila.removeEventListener('pointerup', soltar);
+      fila.removeEventListener('pointercancel', soltar);
+      fila.classList.remove('moviendo');
+      filas.forEach((f) => { f.style.transform = ''; });
+      if (!salto) return;
+      // La lista se enseña al revés: bajar en pantalla es bajar de capa
+      this.store.snapshot('layer');
+      const arr = this.store.page.nodes;
+      const pos = arr.indexOf(id);
+      if (pos >= 0) {
+        arr.splice(pos, 1);
+        arr.splice(Math.max(0, Math.min(arr.length, pos - salto)), 0, id);
+      }
+      this.store.commit();
+      if (navigator.vibrate) navigator.vibrate(8);
+    };
+    fila.addEventListener('pointermove', mover);
+    fila.addEventListener('pointerup', soltar);
+    fila.addEventListener('pointercancel', soltar);
   }
 
   #field(label, control) {

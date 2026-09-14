@@ -1,60 +1,78 @@
 /* ============================================================
  * css/editor.css — Interfaz del editor
  *
- * SISTEMA DE DISEÑO "PÉTALO" (v14) — SOLO MÓVIL Y TABLET
+ * SISTEMA DE DISEÑO "PÉTALO Y HOJA" (v15)
+ * SOLO MÓVIL Y TABLET · SOLO CLARO
  *
- * Aquí no hay versión de escritorio ni restos de ella: una sola
- * disposición táctil, pensada para el pulgar, que en tablet respira
- * más en vez de convertirse en otra cosa.
+ * Aquí no hay versión de escritorio ni modo oscuro, ni restos de
+ * ninguno de los dos. Una sola piel: clara, pastel y táctil, que en
+ * tablet respira más en vez de convertirse en otra cosa.
  *
- * Estética: crema cálido, rosa y menta sobre superficies blancas
- * flotantes, esquinas generosas, profundidad por capas y cero ruido.
+ * DOS COLORES MANDAN, A PARTES IGUALES
+ *   🎀 rosa  → lo que eliges y lo que va a pasar
+ *              (selección, acción principal, pestaña activa)
+ *   🍃 verde → lo que ya está bien
+ *              (guardado, visible, confirmado, capas)
+ * El blanco y el crema son el aire entre ambos. Si algo no es ni una
+ * cosa ni la otra, va en tinta suave y punto.
  *
  * REGLAS DE RENDIMIENTO QUE ESTA HOJA NO ROMPE NUNCA
  *  · Cero backdrop-filter: en móvil cuesta un pase de GPU por frame
  *    y se nota. Las superficies son casi opacas y se ven mejor.
  *  · Solo se animan transform y opacity (composición pura).
  *  · Sombras cortas: el desenfoque de sombra se paga por píxel.
- *  · will-change solo mientras algo se mueve de verdad.
  *  · contain en las hojas: lo que pasa dentro no reflowea el resto.
  *
- * Todo bebe de los tokens de :root, así que los temas (Claro ·
- * Oscuro · Baddie · Pixel Art) y las ocho paletas pastel son solo un
- * puñado de variables redefinidas, nunca reglas duplicadas.
+ * Todo bebe de los tokens de :root. Las cuatro mezclas de color son
+ * un puñado de variables redefinidas, nunca reglas duplicadas.
  * ============================================================ */
 
 :root {
-  /* ── Superficies ───────────────────────────────────── */
-  --bg: #f8f3f1;             /* crema cálido de fondo */
-  --bg-tint-1: rgba(247, 188, 210, .30);   /* velo rosa, arriba */
-  --bg-tint-2: rgba(191, 227, 212, .26);   /* velo menta, abajo */
-  --surface: #ffffff;        /* tarjetas y hojas */
-  --surface-2: #f7f1f3;      /* relleno suave (campos, chips) */
-  --surface-3: #f0e7ec;      /* estado presionado */
-  --border: rgba(61, 50, 56, .07);
-  --edge: rgba(61, 50, 56, .15);
+  /* ── Superficies ───────────────────────────────────────
+     Un blanco cálido de fondo con dos velos: rosa arriba, verde
+     abajo. Pintados una sola vez, sin animación y sin desenfoque. */
+  --bg: #fbf7f6;
+  --bg-tint-1: rgba(247, 186, 209, .34);   /* velo rosa, arriba */
+  --bg-tint-2: rgba(163, 219, 194, .30);   /* velo verde, abajo */
+  --surface: #ffffff;        /* tarjetas y contenido */
+  --surface-2: #f6f0f2;      /* hojas y rellenos suaves */
+  --surface-3: #eee5e9;      /* estado presionado */
+  --border: rgba(58, 47, 53, .07);
+  --edge: rgba(58, 47, 53, .14);
 
   /* ── Tinta ─────────────────────────────────────────── */
-  --text: #3b3036;           /* tinta cálida, más amable que el negro */
-  --text-soft: #6b5e65;
-  --text-dim: #a3959c;
-  --on-accent: #452b35;      /* texto sobre el degradado de marca */
+  --text: #3a2f35;           /* tinta cálida, más amable que el negro */
+  --text-soft: #6a5d64;
+  --text-dim: #a2949b;
+  --on-accent: #432833;      /* texto sobre el degradado de marca */
+  --on-verde: #1f4536;       /* texto sobre verde */
 
-  /* ── Acentos pastel ────────────────────────────────── */
-  --rose: #f4b3cb;
-  --rose-deep: #e082a6;
-  --mint: #b2e0cb;
-  --mint-deep: #66b89a;
+  /* ── 🎀 ROSA: lo que eliges ────────────────────────── */
+  --rose: #f7c3d6;
+  --rose-deep: #e389ab;
+  --rose-soft: rgba(227, 137, 171, .15);
+  --rose-ring: rgba(227, 137, 171, .3);
+
+  /* ── 🍃 VERDE: lo que ya está bien ─────────────────── */
+  --mint: #b8e3cd;
+  --mint-deep: #5fb394;
+  --mint-soft: rgba(95, 179, 148, .16);
+  --mint-ring: rgba(95, 179, 148, .3);
+
+  /* Alias: el acento principal y el de apoyo */
   --accent: var(--rose-deep);
   --accent-2: var(--mint-deep);
-  --accent-soft: rgba(224, 130, 166, .14);  /* fondo de estado activo */
-  --accent-ring: rgba(224, 130, 166, .28);  /* aro de foco / selección */
-  --danger: #f28f8f;
-  --danger-deep: #d96868;
-  --danger-soft: rgba(242, 143, 143, .15);
+  --accent-soft: var(--rose-soft);
+  --accent-ring: var(--rose-ring);
 
-  /* Degradado de marca (acciones principales) */
-  --grad: linear-gradient(135deg, #fbc9db 0%, #f4b3cb 46%, #c3e6d6 100%);
+  --danger: #f19191;
+  --danger-deep: #d86a6a;
+  --danger-soft: rgba(241, 145, 145, .15);
+
+  /* Degradado de marca: el rosa entra por un lado y el verde por el
+     otro. Los dos protagonistas en la misma pieza. */
+  --grad: linear-gradient(118deg, #fcd4e2 0%, #f7c3d6 38%, #cfe9dc 78%, #b8e3cd 100%);
+  --grad-verde: linear-gradient(118deg, #d6f0e4 0%, #b8e3cd 55%, #f7d9e4 100%);
 
   /* ── Forma ─────────────────────────────────────────── */
   --r-xs: 12px;
@@ -66,11 +84,11 @@
   /* ── Profundidad ───────────────────────────────────────
      Dos capas: un contacto corto y nítido + una difusa corta. Da
      relieve de verdad sin el coste de un desenfoque de 50 px. */
-  --shadow-xs: 0 1px 2px rgba(59, 48, 54, .06);
-  --shadow-sm: 0 1px 2px rgba(59, 48, 54, .05), 0 3px 8px rgba(59, 48, 54, .05);
-  --shadow: 0 1px 3px rgba(59, 48, 54, .06), 0 6px 16px rgba(59, 48, 54, .07);
-  --shadow-lg: 0 2px 6px rgba(59, 48, 54, .07), 0 12px 26px rgba(59, 48, 54, .10);
-  --shadow-pop: 0 3px 8px rgba(59, 48, 54, .09), 0 16px 32px rgba(59, 48, 54, .13);
+  --shadow-xs: 0 1px 2px rgba(58, 47, 53, .06);
+  --shadow-sm: 0 1px 2px rgba(58, 47, 53, .05), 0 3px 8px rgba(58, 47, 53, .05);
+  --shadow: 0 1px 3px rgba(58, 47, 53, .06), 0 6px 16px rgba(58, 47, 53, .07);
+  --shadow-lg: 0 2px 6px rgba(58, 47, 53, .07), 0 12px 26px rgba(58, 47, 53, .10);
+  --shadow-pop: 0 3px 8px rgba(58, 47, 53, .09), 0 16px 32px rgba(58, 47, 53, .13);
 
   /* ── Movimiento ────────────────────────────────────────
      Suave y corto. Nada por encima de .34s: una app que se hace
@@ -81,7 +99,7 @@
   --t: .2s;
   --t-slow: .32s;
 
-  --canvas-check: rgba(59, 48, 54, .04);   /* tablero del lienzo */
+  --canvas-check: rgba(58, 47, 53, .04);   /* tablero del lienzo */
 
   /* ── ESCALA DE LA INTERFAZ ──────────────────────────────
      Un solo juego de medidas manda sobre tipografía, controles e
@@ -103,121 +121,38 @@
   --nav-h: 76px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* Lo que ocupa el teclado virtual. Lo mide el JS con
+     visualViewport y lo escribe aquí; en reposo vale 0. */
+  --teclado: 0px;
 
   color-scheme: light;
 }
 
-/* ══ TEMAS ═══════════════════════════════════════════════
-   Cuatro modos. Solo redefinen tokens: ni una regla duplicada. */
-
-body[data-theme="oscuro"] {
-  --bg: #17131c;
-  --bg-tint-1: rgba(224, 130, 166, .16);
-  --bg-tint-2: rgba(102, 184, 154, .12);
-  --surface: #221c29;
-  --surface-2: #2b2333;
-  --surface-3: #362c40;
-  --border: rgba(255, 255, 255, .07);
-  --edge: rgba(255, 255, 255, .16);
-  --text: #f3ecf3;
-  --text-soft: #c3b6c6;
-  --text-dim: #8d7f93;
-  --on-accent: #241620;
-  --accent-soft: rgba(240, 169, 196, .16);
-  --accent-ring: rgba(240, 169, 196, .32);
-  --canvas-check: rgba(255, 255, 255, .045);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .35);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35), 0 3px 8px rgba(0, 0, 0, .3);
-  --shadow: 0 1px 3px rgba(0, 0, 0, .4), 0 6px 16px rgba(0, 0, 0, .36);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, .45), 0 12px 26px rgba(0, 0, 0, .44);
-  --shadow-pop: 0 3px 8px rgba(0, 0, 0, .5), 0 16px 32px rgba(0, 0, 0, .5);
-  color-scheme: dark;
+/* ══ MEZCLAS DE COLOR ════════════════════════════════════
+   Cuatro maneras de repartir el protagonismo entre el rosa y el
+   verde. Ninguna se sale del pastel claro: no hay modo oscuro. */
+body[data-palette="rosa"] {
+  --mint: #f2c9da; --mint-deep: #d980a6;
+  --mint-soft: rgba(217, 128, 166, .15); --mint-ring: rgba(217, 128, 166, .3);
+  --bg-tint-2: rgba(247, 199, 219, .30);
+  --grad: linear-gradient(118deg, #fde2ec 0%, #f7c3d6 45%, #efa9c6 100%);
+  --grad-verde: linear-gradient(118deg, #fbd6e3 0%, #f2c9da 55%, #fde2ec 100%);
+  --on-verde: #5a2138;
 }
-
-body[data-theme="baddie"] {
-  --bg: #170b11;
-  --bg-tint-1: rgba(255, 79, 141, .2);
-  --bg-tint-2: rgba(155, 92, 255, .16);
-  --surface: #24101a;
-  --surface-2: #2e1522;
-  --surface-3: #3b1b2c;
-  --border: rgba(255, 138, 190, .12);
-  --edge: rgba(255, 138, 190, .26);
-  --text: #ffeaf3;
-  --text-soft: #e3aec8;
-  --text-dim: #ad7893;
-  --on-accent: #26101a;
-  --rose: #ff8fc0;
-  --rose-deep: #ff4f8d;
-  --mint: #c9a6ff;
-  --mint-deep: #9b5cff;
-  --accent-soft: rgba(255, 79, 141, .18);
-  --accent-ring: rgba(255, 79, 141, .34);
-  --grad: linear-gradient(135deg, #ff8fc0 0%, #ff4f8d 50%, #9b5cff 100%);
-  --canvas-check: rgba(255, 138, 190, .06);
-  --shadow-xs: 0 1px 2px rgba(60, 0, 25, .45);
-  --shadow-sm: 0 1px 2px rgba(60, 0, 25, .45), 0 3px 10px rgba(60, 0, 25, .4);
-  --shadow: 0 1px 3px rgba(60, 0, 25, .5), 0 6px 18px rgba(60, 0, 25, .44);
-  --shadow-lg: 0 2px 6px rgba(60, 0, 25, .55), 0 12px 28px rgba(60, 0, 25, .5);
-  --shadow-pop: 0 3px 8px rgba(60, 0, 25, .6), 0 16px 34px rgba(60, 0, 25, .56);
-  color-scheme: dark;
+body[data-palette="menta"] {
+  --rose: #bfe6d3; --rose-deep: #4fa989;
+  --rose-soft: rgba(79, 169, 137, .15); --rose-ring: rgba(79, 169, 137, .3);
+  --bg-tint-1: rgba(176, 224, 201, .32);
+  --grad: linear-gradient(118deg, #dbf2e7 0%, #bfe6d3 45%, #9ed9bd 100%);
+  --on-accent: #1f4536;
 }
-
-/* Pixel Art de verdad: sin curvas, sin difuminados y con sombra dura */
-body[data-theme="pixel"] {
-  --bg: #1a1c2c;
-  --bg-tint-1: rgba(255, 205, 117, .1);
-  --bg-tint-2: rgba(94, 176, 227, .1);
-  --surface: #2a2f4a;
-  --surface-2: #333a5c;
-  --surface-3: #41496e;
-  --border: rgba(255, 255, 255, .14);
-  --edge: rgba(255, 255, 255, .3);
-  --text: #f4f4f4;
-  --text-soft: #c8cbe0;
-  --text-dim: #8d93b5;
-  --on-accent: #1a1c2c;
-  --rose: #ffcd75;
-  --rose-deep: #ef7d57;
-  --mint: #a7f070;
-  --mint-deep: #38b764;
-  --accent-soft: rgba(239, 125, 87, .2);
-  --accent-ring: rgba(239, 125, 87, .4);
-  --grad: linear-gradient(135deg, #ffcd75 0%, #ef7d57 100%);
-  --canvas-check: rgba(255, 255, 255, .05);
-  --r-xs: 0px; --r-sm: 0px; --r: 0px; --r-lg: 0px; --r-xl: 0px;
-  --shadow-xs: 2px 2px 0 rgba(20, 22, 34, .55);
-  --shadow-sm: 3px 3px 0 rgba(20, 22, 34, .6);
-  --shadow: 4px 4px 0 rgba(20, 22, 34, .65);
-  --shadow-lg: 5px 5px 0 rgba(20, 22, 34, .7);
-  --shadow-pop: 6px 6px 0 rgba(20, 22, 34, .75);
-  --ease: steps(3, end);
-  --spring: steps(3, end);
-  font-family: ui-monospace, 'Courier New', monospace;
-  color-scheme: dark;
+body[data-palette="lavanda"] {
+  --rose: #ddd0f2; --rose-deep: #9b83cc;
+  --rose-soft: rgba(155, 131, 204, .15); --rose-ring: rgba(155, 131, 204, .3);
+  --bg-tint-1: rgba(214, 199, 240, .32);
+  --grad: linear-gradient(118deg, #ece4fa 0%, #ddd0f2 40%, #c9e9da 100%);
+  --on-accent: #33265c;
 }
-body[data-theme="pixel"] .btn,
-body[data-theme="pixel"] .input,
-body[data-theme="pixel"] .chip,
-body[data-theme="pixel"] .asset-card,
-body[data-theme="pixel"] .palette-item { border: 2px solid var(--edge); }
-body[data-theme="pixel"] .btn-ic:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(20, 22, 34, .6); }
-body[data-theme="pixel"] .handle,
-body[data-theme="pixel"] #fab-add,
-body[data-theme="pixel"] .handle.h-move,
-body[data-theme="pixel"] .scale-track,
-body[data-theme="pixel"] .scale-thumb { border-radius: 0; }
-
-/* ══ PALETAS PASTEL ══════════════════════════════════════
-   Ocho tintes que solo cambian el acento y el degradado. */
-body[data-palette="rosa"]      { --rose: #f9c6d8; --rose-deep: #e893b1; --accent: #e893b1; --accent-soft: rgba(232, 147, 177, .16); --accent-ring: rgba(232, 147, 177, .3); --grad: linear-gradient(135deg, #fde0ea, #f9c6d8 55%, #efaac6); }
-body[data-palette="menta"]     { --rose: #c6e9da; --rose-deep: #6fb99b; --accent: #6fb99b; --accent-2: #6fb99b; --accent-soft: rgba(111, 185, 155, .16); --accent-ring: rgba(111, 185, 155, .3); --grad: linear-gradient(135deg, #dcf2e8, #c6e9da 55%, #9ed7bd); }
-body[data-palette="lavanda"]   { --rose: #dacff2; --rose-deep: #9d86cc; --accent: #9d86cc; --accent-2: #b7a6e0; --accent-soft: rgba(157, 134, 204, .16); --accent-ring: rgba(157, 134, 204, .3); --grad: linear-gradient(135deg, #ebe3fa, #dacff2 55%, #bcaae6); }
-body[data-palette="azul"]      { --rose: #cce1f7; --rose-deep: #7aa6d6; --accent: #7aa6d6; --accent-2: #9dc3e8; --accent-soft: rgba(122, 166, 214, .16); --accent-ring: rgba(122, 166, 214, .3); --grad: linear-gradient(135deg, #e2eefb, #cce1f7 55%, #a9cbef); }
-body[data-palette="crema"]     { --rose: #f2e7d0; --rose-deep: #c4a674; --accent: #c4a674; --accent-2: #d9c49a; --accent-soft: rgba(196, 166, 116, .16); --accent-ring: rgba(196, 166, 116, .3); --grad: linear-gradient(135deg, #faf1de, #f2e7d0 55%, #e4d0a8); }
-body[data-palette="beige"]     { --rose: #ebdfcd; --rose-deep: #b39877; --accent: #b39877; --accent-2: #cbb89c; --accent-soft: rgba(179, 152, 119, .16); --accent-ring: rgba(179, 152, 119, .3); --grad: linear-gradient(135deg, #f4ebdf, #ebdfcd 55%, #d6c2a6); }
-body[data-palette="melocoton"] { --rose: #fcdcc8; --rose-deep: #e09a72; --accent: #e09a72; --accent-2: #f0b795; --accent-soft: rgba(224, 154, 114, .16); --accent-ring: rgba(224, 154, 114, .3); --grad: linear-gradient(135deg, #fde9dc, #fcdcc8 55%, #f6bd9c); }
-body[data-palette="lila"]      { --rose: #ecdaf5; --rose-deep: #b078cc; --accent: #b078cc; --accent-2: #cba4e0; --accent-soft: rgba(176, 120, 204, .16); --accent-ring: rgba(176, 120, 204, .3); --grad: linear-gradient(135deg, #f3e6f9, #ecdaf5 55%, #dabcec); }
 
 /* ══ BASE ════════════════════════════════════════════════ */
 
@@ -485,15 +420,22 @@ body.sheet-open .zoom-label, body.preview .zoom-label { opacity: 0; pointer-even
   --sheet-x: 0px;
   --arrastre: 0px;
   position: fixed; left: 0; right: 0; top: auto;
-  bottom: calc(var(--nav-h) + var(--safe-b));
+  bottom: calc(var(--nav-h) + var(--safe-b) + var(--teclado));
   z-index: 90;
   display: flex; flex-direction: column;
-  max-height: min(78dvh, 760px);
+  /* Nunca por debajo de la barra superior ni por encima de la
+     inferior, pase lo que pase con la altura de la pantalla: en
+     horizontal la hoja se metía bajo la barra de arriba. */
+  max-height: min(
+    78dvh,
+    760px,
+    calc(100dvh - var(--topbar-h) - var(--safe-t) - var(--nav-h) - var(--safe-b) - 10px)
+  );
   background: var(--surface-2);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   box-shadow: 0 -2px 10px rgba(59, 48, 54, .06), 0 -14px 34px rgba(59, 48, 54, .14);
-  transform: translateX(var(--sheet-x)) translateY(calc(100% + var(--nav-h) + var(--safe-b)));
-  transition: transform var(--t-slow) var(--ease);
+  transform: translateX(var(--sheet-x)) translateY(calc(100% + var(--nav-h) + var(--safe-b) + var(--teclado)));
+  transition: transform var(--t-slow) var(--ease), bottom var(--t) var(--ease), max-height var(--t) var(--ease);
   /* Lo que ocurre dentro de una hoja no puede reflowear el lienzo */
   contain: layout paint;
   padding-bottom: 8px;
@@ -523,7 +465,7 @@ body.sheet-open .zoom-label, body.preview .zoom-label { opacity: 0; pointer-even
    Píldoras, igual que la barra inferior: un solo lenguaje visual
    para "esto es lo que estás mirando". */
 .panel-tabs {
-  display: flex; flex: none; gap: 3px; padding: 6px 10px 10px;
+  display: flex; flex: none; gap: 3px; padding: 6px 12px 10px;
   position: relative; z-index: 2;
 }
 .tab-btn {
@@ -655,6 +597,31 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 }
 .swatch:active { transform: scale(.88); }
 
+/* ══ MEZCLA DE COLOR DEL EDITOR ══════════════════════════
+   Cada opción se enseña con sus DOS colores en una bola partida:
+   se elige mirando, no leyendo. */
+
+.tinte-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
+.tinte {
+  flex: 1 1 128px;
+  display: flex; align-items: center; gap: 11px;
+  min-height: var(--ctrl); padding: 0 14px;
+  background: var(--surface); border-radius: var(--r);
+  box-shadow: var(--shadow-xs);
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text-soft);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast), color var(--t-fast);
+}
+.tinte-bola {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(58, 47, 53, .09);
+}
+.tinte-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tinte:active { transform: scale(.95); }
+.tinte.active {
+  color: var(--text);
+  box-shadow: inset 0 0 0 2.5px var(--accent), var(--shadow-xs);
+}
+
 /* ══ PALETA DE PIEZAS ════════════════════════════════════ */
 
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
@@ -668,89 +635,238 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 }
 .palette-item:active { transform: scale(.94); background: var(--surface-3); box-shadow: var(--shadow-xs); cursor: grabbing; }
 .palette-icon { color: var(--accent); display: inline-flex; }
+/* Piezas sueltas = rosa y redondo · Bloques = verde y cuadrado.
+   Dos apartados con la misma calidad pero identidad propia. */
+.palette-item .palette-icon {
+  display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--rose-soft); color: var(--accent);
+}
 
-.block-list { display: flex; flex-direction: column; gap: 9px; }
+/* Bloques prediseñados: dos columnas, icono arriba y nombre debajo.
+   Caben el doble sin encoger nada y se recorren de un vistazo. */
+.block-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
 .block-item {
-  display: flex; align-items: center; gap: 13px;
-  min-height: 68px; padding: 12px 16px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 12px;
+  min-height: 108px; padding: 14px;
   background: var(--surface); border-radius: var(--r);
   box-shadow: var(--shadow-sm);
-  font-size: var(--fs); font-weight: 700; text-align: left;
+  font-size: var(--fs-sm); font-weight: 750; text-align: left; line-height: 1.3;
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast), background var(--t-fast);
 }
-.block-item:active { transform: scale(.98); background: var(--surface-3); box-shadow: var(--shadow-xs); }
-.block-item .palette-icon { flex: none; }
+.block-item:active { transform: scale(.96); background: var(--surface-3); box-shadow: var(--shadow-xs); }
+.block-item .palette-icon {
+  flex: none; display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 14px;
+  background: var(--mint-soft); color: var(--mint-deep);
+}
+.block-lbl { display: block; }
+
+/* ══ ESTILOS DE PROYECTO ═════════════════════════════════
+   Dos tarjetas con miniatura de verdad: el estilo se ve, no se lee.
+   La miniatura se dibuja con divs y colores planos — ni imágenes que
+   descargar ni capturas que mantener. */
+
+.estilo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 6px; }
+.estilo-card {
+  display: flex; flex-direction: column; gap: 0;
+  padding: 0; overflow: hidden;
+  background: var(--surface); border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast);
+}
+.estilo-card:active { transform: scale(.96); box-shadow: var(--shadow); }
+
+.estilo-vista {
+  display: grid; place-items: center;
+  height: 114px; padding: 14px;
+  background-size: cover;
+}
+.estilo-tarjeta {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; height: 100%; padding: 10px;
+  border: 1.5px solid transparent;
+}
+.estilo-titulo { width: 68%; height: 9px; border-radius: 2px; }
+.estilo-texto  { width: 46%; height: 5px; border-radius: 2px; opacity: .75; }
+.estilo-boton  { width: 44%; height: 15px; margin-top: 3px; }
+
+.estilo-pie { display: flex; flex-direction: column; gap: 2px; padding: 11px 13px 13px; }
+.estilo-nombre { font-size: var(--fs); font-weight: 800; letter-spacing: -.015em; }
+.estilo-nota { font-size: 12px; font-weight: 550; color: var(--text-dim); line-height: 1.35; }
+
+/* El pixel no se difumina ni se redondea: se ve a bloques */
+.estilo-pixel .estilo-vista { image-rendering: pixelated; }
+.estilo-pixel .estilo-titulo, .estilo-pixel .estilo-texto, .estilo-pixel .estilo-boton { border-radius: 0; }
+/* El baddie brilla */
+.estilo-baddie .estilo-tarjeta { box-shadow: 0 0 20px rgba(255, 79, 141, .35); }
+.estilo-baddie .estilo-titulo { box-shadow: 0 0 10px rgba(255, 143, 192, .8); }
 
 /* ══ ASSETS ══════════════════════════════════════════════
    Tarjetas cómodas de tocar. Si no caben, se baja con el dedo:
    NUNCA se encogen para que quepa todo en una pantalla. */
 
-.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-/* Un aviso dentro de la rejilla ocupa la fila entera, no una celda */
-.asset-grid > .panel-hint, .palette-grid > .panel-hint { grid-column: 1 / -1; }
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: 12px; }
+/* Un aviso o un título de carpeta ocupa la fila entera, no una celda */
+.asset-grid > .panel-hint, .palette-grid > .panel-hint, .asset-carpeta { grid-column: 1 / -1; }
+.asset-carpeta {
+  margin: 6px 0 -2px;
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .asset-card {
-  position: relative; display: flex; flex-direction: column; gap: 6px;
+  position: relative; display: flex; flex-direction: column; gap: 8px;
   padding: 8px; background: var(--surface); border-radius: var(--r);
   box-shadow: var(--shadow-sm);
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast);
 }
 .asset-card:active { transform: scale(.965); box-shadow: var(--shadow); }
+/* Ya colocado en esta página: se ve de un vistazo, sin tener que probar */
+.asset-card.en-uso { box-shadow: inset 0 0 0 2.5px var(--mint-deep), var(--shadow-xs); }
+
+.asset-marco { position: relative; display: block; }
 .asset-thumb {
-  width: 100%; aspect-ratio: 4 / 3; object-fit: contain;
-  padding: 8px; background: var(--bg); border-radius: var(--r-sm);
+  width: 100%; aspect-ratio: 1 / 1; object-fit: contain;
+  padding: 10px; background: var(--bg); border-radius: var(--r-sm);
   display: block;
 }
-.asset-thumb.kind-icon {
-  display: grid; place-items: center; font-size: 34px;
-  color: var(--accent);
+.asset-thumb.kind-icon { display: grid; place-items: center; color: var(--accent); }
+.asset-thumb.kind-icon .ic { width: 34px; height: 34px; }
+
+/* Etiqueta del tipo: en el móvil nadie ve un `title` */
+.asset-tipo {
+  position: absolute; left: 7px; bottom: 7px;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(58, 47, 53, .62); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: .04em;
 }
+.asset-usado {
+  position: absolute; right: 7px; bottom: 7px;
+  width: 24px; height: 24px; display: grid; place-items: center;
+  background: var(--mint-deep); color: #fff; border-radius: 50%;
+}
+.asset-usado .ic { width: 15px; height: 15px; }
+
+.asset-pie { display: flex; flex-direction: column; gap: 1px; padding: 0 5px 3px; }
 .asset-name {
-  font-size: var(--fs-sm); font-weight: 650; color: var(--text-soft);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px 2px;
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.asset-peso { font-size: 11.5px; font-weight: 600; color: var(--text-dim); }
+
 .asset-del {
-  position: absolute; top: 12px; right: 12px;
+  position: absolute; top: 11px; right: 11px; z-index: 2;
   width: 34px; height: 34px; display: grid; place-items: center;
-  background: var(--surface); color: var(--text-dim);
-  border-radius: 50%; box-shadow: var(--shadow-sm);
-  font-size: 17px; line-height: 1;
-  transition: transform var(--t-fast) var(--spring), color var(--t-fast);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text-dim);
+  border-radius: 50%; box-shadow: 0 0 0 1px var(--border);
+  transition: transform var(--t-fast) var(--spring), color var(--t-fast), background var(--t-fast);
 }
+.asset-del .ic { width: 17px; height: 17px; }
 .asset-del:active { transform: scale(.85); color: var(--danger-deep); }
 .asset-card.remote::before {
-  content: '☁'; position: absolute; top: 12px; left: 12px; z-index: 1;
-  width: 26px; height: 26px; display: grid; place-items: center;
-  background: var(--surface); color: var(--accent-2);
-  border-radius: 50%; box-shadow: var(--shadow-xs); font-size: 13px;
+  content: '☁'; position: absolute; top: 12px; left: 12px; z-index: 2;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  background: var(--surface); color: var(--mint-deep);
+  border-radius: 50%; box-shadow: var(--shadow-xs); font-size: 14px;
 }
 .asset-card.loading { opacity: .55; }
 .online-block { margin-top: 8px; background: var(--surface); }
 
 /* ══ PÁGINAS Y CAPAS ═════════════════════════════════════ */
 
-.page-list, .layer-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; overflow-x: clip; }
-.page-item, .layer-item {
-  position: relative; display: flex; align-items: center; gap: 11px;
-  min-height: 62px; padding: 0 10px 0 14px;
-  background: var(--surface); border-radius: var(--r-sm);
+.page-list, .layer-list { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; overflow-x: clip; }
+
+/* ── Páginas: número, plano y nombre ──────────────────────
+   La miniatura no es una captura: es el PLANO de la página,
+   dibujado con las cajas reales de sus piezas. Cuesta nada y se
+   reconoce igual de bien. */
+.page-item {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  min-height: 82px; padding: 10px 8px 10px 12px;
+  background: var(--surface); border-radius: var(--r);
   box-shadow: var(--shadow-xs);
   transition: transform var(--t-fast) var(--ease), background var(--t-fast), box-shadow var(--t-fast);
 }
-.page-item.active, .layer-item.active {
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 2px var(--accent-ring);
+.page-item:active { transform: scale(.985); }
+.page-item.active { box-shadow: inset 0 0 0 2.5px var(--accent), var(--shadow-sm); }
+
+.page-num {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center;
+  background: var(--surface-2); color: var(--text-dim);
+  border-radius: 50%; font-size: 12.5px; font-weight: 800;
 }
-.page-name, .layer-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
-.layer-icon { color: var(--accent-2); flex: none; display: inline-flex; }
-.layer-grip { color: var(--text-dim); cursor: grab; flex: none; display: inline-flex; touch-action: none; padding: 8px 2px; }
-.layer-item.drop-hint { box-shadow: inset 0 0 0 2.5px var(--accent); }
-.page-actions, .layer-actions { display: flex; gap: 2px; flex: none; }
-.page-actions button, .layer-actions button {
-  width: 42px; height: 42px; display: grid; place-items: center;
+.page-item.active .page-num { background: var(--accent); color: #fff; }
+
+.page-thumb {
+  flex: none; width: 46px; height: 62px; overflow: hidden;
+  border-radius: 8px; box-shadow: inset 0 0 0 1px var(--border);
+}
+.page-thumb svg { display: block; width: 100%; height: 100%; }
+.page-thumb rect { fill: rgba(255, 255, 255, .5); }
+
+.page-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.page-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs); font-weight: 750; }
+.page-meta {
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.page-item.active .page-meta { color: var(--accent); }
+
+/* ── Capas: qué es, si se ve y si está fija ─────────────── */
+.layer-item {
+  position: relative; display: flex; align-items: center; gap: 8px;
+  min-height: 68px; padding: 0 6px 0 4px;
+  background: var(--surface); border-radius: var(--r);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast), box-shadow var(--t-fast);
+}
+.layer-item.active { box-shadow: inset 0 0 0 2.5px var(--accent), var(--shadow-sm); }
+.layer-item.oculta { opacity: .58; }
+.layer-item.moviendo {
+  z-index: 3; transition: none;
+  box-shadow: var(--shadow-lg), inset 0 0 0 2.5px var(--accent);
+}
+.layer-list .layer-item { transition: transform var(--t) var(--ease), box-shadow var(--t-fast), background var(--t-fast); }
+
+.layer-grip {
+  flex: none; display: grid; place-items: center;
+  width: 40px; height: 52px;
+  color: var(--text-dim); cursor: grab; touch-action: none;
+}
+.layer-grip:active { color: var(--accent); cursor: grabbing; }
+.layer-icon {
+  flex: none; display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 13px;
+  background: var(--mint-soft); color: var(--mint-deep);
+}
+.layer-item.active .layer-icon { background: var(--rose-soft); color: var(--accent); }
+.layer-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.layer-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-sm); font-weight: 750; }
+.layer-tipo { font-size: 12px; font-weight: 600; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Interruptores de la fila: verde cuando la capa se ve, rosa cuando
+   está fijada. El estado se lee por color, no por el icono. */
+.layer-tog {
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center;
+  color: var(--text-dim); border-radius: 14px;
+  transition: transform var(--t-fast) var(--spring), background var(--t-fast), color var(--t-fast);
+}
+.layer-tog .ic { width: 21px; height: 21px; }
+.layer-tog:active { transform: scale(.86); background: var(--surface-3); }
+.layer-tog.si { color: var(--mint-deep); background: var(--mint-soft); }
+.layer-tog.fijada { color: var(--accent); background: var(--rose-soft); }
+
+.page-actions { display: flex; gap: 1px; flex: none; }
+.page-actions button {
+  width: 38px; height: 44px; display: grid; place-items: center;
   color: var(--text-dim); border-radius: var(--r-xs);
   transition: transform var(--t-fast) var(--spring), background var(--t-fast), color var(--t-fast);
 }
-.page-actions button:active, .layer-actions button:active { transform: scale(.88); background: var(--surface-3); color: var(--text); }
+.page-actions button .ic { width: 20px; height: 20px; }
+.page-actions button:active { transform: scale(.86); background: var(--surface-3); color: var(--text); }
 
 /* Deslizar a la izquierda para borrar (con "Deshacer" al instante) */
 .swipeable { touch-action: pan-y; }
@@ -966,6 +1082,21 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 /* Con una hoja abierta la barra estorba: se aparta sin desmontarse */
 body.sheet-open #quickbar-host { opacity: 0; pointer-events: none; transition: opacity var(--t); }
 
+/* ══ TECLADO VIRTUAL ═════════════════════════════════════
+   Mientras se escribe, la barra inferior sobra: se aparta y el
+   cajón se apoya justo encima del teclado, con su propio scroll. */
+
+body.teclado-abierto #mobile-nav { transform: translateY(100%); }
+body.teclado-abierto #fab-add { opacity: 0; pointer-events: none; }
+body.teclado-abierto #left-panel,
+body.teclado-abierto #right-panel,
+body.teclado-abierto .sheet {
+  bottom: var(--teclado);
+  max-height: calc(100dvh - var(--teclado) - var(--topbar-h) - var(--safe-t) - 12px);
+}
+body.teclado-abierto .quickbar { bottom: calc(var(--teclado) + 12px); }
+#mobile-nav { transition: transform var(--t) var(--ease); }
+
 /* ══ NAVEGACIÓN INFERIOR + BOTÓN DE AÑADIR ═══════════════ */
 
 #mobile-nav {
@@ -1054,6 +1185,27 @@ body.sheet-open #fab-add, body.has-selection #fab-add { transform: scale(.4); op
 .scale-track.dragging + .scale-side .scale-read { transform: scale(1.04); }
 .scale-read { transition: transform var(--t-fast) var(--spring); transform-origin: left center; }
 
+/* ══ BOTONES DE ICONO: UN SOLO LENGUAJE DE ESTADOS ═══════
+   Todo lo que es "un icono que se toca" responde igual, y su estado
+   se lee por COLOR, no por adivinar:
+     normal   → tinta suave sobre nada
+     activo   → rosa sobre rosa claro (o verde donde toque)
+     pulsado  → se hunde un poco y el fondo se oscurece
+     apagado  → medio transparente y no responde                    */
+
+.chip .ic, .seg-btn .ic { width: 20px; height: 20px; }
+.btn-row .btn .ic { width: 21px; height: 21px; }
+.action-foot .btn .ic, .mini-chip .ic { width: 18px; height: 18px; }
+.props-section > summary .ic { width: 20px; height: 20px; }
+
+/* Los iconos dentro de un campo o una fila estrecha no compiten con
+   el texto: bajan un punto, pero nunca por debajo de lo legible. */
+.tl-row-head .ic, .event-head .ic { width: 19px; height: 19px; }
+
+.btn:disabled, .btn-ic:disabled, .layer-tog:disabled, .page-actions button:disabled {
+  opacity: .38; pointer-events: none;
+}
+
 /* ══ BARRA DE DIBUJO ═════════════════════════════════════ */
 
 #draw-toolbar-slot { flex: none; }
@@ -1072,19 +1224,47 @@ body.sheet-open #fab-add, body.has-selection #fab-add { transform: scale(.4); op
 .music-list { display: flex; flex-direction: column; gap: 9px; margin: 12px 0; }
 .music-row {
   display: flex; align-items: center; gap: 12px;
-  min-height: 66px; padding: 10px 12px;
-  background: var(--surface); border-radius: var(--r-sm); box-shadow: var(--shadow-xs);
+  min-height: 74px; padding: 11px 12px;
+  background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--t-fast), background var(--t-fast);
 }
-.music-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.music-meta strong { font-size: var(--fs-md); font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* La que suena se marca en verde: "esto está pasando ahora" */
+.music-row.sonando { box-shadow: inset 0 0 0 2.5px var(--mint-deep), var(--shadow-sm); }
+
+.music-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.music-meta strong { font-size: var(--fs); font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .music-meta span { font-size: var(--fs-sm); color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .music-play {
-  width: 48px; height: 48px; flex: none; display: grid; place-items: center;
-  background: var(--accent-soft); color: var(--accent);
+  width: 52px; height: 52px; flex: none; display: grid; place-items: center;
+  background: var(--rose-soft); color: var(--accent);
   border-radius: 50%;
+  transition: transform var(--t-fast) var(--spring), background var(--t-fast), color var(--t-fast);
+}
+.music-play .ic { width: 23px; height: 23px; }
+.music-play:active { transform: scale(.88); }
+.music-row.sonando .music-play { background: var(--mint-deep); color: #fff; }
+
+.music-add {
+  flex: none; width: 46px; height: 46px; display: grid; place-items: center;
+  background: var(--mint-soft); color: var(--mint-deep); border-radius: 15px;
   transition: transform var(--t-fast) var(--spring), background var(--t-fast);
 }
-.music-play:active { transform: scale(.88); background: var(--surface-3); }
+.music-add:active { transform: scale(.88); background: var(--surface-3); }
+
+/* Ecualizador: tres barras que SOLO se mueven mientras suena.
+   Fuera de ese momento no existe ni ocupa sitio ni gasta un frame. */
+.music-eq { display: none; align-items: flex-end; gap: 3px; height: 20px; flex: none; }
+.music-row.sonando .music-eq { display: flex; }
+.music-eq i {
+  width: 3.5px; height: 100%; border-radius: 2px;
+  background: var(--mint-deep);
+  transform-origin: bottom;
+  animation: eq 1s ease-in-out infinite;
+}
+.music-eq i:nth-child(2) { animation-delay: .18s; }
+.music-eq i:nth-child(3) { animation-delay: .36s; }
+@keyframes eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
 
 /* ══ SELECTOR DE COLOR ═══════════════════════════════════ */
 
@@ -1192,8 +1372,7 @@ body.preview #artboard .wb-placeholder { background: none; border: none; }
     --ic: 22px; --ic-lg: 23px;
     --fs-lg: 19px;
   }
-  #left-panel, #right-panel, .sheet { max-height: 86dvh; }
-  .mn-label { font-size: 10.5px; }
+  .mn-label { font-size: 11px; }
   #mobile-nav button::before { top: 5px; height: 30px; }
   .qb-btn { min-height: 62px; min-width: 70px; padding: 8px 10px; gap: 4px; }
   .qb-ic .ic { width: 23px; height: 23px; }

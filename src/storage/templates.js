@@ -794,9 +794,19 @@ function themeHero(y, t) {
   return { height: 560, nodes };
 }
 
+/**
+ * ESTILOS DE PROYECTO — dos, y los dos de verdad.
+ *
+ * Cada uno trae su `vista`: los colores y la tipografía con los que
+ * el panel dibuja una miniatura real del estilo, en vez de un icono
+ * genérico que no dice nada.
+ */
 export const THEMES = {
   pixel: {
-    label: 'Pixel Art', pageBg: '#1a1c2c', pixelArt: true,
+    label: 'Pixel Art',
+    nota: 'Bordes duros, colores planos y tipografía de máquina.',
+    pageBg: '#1a1c2c', pixelArt: true,
+    vista: { fondo: '#1a1c2c', tarjeta: '#29366f', borde: '#41a6f6', titulo: '#ffcd75', texto: '#73eff7', boton: '#ef7d57', tipo: 'monospace', radio: 0 },
     build: (y) => themeHero(y, {
       name: 'pixel', font: 'monospace', anim: 'zoomIn',
       card: { background: '#29366f', radius: 0, borderWidth: 4, borderColor: '#41a6f6' },
@@ -805,74 +815,26 @@ export const THEMES = {
       btnText: '► START', btn: { background: '#ef7d57', color: '#1a1c2c', radius: 0, borderWidth: 4, borderColor: '#ffcd75' },
     }),
   },
-  minimal: {
-    label: 'Minimalista', pageBg: '#fafafa',
+  baddie: {
+    label: 'Baddie',
+    nota: 'Rosa eléctrico sobre negro, brillo y mucha actitud.',
+    pageBg: 'linear-gradient(160deg,#150910 0%,#2a0d1e 45%,#1a0a22 100%)',
+    vista: { fondo: 'linear-gradient(160deg,#150910,#2a0d1e 55%,#1a0a22)', tarjeta: 'rgba(255,79,141,.12)', borde: '#ff4f8d', titulo: '#ff8fc0', texto: '#e3aec8', boton: '#ff4f8d', tipo: 'system-ui', radio: 26 },
     build: (y) => themeHero(y, {
-      name: 'minimal', font: 'Helvetica',
-      card: { background: '#ffffff', radius: 24, shadow: 'suave' },
-      title: 'Menos, pero mejor', titleColor: '#111111',
-      subtitle: 'Espacio, tipografía y nada que sobre.', subColor: '#8a8a8e',
-      btnText: 'Explorar', btn: { background: '#111111', color: '#ffffff', radius: 27 },
-    }),
-  },
-  glass: {
-    label: 'Glassmorphism', pageBg: 'linear-gradient(135deg,#5b21b6,#db2777,#f59e0b)',
-    build: (y) => themeHero(y, {
-      name: 'glass', font: '',
-      card: { background: 'rgba(255,255,255,.14)', radius: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,.4)', blur: 18 },
-      title: 'Cristal líquido', titleColor: '#ffffff',
-      subtitle: 'Transparencias reales con desenfoque de fondo.', subColor: 'rgba(255,255,255,.8)',
-      btnText: 'Descubrir', btn: { background: 'rgba(255,255,255,.25)', color: '#ffffff', radius: 27, borderWidth: 1, borderColor: 'rgba(255,255,255,.5)', blur: 10 },
-    }),
-  },
-  neo: {
-    label: 'Neomorphism', pageBg: '#e0e5ec',
-    build: (y) => themeHero(y, {
-      name: 'neo', font: '',
-      card: { background: '#e0e5ec', radius: 30, shadowCustom: '9px 9px 22px #bec3c9, -9px -9px 22px #ffffff' },
-      title: 'Suave al tacto', titleColor: '#44476a',
-      subtitle: 'Relieves de luz y sombra sobre una sola superficie.', subColor: '#9a9db1',
-      btnText: 'Tocar', btn: { background: '#e0e5ec', color: '#44476a', radius: 27, shadowCustom: '6px 6px 14px #bec3c9, -6px -6px 14px #ffffff' },
-    }),
-  },
-  ios: {
-    label: 'iOS', pageBg: '#f2f2f7',
-    build: (y) => themeHero(y, {
-      name: 'ios', font: '-apple-system',
-      card: { background: '#ffffff', radius: 22, shadow: 'suave' },
-      title: 'Como en casa', titleColor: '#000000',
-      subtitle: 'Píldoras, esquinas amables y azul del sistema.', subColor: '#8e8e93',
-      btnText: 'Continuar', btn: { background: '#0a84ff', color: '#ffffff', radius: 27 },
-    }),
-  },
-  material: {
-    label: 'Material Design', pageBg: '#121212',
-    build: (y) => themeHero(y, {
-      name: 'material', font: 'Roboto',
-      card: { background: '#1e1e1e', radius: 16, shadow: 'media' },
-      title: 'Material que responde', titleColor: '#ffffff',
-      subtitle: 'Elevación, capas y color de acento vibrante.', subColor: 'rgba(255,255,255,.6)',
-      btnText: 'EMPEZAR', btn: { background: '#bb86fc', color: '#121212', radius: 8 },
-    }),
-  },
-  cyber: {
-    label: 'Cyberpunk', pageBg: 'linear-gradient(180deg,#0d0221,#1a0533)',
-    build: (y) => themeHero(y, {
-      name: 'cyber', font: 'monospace', anim: 'revelar',
-      card: { background: 'rgba(255,0,153,.06)', radius: 6, borderWidth: 1, borderColor: '#ff2a6d' },
-      title: 'NEON://FUTURO', titleColor: '#05d9e8', titleExtra: { textGlow: 'neón' },
-      subtitle: '[ sistema en línea · señal estable ]', subColor: '#ff2a6d',
-      btnText: 'CONECTAR', btn: { background: 'transparent', color: '#05d9e8', radius: 4, borderWidth: 2, borderColor: '#05d9e8' },
-    }),
-  },
-  terminal: {
-    label: 'Terminal', pageBg: '#0a0f0a',
-    build: (y) => themeHero(y, {
-      name: 'terminal', font: 'monospace', anim: 'revelar',
-      card: { background: '#0d130d', radius: 10, borderWidth: 1, borderColor: '#14532d' },
-      title: '~$ hola_mundo', titleColor: '#22c55e', titleSize: 36,
-      subtitle: 'escribiendo... ▋', subColor: '#4ade80',
-      btnText: '[ ENTER ]', btn: { background: '#052e16', color: '#22c55e', radius: 6, borderWidth: 1, borderColor: '#22c55e' },
+      name: 'baddie', font: '', anim: 'elastico',
+      sectionBg: 'radial-gradient(70% 60% at 50% 0%, rgba(255,79,141,.22), transparent 70%)',
+      card: {
+        background: 'rgba(255,79,141,.1)', radius: 26,
+        borderWidth: 1.5, borderColor: 'rgba(255,143,192,.55)',
+        shadowCustom: '0 0 42px rgba(255,79,141,.35)',
+      },
+      title: 'ERES MI PERSONA FAVORITA', titleColor: '#ff8fc0', titleSize: 42,
+      titleExtra: { letterSpacing: -1, textGlow: 'rosa' },
+      subtitle: 'y no pienso disimularlo ♡', subColor: '#e3aec8',
+      btnText: 'entra, mi amor ✧', btn: {
+        background: 'linear-gradient(120deg,#ff4f8d,#9b5cff)', color: '#ffffff', radius: 27,
+        shadowCustom: '0 8px 30px rgba(255,79,141,.5)',
+      },
     }),
   },
 };

@@ -208,7 +208,7 @@ export function openColorPicker(anchor, initial, onChange) {
   });
 
   const eyeBtn = el('button', {
-    class: 'btn btn-ic', html: ic('eyedrop', 15),
+    class: 'btn btn-ic', html: ic('eyedrop'),
     title: window.EyeDropper ? 'Cuentagotas: copia un color de la pantalla' : 'Cuentagotas no soportado en este navegador',
     onclick: async () => {
       if (!window.EyeDropper) return;

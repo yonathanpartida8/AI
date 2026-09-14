@@ -1,9 +1,10 @@
 # BuilderYNTHN_M-Beta — Creador de Experiencias Románticas
 
 **Una app de móvil y tablet, no una web adaptada.** Aquí no hay versión
-de escritorio: una sola interfaz táctil, pensada para el pulgar, que en
-tablet respira más en vez de convertirse en otra cosa. Estética pastel
-—crema, rosa y menta— con temas Claro · Oscuro · Baddie · Pixel Art.
+de escritorio ni modo oscuro: una sola piel clara y pastel, pensada
+para el pulgar, que en tablet respira más en vez de convertirse en otra
+cosa. Dos colores mandan a partes iguales — **🎀 rosa** para lo que
+eliges y **🍃 verde** para lo que ya está bien.
 
 **60 fps de verdad, también en un teléfono modesto.** Medido con la CPU
 frenada a un cuarto: 16,7 ms por fotograma en reposo, desplazando el
@@ -95,6 +96,19 @@ cierran deslizando, con el lienzo atenuado detrás.
 En **tablet** es exactamente la misma app: las hojas se centran y se
 ensanchan, las rejillas ganan columnas y todo respira. Nunca aparece
 una barra lateral ni nada que pida un ratón.
+
+Y el **teclado virtual** ya no tapa nada: cuando aparece, la barra
+inferior se aparta, el cajón se apoya justo encima del teclado y el
+campo que estás escribiendo se coloca a la vista.
+
+### 🗂️ Cajones que se manejan con el dedo
+Los paneles son cajones de verdad. Siguen al dedo desde cualquier
+punto, pero saben distinguir: si vas de lado no se mueven, si la lista
+no está arriba del todo lo que se desplaza es la lista, y solo cuando
+está arriba el mismo gesto arrastra el cajón. Para cerrarlo hay que
+**bajarlo hasta el 60 % de su altura** — lanzarlo hacia abajo no lo
+cierra por sí solo, solo rebaja lo que hay que recorrer. Si no llegas,
+vuelve a su sitio con un muelle.
 **Un dedo** desplaza el lienzo con inercia y rebote —pase por donde
 pase—. **Dos dedos** hacen zoom. **Desliza una capa o página a la
 izquierda** para borrarla (con «Deshacer» al instante) y **mantén
@@ -130,12 +144,18 @@ mueve ni un píxel. Mover algo es una decisión, no un accidente:
 Los tiradores del marco redimensionan y giran al momento, y el giro se
 imanta solo a 0/45/90°. Con ratón, el arrastre directo de siempre.
 
-### 🎨 Temas y paletas
-Cuatro temas del editor —**Claro · Oscuro · Baddie · Pixel Art**— y ocho
-paletas pastel (rosa, menta, lavanda, azul, crema, beige, melocotón,
-lila) que se eligen en *Páginas → Apariencia* y se recuerdan. El tema
-Pixel Art es de verdad: esquinas rectas, sombras duras, bordes de 2 px y
-tipografía monoespaciada.
+### 🎨 Color del editor
+El editor es siempre claro. Lo que eliges es **cómo se reparten el rosa
+y el verde**: *Rosa y menta* (a partes iguales), *Más rosa*, *Más verde*
+o *Lavanda*. Cada opción se enseña con su bola de dos colores en
+*Páginas → Color del editor*, y se recuerda entre sesiones.
+
+### 🎀 Dos estilos de proyecto, de verdad
+**Pixel Art** (bordes duros, colores planos, tipografía de máquina) y
+**Baddie** (rosa eléctrico sobre negro, neón y mucha actitud). Un toque
+cambia el fondo de la página y le añade su portada. Cada uno se enseña
+con una **miniatura real** de su estética, no con un nombre en una
+lista.
 
 ### 🌐 Online Assets
 Pega la URL de una imagen, GIF, vídeo, audio, SVG o JSON y el recurso se
@@ -233,6 +253,11 @@ selección que ya no se reconstruye en cada fotograma de arrastre:
 | desplazar el lienzo | p95 66,7 ms | **p95 16,8 ms** |
 | arrastrar una pieza | cientos de nodos/s | **0 nodos creados** |
 | sitio exportado | 4,2 Mpx por fondo | **0,39 Mpx** |
+
+Y un barrido de **once dispositivos** (iPhone SE/12/15 Pro Max, Galaxy
+A14/S24+, Pixel 8, iPad mini/Pro y tres en horizontal), siete pantallas
+cada uno: sin desbordes, sin elementos cortados, sin nada tocable por
+debajo de 34 px y sin texto por debajo de 11 px.
 
 Veinte ciclos de uso intenso seguidos: memoria plana, contextos WebGL
 estables y cero errores. Las partículas y el 3D **aguantan el frame

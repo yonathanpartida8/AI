@@ -840,6 +840,115 @@ Veinte ciclos de uso intenso (añadir, escalar, duplicar, borrar,
 cambiar de página, abrir y cerrar hojas, deshacer y rehacer): heap
 plano, contextos WebGL estables, cero errores de consola.
 
+## v15 — Una sola piel: clara, pastel y táctil
+
+La v14 ya era solo móvil, pero seguía arrastrando cuatro pieles del
+editor (dos de ellas oscuras), ocho estilos de proyecto de los que
+casi ninguno tenía que ver con el sitio, y un cajón inferior que se
+cerraba con cualquier roce.
+
+### Fuera el modo oscuro, entero
+
+`data-theme` ya no existe: ni los temas Oscuro, Baddie y Pixel Art del
+editor, ni sus 101 líneas de tokens, ni el selector, ni la clave
+`wb-theme` (que además se borra al arrancar, por si quedaba de antes).
+El editor es **siempre** claro. Lo que sí queda es elegir la mezcla de
+color, y ahí solo hay cuatro repartos del mismo pastel.
+
+### Dos colores, no uno con adorno
+
+El sistema tiene un reparto de papeles que no admite excepciones:
+
+| color | significa | dónde |
+|---|---|---|
+| 🎀 rosa | lo que eliges y lo que va a pasar | selección, acción principal, pestaña activa |
+| 🍃 verde | lo que ya está bien | guardado, capa visible, canción sonando, asset ya puesto |
+
+El degradado de marca entra por el rosa y sale por el verde; el fondo
+lleva un velo rosa arriba y uno verde abajo. Si algo no es ni una cosa
+ni la otra, va en tinta suave y punto.
+
+### Dos estilos de proyecto, y los dos de verdad
+
+De ocho (Pixel Art, Minimalista, Glassmorphism, Neomorphism, iOS,
+Material Design, Cyberpunk, Terminal) quedan **Pixel Art** y
+**Baddie** — este último no existía como estilo de proyecto, solo como
+piel del editor, así que se ha construido: rosa eléctrico sobre negro,
+brillo de neón en el título y botón con degradado.
+
+Cada estilo declara su `vista`: los colores, la tipografía y el radio
+con los que el panel dibuja una **miniatura real** hecha con divs. Ni
+imágenes que descargar ni capturas que mantener: el estilo se ve.
+
+### El cajón inferior, como debe ser
+
+Antes solo se podía arrastrar desde los 90 px de arriba y se cerraba
+con 110 px de recorrido. Ahora sigue al dedo desde cualquier punto y,
+sobre todo, sabe distinguir. La decisión se toma UNA vez, tras 8 px, y
+no cambia en todo el gesto:
+
+| lo que hace el dedo | lo que pasa |
+|---|---|
+| va claramente de lado | no es cosa del cajón (fila de filtros) |
+| baja y la lista NO está arriba | scroll de la lista |
+| baja y la lista está arriba del todo | se arrastra el cajón |
+| tira hacia arriba | se resiste (ya está en su tope) |
+
+Al soltar manda la **distancia**: hay que bajarlo al 60 % de su altura.
+Lanzarlo no lo cierra por sí solo, solo rebaja lo que hay que recorrer
+(al 50 %). Así hay inercia sin que un arrastre a media altura cierre
+el cajón sin querer. Si no llega, vuelve con muelle.
+
+### Cinco paneles rehechos
+
+- **Piezas** · los bloques pasan a dos columnas con azulejo de icono.
+  Piezas sueltas en rosa y redondas, bloques en verde y cuadrados:
+  misma calidad, identidad distinta.
+- **Assets** · miniaturas cuadradas grandes, agrupadas por carpeta, con
+  el peso y el tipo IMPRESOS en la tarjeta (en un móvil no hay `hover`,
+  así que un `title` no lo lee nadie) y un tic verde en lo que ya está
+  puesto en la página.
+- **Música** · la pista que suena se marca en verde, el botón pasa a
+  pausa y aparece un ecualizador de tres barras que solo se anima
+  mientras suena.
+- **Páginas** · cada página con su número y una **miniatura** que es el
+  plano de su contenido, dibujado en SVG con las cajas reales de sus
+  piezas.
+- **Capas** · nombre y tipo en dos líneas, y dos interruptores grandes
+  cuyo estado se lee por color: verde si se ve, rosa si está fijada.
+
+### Bugs de verdad que salieron a la luz
+
+- **Reordenar capas arrastrando no funcionaba en el móvil.** Usaba el
+  drag-and-drop de HTML5, que en táctil no se dispara jamás: el asa se
+  veía pero no hacía nada. Reescrito con eventos de puntero, con las
+  filas apartándose para dejar el hueco.
+- **La interfaz decía «Ancho del lienzo (desktop)»** — un resto del
+  sistema de dispositivos filtrándose a la pantalla.
+- **33 iconos tenían el tamaño escrito a mano** (11–15 px) y se
+  saltaban el token `--ic`. Retirados todos: ahora manda el sistema y
+  ningún icono visible baja de 20 px.
+- **El teclado virtual tapaba el cajón.** Al abrirse encoge el viewport
+  VISUAL pero no el de maqueta, y los cajones van con `position:
+  fixed`: escribías a ciegas. `visualViewport` mide cuánto ocupa, esa
+  medida viaja a `--teclado`, la barra inferior se aparta y el campo
+  enfocado se coloca a la vista.
+- **En horizontal la hoja se metía bajo la barra superior.** El tope de
+  altura ahora resta las dos barras y sus áreas seguras, sea cual sea
+  la pantalla.
+
+### Lo que se midió
+
+Con la CPU frenada x4 (gama media): 16,7 ms por fotograma en reposo,
+desplazando el lienzo, con un cajón abierto, con una pieza
+seleccionada y arrastrándola. Cero nodos creados durante un arrastre.
+Veinte ciclos de uso intenso sin fugas.
+
+Barrido de **once dispositivos** (iPhone SE/12/15 Pro Max, Galaxy
+A14/S24+, Pixel 8, iPad mini/Pro y tres en horizontal), siete
+pantallas cada uno: sin desbordes, sin elementos cortados, sin nada
+tocable por debajo de 34 px y sin texto por debajo de 11 px.
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección
@@ -868,6 +977,14 @@ plano, contextos WebGL estables, cero errores de consola.
   el fotograma, no la caja. Para maquetar, `offsetWidth/offsetHeight`.
 - Escribir `transform` entero desde JS borra lo que el CSS había puesto
   ahí. Si una capa combina centrado y gesto, cada cosa en su variable.
+- El drag-and-drop de HTML5 (`draggable`, `dragstart`) **no existe en
+  táctil**. Un asa de arrastre que dependa de él se ve perfecta y no
+  hace nada. Con el dedo, eventos de puntero.
+- En el móvil no hay `hover`, así que el atributo `title` es
+  información que nadie leerá jamás. Si hace falta saberlo, se imprime.
+- El teclado virtual encoge el viewport VISUAL, no el de maqueta: todo
+  lo que esté anclado con `position: fixed` al fondo se queda detrás.
+  `visualViewport` es la única fuente fiable de cuánto ocupa.
 
 ## Hoja de ruta natural
 

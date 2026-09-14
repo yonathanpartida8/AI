@@ -88,17 +88,20 @@ export class PropertiesPanel {
   #renderEmpty() {
     this.root.append(
       el('h3', { class: 'props-title', text: 'Proyecto' }),
-      this.#field('Nombre del proyecto', el('input', {
-        class: 'input', value: this.store.project.meta.name,
-        onchange: (e) => { this.store.snapshot(); this.store.project.meta.name = e.target.value; this.store.commit(); },
-      })),
-      el('h4', { class: 'panel-heading', text: 'Rejilla y ajuste' }),
-      this.#check('Mostrar cuadrícula', this.store.project.settings.grid.visible, (v) => {
-        this.store.project.settings.grid.visible = v; this.store.commit();
-      }),
-      this.#check('Snap a cuadrícula', this.store.project.settings.grid.snap, (v) => {
-        this.store.project.settings.grid.snap = v; this.store.commit();
-      }),
+      // Todo en tarjetas, igual que cuando hay algo seleccionado: el
+      // panel mantiene el mismo ritmo tenga o no selección.
+      this.#section('Nombre y lienzo', [
+        this.#field('Nombre del proyecto', el('input', {
+          class: 'input', value: this.store.project.meta.name,
+          onchange: (e) => { this.store.snapshot(); this.store.project.meta.name = e.target.value; this.store.commit(); },
+        })),
+        this.#check('Mostrar cuadrícula', this.store.project.settings.grid.visible, (v) => {
+          this.store.project.settings.grid.visible = v; this.store.commit();
+        }),
+        this.#check('Ajustar a la cuadrícula', this.store.project.settings.grid.snap, (v) => {
+          this.store.project.settings.grid.snap = v; this.store.commit();
+        }),
+      ]),
       this.#section('Código personalizado global', [
         el('p', { class: 'panel-hint', text: 'CSS y JavaScript propios que se aplican a TODO el sitio (editor, vista previa y export). Aquí puedes crear tus propias animaciones, fondos, partículas y efectos Canvas/WebGL.' }),
         this.#field('CSS global', el('textarea', {
@@ -132,8 +135,8 @@ export class PropertiesPanel {
         ['left', '⇤'], ['centerX', '⇹'], ['right', '⇥'], ['top', '⤒'], ['centerY', '⇕'],
       ].map(([mode, label]) => el('button', { class: 'btn', text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', html: `${ic('duplicate', 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes() }),
-        el('button', { class: 'btn danger', html: `${ic('trash', 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes() }),
+        el('button', { class: 'btn', html: `${ic('duplicate')}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes() }),
+        el('button', { class: 'btn danger', html: `${ic('trash')}<span>Eliminar</span>`, onclick: () => this.store.removeNodes() }),
       ]),
     );
   }
@@ -304,24 +307,24 @@ export class PropertiesPanel {
         el('button', { class: 'btn', text: 'Medio', title: 'Centrar verticalmente', onclick: () => this.store.alignSelection('centerY') }),
       ]),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', html: `${ic('front', 14)}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node.id) }),
-        el('button', { class: 'btn', html: `${ic('back', 14)}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node.id) }),
+        el('button', { class: 'btn', html: `${ic('front')}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node.id) }),
+        el('button', { class: 'btn', html: `${ic('back')}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node.id) }),
       ]),
       el('div', { class: 'btn-row' }, [
         el('button', { class: 'btn', text: 'Distribuir ↔', title: 'Espaciado uniforme horizontal (3+ seleccionados)', onclick: () => this.store.distributeSelection('x') }),
         el('button', { class: 'btn', text: 'Distribuir ↕', title: 'Espaciado uniforme vertical (3+ seleccionados)', onclick: () => this.store.distributeSelection('y') }),
       ]),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', html: `${ic('copy', 14)}<span>Copiar estilo</span>`, title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
-        el('button', { class: 'btn', html: `${ic('check', 14)}<span>Pegar estilo</span>`, title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
+        el('button', { class: 'btn', html: `${ic('copy')}<span>Copiar estilo</span>`, title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
+        el('button', { class: 'btn', html: `${ic('check')}<span>Pegar estilo</span>`, title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
       ]),
     ]));
 
     /* Acciones */
     this.root.append(el('div', { class: 'btn-row' }, [
-      el('button', { class: 'btn', html: `${ic('duplicate', 14)}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes([node.id]) }),
+      el('button', { class: 'btn', html: `${ic('duplicate')}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes([node.id]) }),
       el('button', { class: 'btn btn-ic', html: ic(node.locked ? 'lock' : 'unlock'), title: node.locked ? 'Desbloquear' : 'Bloquear', onclick: () => this.store.toggleFlag(node.id, 'locked') }),
-      el('button', { class: 'btn danger', html: `${ic('trash', 14)}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node.id]) }),
+      el('button', { class: 'btn danger', html: `${ic('trash')}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node.id]) }),
     ]));
   }
 
@@ -341,9 +344,9 @@ export class PropertiesPanel {
     const paso = (dy) => 1 + (-dy / MAX) * 0.5;   // arriba = crecer
     const pill = el('div', { class: 'scale-thumb' });
     const via = el('div', { class: 'scale-track' }, [
-      el('span', { class: 'scale-mark plus', html: ic('plus', 16) }),
+      el('span', { class: 'scale-mark plus', html: ic('plus') }),
       pill,
-      el('span', { class: 'scale-mark minus', html: ic('minus', 16) }),
+      el('span', { class: 'scale-mark minus', html: ic('minus') }),
     ]);
     const lectura = el('span', { class: 'scale-read', text: '100%' });
 
@@ -460,9 +463,9 @@ export class PropertiesPanel {
           ...rows.map((row, i) => el('div', { class: 'tl-row' }, [
             el('div', { class: 'tl-row-head' }, [
               el('input', { class: 'input', value: row.d, placeholder: 'Fecha', onchange: (e) => { row.d = e.target.value; serialize(); } }),
-              el('button', { class: 'btn btn-ic', html: ic('up', 12), title: 'Subir', onclick: () => { if (i > 0) { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; serialize(); } } }),
-              el('button', { class: 'btn btn-ic', html: ic('down', 12), title: 'Bajar', onclick: () => { if (i < rows.length - 1) { [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]]; serialize(); } } }),
-              el('button', { class: 'btn btn-ic danger', html: ic('close', 12), title: 'Quitar', onclick: () => { rows.splice(i, 1); serialize(); } }),
+              el('button', { class: 'btn btn-ic', html: ic('up'), title: 'Subir', onclick: () => { if (i > 0) { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; serialize(); } } }),
+              el('button', { class: 'btn btn-ic', html: ic('down'), title: 'Bajar', onclick: () => { if (i < rows.length - 1) { [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]]; serialize(); } } }),
+              el('button', { class: 'btn btn-ic danger', html: ic('close'), title: 'Quitar', onclick: () => { rows.splice(i, 1); serialize(); } }),
             ]),
             el('input', { class: 'input', value: row.t, placeholder: 'Título del recuerdo', onchange: (e) => { row.t = e.target.value; serialize(); } }),
             el('input', { class: 'input', value: row.b, placeholder: 'Qué pasó ese día…', onchange: (e) => { row.b = e.target.value; serialize(); } }),
@@ -472,7 +475,7 @@ export class PropertiesPanel {
             ]),
           ])),
           el('button', {
-            class: 'btn block', html: `${ic('plus', 13)}<span>Añadir recuerdo</span>`,
+            class: 'btn block', html: `${ic('plus')}<span>Añadir recuerdo</span>`,
             onclick: () => { rows.push({ d: 'Hoy', t: 'Un momento nuevo', b: '', ph: '' }); serialize(); },
           }),
         ]);
@@ -560,7 +563,7 @@ export class PropertiesPanel {
           onchange: (e) => { snap(); action.delay = +e.target.value; commit(); },
         })]),
         el('button', {
-          class: 'btn danger btn-ic', html: ic('close', 12), title: 'Quitar acción',
+          class: 'btn danger btn-ic', html: ic('close'), title: 'Quitar acción',
           onclick: () => { snap(); event.actions.splice(ai, 1); commit(); },
         }),
       ]));
@@ -572,7 +575,7 @@ export class PropertiesPanel {
         this.#select(Object.keys(EVENT_TRIGGERS), event.on,
           (v) => { snap(); event.on = v; commit(); }, (k) => EVENT_TRIGGERS[k]),
         el('button', {
-          class: 'btn danger', html: `${ic('trash', 13)}<span>Evento</span>`,
+          class: 'btn danger', html: `${ic('trash')}<span>Evento</span>`,
           onclick: () => { snap(); node.events.splice(index, 1); commit(); },
         }),
       ]),

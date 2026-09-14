@@ -647,7 +647,7 @@ export class Interactions {
         mov.className = 'handle h-move';
         mov.dataset.handle = 'move';
         mov.title = 'Arrastra para mover';
-        mov.innerHTML = ic('drag', 20);
+        mov.innerHTML = ic('drag');
         box.append(mov);
       }
       overlay.append(box);
