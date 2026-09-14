@@ -625,7 +625,7 @@ export class Interactions {
     for (const node of selected) {
       const f = this.store.frame(node);
       const box = document.createElement('div');
-      box.className = `sel-box${node.locked ? ' locked' : ''}`;
+      box.className = `sel-box${node.locked ? ' locked' : ''}${node.hidden ? ' oculto' : ''}`;
       Object.assign(box.style, {
         left: `${f.x}px`, top: `${f.y}px`, width: `${f.w}px`, height: `${f.h}px`,
         transform: `rotate(${f.rotation || 0}deg)`,
@@ -669,11 +669,14 @@ export class Interactions {
         }
         overlay.append(affix);
         pieza.affix = affix;
-        this.#showQuickbar(node, animar);
       }
       piezas.push(pieza);
     }
-    if (!single) this.#hideQuickbar();
+    // La barra también sale con VARIAS piezas: ahí enseña agrupar,
+    // alinear y repartir. Antes solo aparecía con una y con varias no
+    // había manera de hacer nada sin abrir el panel.
+    if (selected.length) this.#showQuickbar(selected[0], animar);
+    else this.#hideQuickbar();
     this.marco = { overlay, piezas };
   }
 
@@ -727,6 +730,15 @@ export class Interactions {
    * estado visible (activo cuando la pieza está bloqueada u oculta) y
    * desplazamiento horizontal solo si no caben. Nada comprimido.
    */
+  /**
+   * BARRA CONTEXTUAL del elemento seleccionado.
+   *
+   * Lo primero que se ve NO es siempre lo mismo: cada familia estrena
+   * su acción propia —cambiar la foto, escribir el texto, el color de
+   * la forma— y detrás van las universales. Con varias piezas
+   * seleccionadas la barra cambia entera: ahí no interesa el ancho de
+   * ninguna, interesa cómo se colocan entre ellas.
+   */
   #buildQuickbar(node) {
     const store = this.store;
     const boton = ({ icon, label, title, onclick, cls = '', activo = false }) => el('button', {
@@ -736,16 +748,43 @@ export class Interactions {
       onpointerdown: (e) => e.stopPropagation(), // no inicia gesto sobre el nodo
       onclick,
     }, [
-      el('span', { class: 'qb-ic', html: ic(icon, 24) }),
+      el('span', { class: 'qb-ic', html: ic(icon) }),
       el('span', { class: 'qb-lbl', text: label }),
     ]);
     const separador = () => el('span', { class: 'qb-sep' });
+    const abrirDiseño = () => document.dispatchEvent(new CustomEvent('wb:open-design'));
+
+    /* ── Varias piezas: cambian TODAS las herramientas ──── */
+    const selección = store.selectedNodes;
+    if (selección.length > 1) {
+      const juntas = selección.every((n) => n.groupId)
+        && new Set(selección.map((n) => n.groupId)).size === 1;
+      return el('div', { class: 'quickbar' }, [
+        el('div', { class: 'qb-scroll' }, [
+          juntas
+            ? boton({ icon: 'desagrupar', label: 'Separar', cls: 'principal', onclick: () => store.ungroupSelection() })
+            : boton({ icon: 'agrupar', label: 'Agrupar', cls: 'principal', title: 'Que se muevan juntas', onclick: () => store.groupSelection() }),
+          boton({ icon: 'alinCentroX', label: 'Centrar', title: 'Centrar entre ellas', onclick: () => store.alignSelection('centerX') }),
+          boton({ icon: 'repartirX', label: 'Repartir', title: 'Espaciado uniforme (3 o más)', onclick: () => store.distributeSelection('x') }),
+          separador(),
+          boton({ icon: 'sliders', label: 'Colocar', title: 'Todas las opciones de alineación', onclick: abrirDiseño }),
+          boton({ icon: 'duplicate', label: 'Duplicar', onclick: () => store.duplicateNodes() }),
+          separador(),
+          boton({ icon: 'trash', label: 'Eliminar', cls: 'peligro', onclick: () => store.removeNodes() }),
+        ]),
+      ]);
+    }
+
+    /* ── Una pieza: su acción propia primero ───────────── */
+    const propia = this.#accionPropia(node);
 
     return el('div', { class: 'quickbar' }, [
       el('div', { class: 'qb-scroll' }, [
+        propia ? boton({ ...propia, cls: 'principal' }) : null,
         boton({
-          icon: 'sliders', label: 'Editar', title: 'Abrir diseño, animación y lógica',
-          cls: 'principal', onclick: () => document.dispatchEvent(new CustomEvent('wb:open-design')),
+          icon: 'sliders', label: propia ? 'Ajustes' : 'Editar',
+          title: 'Abrir diseño, animación y lógica',
+          cls: propia ? '' : 'principal', onclick: abrirDiseño,
         }),
         boton({ icon: 'duplicate', label: 'Duplicar', onclick: () => store.duplicateNodes([node.id]) }),
         boton({ icon: 'copy', label: 'Copiar', onclick: () => { store.select([node.id]); store.copy(); } }),
@@ -754,18 +793,80 @@ export class Interactions {
         boton({ icon: 'back', label: 'Al fondo', title: 'Enviar al fondo', onclick: () => store.sendToBack(node.id) }),
         separador(),
         boton({
-          icon: node.locked ? 'lock' : 'unlock', label: node.locked ? 'Bloqueado' : 'Bloquear',
-          title: node.locked ? 'Desbloquear para poder moverlo' : 'Bloquear para no moverlo sin querer',
+          icon: node.locked ? 'lock' : 'unlock', label: node.locked ? 'Fijada' : 'Fijar',
+          title: node.locked ? 'Soltar para poder moverla' : 'Fijar para no moverla sin querer',
           activo: !!node.locked, onclick: () => store.toggleFlag(node.id, 'locked'),
         }),
         boton({
-          icon: node.hidden ? 'eyeOff' : 'eye', label: node.hidden ? 'Oculto' : 'Ocultar',
+          icon: node.hidden ? 'eyeOff' : 'eye', label: node.hidden ? 'Oculta' : 'Ocultar',
           title: node.hidden ? 'Volver a mostrar' : 'Ocultar en la página',
           activo: !!node.hidden, onclick: () => store.toggleFlag(node.id, 'hidden'),
         }),
         separador(),
         boton({ icon: 'trash', label: 'Eliminar', cls: 'peligro', onclick: () => store.removeNodes([node.id]) }),
-      ]),
+      ].filter(Boolean)),
     ]);
   }
+
+  /**
+   * La acción que tiene sentido para ESTE elemento y para ningún otro.
+   * Un texto se escribe, una foto se cambia, una forma se pinta.
+   */
+  #accionPropia(node) {
+    const abrirDiseño = () => document.dispatchEvent(new CustomEvent('wb:open-design'));
+    const TEXTOS = ['text', 'typewriter', 'button', 'navButton'];
+    const IMAGENES = ['image', 'gif', 'polaroid', 'photo3d'];
+    const MEDIOS = ['video', 'audio', 'musicPlayer'];
+    const FORMAS = ['shape', 'divider', 'icon', 'container', 'section'];
+
+    if (TEXTOS.includes(node.type)) {
+      return {
+        icon: 'type', label: 'Escribir', title: 'Editar el texto aquí mismo',
+        onclick: () => this.#editarTextoEnSitio(node),
+      };
+    }
+    if (IMAGENES.includes(node.type) || MEDIOS.includes(node.type)) {
+      return {
+        icon: 'cambiar', label: 'Cambiar',
+        title: 'Elegir otro recurso de la biblioteca',
+        onclick: () => document.dispatchEvent(new CustomEvent('wb:open-assets', { detail: { nodeId: node.id } })),
+      };
+    }
+    if (FORMAS.includes(node.type)) {
+      return { icon: 'paleta', label: 'Color', title: 'Cambiar el relleno', onclick: abrirDiseño };
+    }
+    return null;
+  }
+
+  /** Pone el texto en modo edición directamente sobre el lienzo. */
+  #editarTextoEnSitio(node) {
+    const elem = this.#nodeEl(node.id);
+    const destino = elem?.querySelector('.wb-text, [contenteditable]') || elem;
+    if (!destino) return;
+    destino.setAttribute('contenteditable', 'true');
+    document.body.classList.add('editando-texto');
+    elem.classList.add('en-edicion');
+    destino.focus();
+    // Cursor al final, no al principio
+    const rango = document.createRange();
+    rango.selectNodeContents(destino);
+    rango.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(rango);
+
+    const salir = () => {
+      destino.removeEventListener('blur', salir);
+      destino.removeAttribute('contenteditable');
+      document.body.classList.remove('editando-texto');
+      elem.classList.remove('en-edicion');
+      const texto = destino.textContent;
+      if (texto !== node.props?.text) {
+        this.store.snapshot();
+        this.store.updateNode(node.id, 'props', { text: texto });
+      }
+    };
+    destino.addEventListener('blur', salir);
+  }
+
 }

@@ -449,9 +449,13 @@ function buildMobileNav(store, panels, view) {
   view.viewport.addEventListener('pointerdown', cerrarTodo);
   // Entrar en la libreta de dibujo también las cierra (lienzo despejado)
   store.on('tool', () => { if (store.tool === 'draw') cerrarTodo(); });
-  // La barra rápida del lienzo abre el panel de Diseño
-  document.addEventListener('wb:open-design', () => {
-    if (getComputedStyle(nav).display !== 'none') { openSheet(right); }
+  // La barra contextual abre el panel de Diseño…
+  document.addEventListener('wb:open-design', () => openSheet(right));
+  // …y "Cambiar" salta directo a la biblioteca, con la pieza aún
+  // seleccionada: tocar un recurso lo mete DENTRO de ella.
+  document.addEventListener('wb:open-assets', () => {
+    panels.openTab('assets');
+    openSheet(left);
   });
   // Deslizar hacia abajo cierra cualquier hoja (gesto natural)
   makeSheetDismissable(left, closeAll);

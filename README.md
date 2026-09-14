@@ -133,6 +133,30 @@ pase—. **Dos dedos** hacen zoom. **Desliza una capa o página a la
 izquierda** para borrarla (con «Deshacer» al instante) y **mantén
 pulsada** una capa para selección múltiple.
 
+### 🎯 La herramienta correcta en el momento correcto
+El editor **cambia según lo que toques**. Un texto ofrece *Escribir*
+(y lo editas sobre el propio lienzo), una foto ofrece *Cambiar*, una
+forma ofrece *Color*. El panel de la derecha estrena cabecera con el
+icono de la familia, tus cinco acciones de siempre a la vista
+—duplicar, al frente, al fondo, fijar, eliminar— y debajo **solo lo
+que le corresponde a esa pieza**. Lo demás (cómo entra, cómo se va,
+respuesta al tacto, filtros, qué pasa al tocarlo, alinear) está a un
+toque en **Más opciones**.
+
+Con **varias piezas seleccionadas** cambian todas las herramientas:
+agrupar, centrar, repartir, duplicar y eliminar. Y alinear las coloca
+**entre ellas**, no contra el borde de la página.
+
+### 🔗 Agrupar
+Junta varias piezas y se mueven, crecen y se alinean como una sola.
+Tocar cualquiera las selecciona todas; *Separar* deshace el grupo.
+
+### 🚦 Se ve lo que le pasa a cada pieza
+Seleccionada, contorno rosa. **Fijada**, contorno a trazos y un
+candado en la esquina que explica por qué no se mueve. **Oculta**, en
+gris translúcido. **Escribiendo**, el resto de la interfaz se aparta
+para no taparte.
+
 ### 🧰 Barra de edición grande, con nombre y todo
 Al seleccionar una pieza aparece abajo una barra de verdad: ocho
 acciones —**Editar · Duplicar · Copiar | Al frente · Al fondo |

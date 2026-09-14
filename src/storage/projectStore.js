@@ -197,7 +197,9 @@ export class ProjectStore extends EventBus {
   /* ── Selección / vista ─────────────────────────────── */
 
   select(ids, additive = false) {
-    const list = [].concat(ids).filter((id) => this.node(id));
+    let list = [].concat(ids).filter((id) => this.node(id));
+    // Tocar una pieza agrupada selecciona el grupo entero
+    list = this.expandGroups(list);
     this.selection = additive ? [...new Set([...this.selection, ...list])] : list;
     this.emit('selection');
   }
@@ -375,20 +377,82 @@ export class ProjectStore extends EventBus {
     this.commit();
   }
 
+  /**
+   * Alinea la selección.
+   *
+   * Con UNA pieza se alinea respecto a la página; con varias, entre
+   * ellas (respecto a la caja que las envuelve), que es lo que
+   * espera cualquiera que venga de un editor de verdad. Antes todo
+   * se alineaba siempre a la página, así que "centrar" tres piezas
+   * las apilaba una encima de otra en mitad del lienzo.
+   */
   alignSelection(mode) {
     const nodes = this.selectedNodes.filter((n) => !n.locked);
     if (!nodes.length) return;
     this.snapshot();
-    const W = this.project.settings.breakpoints[this.device];
-    for (const node of nodes) {
-      const f = this.frame(node);
+    const frames = nodes.map((n) => this.frame(n));
+
+    let x0, x1, y0, y1;
+    if (nodes.length > 1) {
+      x0 = Math.min(...frames.map((f) => f.x));
+      x1 = Math.max(...frames.map((f) => f.x + f.w));
+      y0 = Math.min(...frames.map((f) => f.y));
+      y1 = Math.max(...frames.map((f) => f.y + f.h));
+    } else {
+      x0 = 0; x1 = this.project.settings.breakpoints[this.device];
+      y0 = 0; y1 = this.page.height;
+    }
+
+    nodes.forEach((node, i) => {
+      const f = frames[i];
       const patch = {
-        left: { x: 0 }, centerX: { x: Math.round((W - f.w) / 2) }, right: { x: W - f.w },
-        top: { y: 0 }, centerY: { y: Math.round((this.page.height - f.h) / 2) },
+        left: { x: Math.round(x0) },
+        centerX: { x: Math.round((x0 + x1 - f.w) / 2) },
+        right: { x: Math.round(x1 - f.w) },
+        top: { y: Math.round(y0) },
+        centerY: { y: Math.round((y0 + y1 - f.h) / 2) },
+        bottom: { y: Math.round(y1 - f.h) },
       }[mode];
       if (patch) this.setFrame(node, patch);
-    }
+    });
     this.commit();
+  }
+
+  /* ── Grupos ────────────────────────────────────────────
+   * Agrupar no anida nodos (el documento es plano a propósito):
+   * marca las piezas con un mismo `groupId`. Tocar cualquiera de
+   * ellas selecciona el grupo entero, así que se mueven, escalan y
+   * alinean como una sola cosa — que es lo que se espera— sin tocar
+   * el modelo de datos ni romper proyectos ya guardados.
+   */
+
+  groupSelection() {
+    const ids = this.selection.filter((id) => this.node(id));
+    if (ids.length < 2) return null;
+    this.snapshot();
+    const gid = uid('gr');
+    for (const id of ids) this.node(id).groupId = gid;
+    this.commit();
+    return gid;
+  }
+
+  ungroupSelection() {
+    const nodes = this.selectedNodes.filter((n) => n.groupId);
+    if (!nodes.length) return;
+    this.snapshot();
+    for (const n of nodes) delete n.groupId;
+    this.commit();
+  }
+
+  /** Todos los ids que comparten grupo con alguno de los dados. */
+  expandGroups(ids) {
+    const grupos = new Set(ids.map((id) => this.node(id)?.groupId).filter(Boolean));
+    if (!grupos.size) return ids;
+    const fuera = new Set(ids);
+    for (const n of this.pageNodes()) {
+      if (n.groupId && grupos.has(n.groupId)) fuera.add(n.id);
+    }
+    return [...fuera];
   }
 
   /**

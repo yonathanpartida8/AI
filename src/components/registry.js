@@ -46,7 +46,7 @@ const TEXT_STYLE = [
 export const Components = {
   /* ── Elementos básicos ─────────────────────────────── */
   text: {
-    label: 'Texto', icon: 'type', cat: 'Básicos', size: [320, 60],
+    label: 'Texto', cat: 'Básicos', size: [320, 60],
     defaults: {
       props: { text: 'Doble clic para editar', tag: 'p', textFx: 'ninguno' },
       styles: { fontSize: 28, color: '#e2e8f0', fontWeight: '600', textAlign: 'left', fontFamily: 'system-ui' },
@@ -60,7 +60,7 @@ export const Components = {
   },
 
   button: {
-    label: 'Botón', icon: '▭', cat: 'Básicos', size: [180, 52],
+    label: 'Botón', cat: 'Básicos', size: [180, 52],
     defaults: {
       props: { text: 'Haz clic' },
       styles: {
@@ -72,7 +72,7 @@ export const Components = {
   },
 
   image: {
-    label: 'Imagen', icon: '🖼', cat: 'Básicos', size: [320, 220], accepts: ['image'],
+    label: 'Imagen', cat: 'Básicos', size: [320, 220], accepts: ['image'],
     defaults: {
       props: { assetId: null, fit: 'cover', alt: 'Imagen', filter: 'ninguno', filterAmount: 100 },
       styles: { radius: 8 },
@@ -88,7 +88,7 @@ export const Components = {
   },
 
   gif: {
-    label: 'GIF', icon: '🎞', cat: 'Básicos', size: [280, 210], accepts: ['gif'],
+    label: 'GIF', cat: 'Básicos', size: [280, 210], accepts: ['gif'],
     defaults: {
       props: { assetId: null, playing: true, speed: 1, fit: 'cover' },
       styles: { radius: 8 },
@@ -102,7 +102,7 @@ export const Components = {
   },
 
   video: {
-    label: 'Vídeo', icon: '▶', cat: 'Básicos', size: [420, 240], accepts: ['video'],
+    label: 'Vídeo', cat: 'Básicos', size: [420, 240], accepts: ['video'],
     defaults: {
       props: { assetId: null, autoplay: true, loop: true, muted: true, controls: false, playOnScroll: false },
       styles: { radius: 10 },
@@ -119,19 +119,19 @@ export const Components = {
   },
 
   audio: {
-    label: 'Audio', icon: '♫', cat: 'Básicos', size: [320, 60], accepts: ['audio'],
+    label: 'Audio', cat: 'Básicos', size: [320, 60], accepts: ['audio'],
     defaults: { props: { assetId: null, srcUrl: '', autoplay: false, loop: false }, styles: { radius: 30, background: '#1e293b' } },
     schema: [asset('props.assetId', 'Archivo de audio', 'audio'), text('props.srcUrl', 'o URL externa'), check('props.autoplay', 'Autoplay'), check('props.loop', 'Loop')],
   },
 
   icon: {
-    label: 'Icono', icon: '★', cat: 'Básicos', size: [64, 64],
+    label: 'Icono', cat: 'Básicos', size: [64, 64],
     defaults: { props: { glyph: '★' }, styles: { fontSize: 48, color: '#fbbf24', textAlign: 'center' } },
     schema: [text('props.glyph', 'Emoji / carácter'), num('styles.fontSize', 'Tamaño', 12, 300), color('styles.color', 'Color')],
   },
 
   shape: {
-    label: 'Forma', icon: '◆', cat: 'Básicos', size: [180, 180],
+    label: 'Forma', cat: 'Básicos', size: [180, 180],
     defaults: { props: { shape: 'rectángulo' }, styles: { background: '#8b5cf6', radius: 12 } },
     schema: [
       select('props.shape', 'Forma', ['rectángulo', 'círculo', 'triángulo', 'rombo', 'estrella', 'hexágono']),
@@ -140,20 +140,20 @@ export const Components = {
   },
 
   container: {
-    label: 'Contenedor', icon: '▢', cat: 'Básicos', size: [480, 300],
+    label: 'Contenedor', cat: 'Básicos', size: [480, 300],
     defaults: { props: {}, styles: { background: 'rgba(148,163,184,.08)', radius: 16, borderWidth: 1, borderColor: 'rgba(148,163,184,.25)' } },
     schema: [...STYLE_COMMON],
   },
 
   section: {
-    label: 'Sección', icon: '☰', cat: 'Básicos', size: [1280, 420],
+    label: 'Sección', cat: 'Básicos', size: [1280, 420],
     defaults: { props: {}, styles: { background: 'linear-gradient(135deg,#0f172a,#1e1b4b)' } },
     schema: [text('styles.background', 'Fondo (color o gradiente CSS)'), ...STYLE_COMMON.slice(1)],
   },
 
   /* ── Elementos avanzados ───────────────────────────── */
   gallery: {
-    label: 'Galería', icon: '⊞', cat: 'Avanzados', size: [560, 380], accepts: ['image', 'gif'],
+    label: 'Galería', cat: 'Avanzados', size: [560, 380], accepts: ['image', 'gif'],
     defaults: { props: { assetIds: [], columns: 3, gap: 10 }, styles: { radius: 8 } },
     schema: [
       { key: 'props.assetIds', label: 'Imágenes', type: 'assetList', kind: 'image' },
@@ -164,7 +164,7 @@ export const Components = {
   },
 
   slider: {
-    label: 'Slider', icon: '⇄', cat: 'Avanzados', size: [560, 320], accepts: ['image', 'gif'],
+    label: 'Slider', cat: 'Avanzados', size: [560, 320], accepts: ['image', 'gif'],
     defaults: { props: { assetIds: [], interval: 3000, transition: 'fade' }, styles: { radius: 12 } },
     schema: [
       { key: 'props.assetIds', label: 'Diapositivas', type: 'assetList', kind: 'image' },
@@ -175,7 +175,7 @@ export const Components = {
   },
 
   form: {
-    label: 'Formulario', icon: '✉', cat: 'Avanzados', size: [400, 380],
+    label: 'Formulario', cat: 'Avanzados', size: [400, 380],
     defaults: {
       props: { title: 'Contacto', buttonText: 'Enviar', fields: 'Nombre,Email,Mensaje' },
       styles: { background: '#0f172a', radius: 16, color: '#e2e8f0', fontFamily: 'system-ui' },
@@ -189,7 +189,7 @@ export const Components = {
   },
 
   menu: {
-    label: 'Menú', icon: '≡', cat: 'Avanzados', size: [1280, 64],
+    label: 'Menú', cat: 'Avanzados', size: [1280, 64],
     defaults: {
       props: { brand: 'Mi Sitio' },
       styles: { background: 'rgba(15,23,42,.85)', color: '#e2e8f0', fontFamily: 'system-ui', fontSize: 15 },
@@ -198,7 +198,7 @@ export const Components = {
   },
 
   musicPlayer: {
-    label: 'Reproductor', icon: '🎵', cat: 'Avanzados', size: [360, 110], accepts: ['audio'],
+    label: 'Reproductor', cat: 'Avanzados', size: [360, 110], accepts: ['audio'],
     defaults: {
       props: {
         assetId: null, srcUrl: '', coverId: null, variant: 'tarjeta',
@@ -225,7 +225,7 @@ export const Components = {
   },
 
   model3d: {
-    label: 'Modelo 3D', icon: '⬡', cat: 'Avanzados', size: [420, 360], accepts: ['model'],
+    label: 'Modelo 3D', cat: 'Avanzados', size: [420, 360], accepts: ['model'],
     defaults: {
       props: {
         assetId: null, autoRotate: true, rotateSpeed: 1, cameraZ: 4,
@@ -246,7 +246,7 @@ export const Components = {
   },
 
   particles: {
-    label: 'Partículas', icon: '✦', cat: 'Avanzados', size: [640, 400],
+    label: 'Partículas', cat: 'Avanzados', size: [640, 400],
     defaults: {
       props: { count: 400, color: '#818cf8', speed: 1, size: 2, mode: 'nebulosa', opacity: 1, shape: 'auto', glow: true },
       styles: { background: '#020617', radius: 12 },
@@ -265,13 +265,13 @@ export const Components = {
   },
 
   drawing: {
-    label: 'Dibujo', icon: '✎', cat: 'Avanzados', size: [320, 240], accepts: ['image'],
+    label: 'Dibujo', cat: 'Avanzados', size: [320, 240], accepts: ['image'],
     defaults: { props: { assetId: null, fit: 'contain' }, styles: {} },
     schema: [asset('props.assetId', 'Trazo exportado', 'image'), ...STYLE_COMMON],
   },
 
   navButton: {
-    label: 'Botón de navegación', icon: '⇢', cat: 'Básicos', size: [210, 58],
+    label: 'Botón de navegación', cat: 'Básicos', size: [210, 58],
     defaults: {
       props: { text: 'Siguiente', target: '__next', variant: 'píldora', showArrow: true },
       styles: {
@@ -290,7 +290,7 @@ export const Components = {
 
   /* ── Componentes románticos ─────────────────────────── */
   loveLetter: {
-    label: 'Carta interactiva', icon: '💌', cat: 'Románticos', size: [380, 300], accepts: ['image', 'audio'],
+    label: 'Carta interactiva', cat: 'Románticos', size: [380, 300], accepts: ['image', 'audio'],
     defaults: {
       props: {
         cover: 'Toca para abrir',
@@ -317,7 +317,7 @@ export const Components = {
   },
 
   timeline: {
-    label: 'Línea de tiempo', icon: '🕰', cat: 'Románticos', size: [420, 420],
+    label: 'Línea de tiempo', cat: 'Románticos', size: [420, 420],
     defaults: {
       props: {
         items: '14/02/2023 | Nos conocimos | El día que todo empezó ; 20/06/2023 | Primer viaje | Descubrimos el mundo juntos ; Hoy | Seguimos escribiendo | Nuestra historia continúa…',
@@ -332,7 +332,7 @@ export const Components = {
   },
 
   hiddenMessage: {
-    label: 'Mensaje oculto', icon: '🔮', cat: 'Románticos', size: [380, 180],
+    label: 'Mensaje oculto', cat: 'Románticos', size: [380, 180],
     defaults: {
       props: { cover: '✨ Toca para revelar el secreto', message: 'Te amo más de lo que las palabras pueden decir 💗' },
       styles: { fontSize: 20, color: '#fdf2f8', background: 'rgba(88,28,135,.35)', radius: 18, fontFamily: 'Georgia' },
@@ -346,7 +346,7 @@ export const Components = {
   },
 
   heartButton: {
-    label: 'Botón de corazones', icon: '💗', cat: 'Románticos', size: [220, 60],
+    label: 'Botón de corazones', cat: 'Románticos', size: [220, 60],
     defaults: {
       props: { text: 'Pulsa aquí 💗', emoji: '❤️' },
       styles: {
@@ -358,7 +358,7 @@ export const Components = {
   },
 
   typewriter: {
-    label: 'Máquina de escribir', icon: '⌨', cat: 'Románticos', size: [420, 70],
+    label: 'Máquina de escribir', cat: 'Románticos', size: [420, 70],
     defaults: {
       props: { text: 'Escribiendo nuestra historia…', speed: 90, loop: true },
       styles: { fontSize: 26, color: '#fbcfe8', fontWeight: '600', textAlign: 'left', fontFamily: 'Courier New' },
@@ -372,7 +372,7 @@ export const Components = {
   },
 
   countdown: {
-    label: 'Contador de amor', icon: '⏳', cat: 'Románticos', size: [480, 110],
+    label: 'Contador de amor', cat: 'Románticos', size: [480, 110],
     defaults: {
       props: { date: '2023-02-14', mode: 'desde', label: 'Juntos desde hace' },
       styles: { color: '#fdf2f8', fontSize: 15, fontFamily: 'system-ui' },
@@ -387,7 +387,7 @@ export const Components = {
   },
 
   polaroid: {
-    label: 'Foto polaroid', icon: '📸', cat: 'Románticos', size: [260, 320], accepts: ['image', 'gif'],
+    label: 'Foto polaroid', cat: 'Románticos', size: [260, 320], accepts: ['image', 'gif'],
     defaults: { props: { assetId: null, caption: 'Nuestro recuerdo', rotate: -3 }, styles: {} },
     schema: [
       asset('props.assetId', 'Foto', 'image'),
@@ -397,7 +397,7 @@ export const Components = {
   },
 
   floatingEmojis: {
-    label: 'Elementos flotantes', icon: '🎈', cat: 'Románticos', size: [640, 420],
+    label: 'Elementos flotantes', cat: 'Románticos', size: [640, 420],
     defaults: { props: { emojis: '💖, 🌹, ✨', count: 14, speed: 1 }, styles: {} },
     schema: [
       text('props.emojis', 'Emojis (separados por coma)'),
@@ -407,7 +407,7 @@ export const Components = {
   },
 
   heart3d: {
-    label: 'Corazón 3D', icon: '💎', cat: 'Románticos', size: [340, 320],
+    label: 'Corazón 3D', cat: 'Románticos', size: [340, 320],
     defaults: {
       props: { color: '#e11d48', autoRotate: true, rotateSpeed: 1, metal: 0.35, cameraZ: 4 },
       styles: {},
@@ -422,7 +422,7 @@ export const Components = {
   },
 
   photo3d: {
-    label: 'Foto con profundidad 3D', icon: '🖼', cat: 'Románticos', size: [360, 280], accepts: ['image'],
+    label: 'Foto con profundidad 3D', cat: 'Románticos', size: [360, 280], accepts: ['image'],
     defaults: { props: { assetId: null, depth: 1 }, styles: {} },
     schema: [
       asset('props.assetId', 'Foto', 'image'),
@@ -431,7 +431,7 @@ export const Components = {
   },
 
   gradientBg: {
-    label: 'Gradiente animado', icon: '🌈', cat: 'Románticos', size: [640, 420],
+    label: 'Gradiente animado', cat: 'Románticos', size: [640, 420],
     defaults: {
       props: { colors: '#ec4899, #8b5cf6, #38bdf8, #f43f5e', speed: 8 },
       styles: { radius: 0 },
@@ -445,7 +445,7 @@ export const Components = {
 
   /* ── Extensión con código propio ────────────────────── */
   htmlEmbed: {
-    label: 'Página HTML importada', icon: '🌐', cat: 'Avanzados', size: [480, 360], accepts: ['html'],
+    label: 'Página HTML importada', cat: 'Avanzados', size: [480, 360], accepts: ['html'],
     defaults: {
       props: { assetId: null, interactive: true, viewWidth: 1280, liveInEditor: false },
       styles: { radius: 14, shadow: 'suave' },
@@ -460,7 +460,7 @@ export const Components = {
   },
 
   custom3D: {
-    label: '3D personalizado', icon: '🧊', cat: 'Avanzados', size: [420, 340],
+    label: '3D personalizado', cat: 'Avanzados', size: [420, 340],
     defaults: {
       props: {
         code: `// Escena Three.js lista: THREE, scene, camera, pivot, renderer, GLTFLoader.
@@ -481,7 +481,7 @@ return (dt) => { mesh.rotation.x += dt * .6; mesh.rotation.y += dt * .4; };`,
   },
 
   customHTML: {
-    label: 'Código personalizado', icon: '</>', cat: 'Avanzados', size: [420, 300],
+    label: 'Código personalizado', cat: 'Avanzados', size: [420, 300],
     defaults: {
       props: {
         html: '<div class="mi-efecto">Mi componente ✨</div>',
@@ -508,7 +508,7 @@ const NO_DEFAULT_ANIM = new Set(['section', 'container', 'particles', 'gradientB
 /** Entradas por defecto según el tipo (todo nace con vida). */
 const DEFAULT_PRESET = {
   image: 'zoomIn', gif: 'zoomIn', video: 'zoomIn', polaroid: 'caida', photo3d: 'zoomIn',
-  heart3d: 'zoomIn', model3d: 'zoomIn', icon: 'tada', shape: 'zoomIn',
+  heart3d: 'zoomIn', model3d: 'zoomIn', shape: 'zoomIn',
   heartButton: 'latido', button: 'fadeInUp', loveLetter: 'zoomIn',
 };
 

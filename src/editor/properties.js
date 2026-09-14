@@ -9,11 +9,12 @@
  * Animación · Eventos · Responsive.
  * ============================================================ */
 
-import { el, getPath, setPath, debounce } from '../utils/helpers.js';
+import { el, getPath, setPath, debounce, showSnack, poner } from '../utils/helpers.js';
 import { ic } from './icons.js';
 import { openColorPicker } from './colorPicker.js';
 import { componentDef, FONTS } from '../components/registry.js';
 import { PRESET_NAMES, EXIT_PRESET_NAMES, TRIGGERS, EASINGS, playAnimation, playExitAnimation } from '../animations/engine.js';
+import { makeSheetDismissable } from './bottomSheet.js';
 
 /** Gradientes rápidos para cualquier campo de fondo. */
 const GRADIENT_SWATCHES = [
@@ -61,6 +62,59 @@ const EVENT_ACTIONS = {
   runJS: { label: 'Ejecutar JavaScript', targetKind: 'none', valueLabel: 'código JS (recibe `el`)' },
 };
 
+/* ══ PERFILES POR TIPO DE ELEMENTO ═══════════════════════
+ *
+ * El inspector enseñaba las MISMAS ocho secciones para todo: daba
+ * igual que tuvieras una foto o un texto, salían filtros de imagen,
+ * tipografía, animaciones de salida y lógica de eventos, todo junto.
+ * Encontrar lo que buscabas era recorrer una lista.
+ *
+ * Ahora cada familia declara qué se ve arriba (`titulo` de su sección
+ * propia) y qué acción rápida tiene sentido para ella. Lo que no es
+ * de uso diario —animación, efectos, filtros, lógica— se va a «Más
+ * opciones», un panel secundario que se abre cuando hace falta.
+ */
+const FAMILIAS = {
+  imagen: {
+    tipos: ['image', 'gif', 'polaroid', 'photo3d', 'gallery'],
+    titulo: 'La imagen', icono: 'image',
+    rapida: { icono: 'cambiar', texto: 'Cambiar', campo: 'props.assetId' },
+  },
+  texto: {
+    tipos: ['text', 'typewriter', 'button', 'navButton'],
+    titulo: 'El texto', icono: 'type',
+    rapida: { icono: 'type', texto: 'Escribir', campo: 'props.text' },
+  },
+  forma: {
+    tipos: ['shape', 'divider', 'icon', 'container', 'section'],
+    titulo: 'La forma', icono: 'diamond',
+    rapida: { icono: 'paleta', texto: 'Color', campo: 'styles.background' },
+  },
+  medios: {
+    tipos: ['video', 'audio', 'musicPlayer'],
+    titulo: 'La reproducción', icono: 'play',
+    rapida: { icono: 'cambiar', texto: 'Cambiar', campo: 'props.assetId' },
+  },
+  fondo: {
+    tipos: ['particles', 'gradientBg', 'floatingEmojis'],
+    titulo: 'El fondo', icono: 'sparkles',
+    rapida: { icono: 'paleta', texto: 'Color', campo: 'props.color' },
+  },
+  romantico: {
+    tipos: ['loveLetter', 'timeline', 'hiddenMessage', 'heartButton', 'countdown', 'heart3d'],
+    titulo: 'El detalle', icono: 'heart',
+    rapida: null,
+  },
+};
+
+/** Qué familia es un tipo de componente (con reserva genérica). */
+function familiaDe(tipo) {
+  for (const [nombre, f] of Object.entries(FAMILIAS)) {
+    if (f.tipos.includes(tipo)) return { nombre, ...f };
+  }
+  return { nombre: 'otros', titulo: 'Ajustes', icono: 'sliders', rapida: null };
+}
+
 export class PropertiesPanel {
   constructor(store, assets, view) {
     this.store = store;
@@ -86,7 +140,7 @@ export class PropertiesPanel {
   }
 
   #renderEmpty() {
-    this.root.append(
+    poner(this.root, 
       el('h3', { class: 'props-title', text: 'Proyecto' }),
       // Todo en tarjetas, igual que cuando hay algo seleccionado: el
       // panel mantiene el mismo ritmo tenga o no selección.
@@ -127,38 +181,132 @@ export class PropertiesPanel {
     );
   }
 
+  /**
+   * SELECCIÓN MÚLTIPLE.
+   *
+   * Con varias piezas cambian las herramientas: ya no interesa el
+   * ancho de ninguna en concreto, interesa cómo se colocan ENTRE
+   * ELLAS. Antes esto eran cinco flechas de teclado (⇤ ⇹ ⇥ ⤒ ⇕)
+   * haciendo de botones y nada más.
+   */
   #renderMulti(nodes) {
-    this.root.append(
-      el('h3', { class: 'props-title', text: `${nodes.length} elementos` }),
-      this.#scaleSlider(nodes[0]),
-      el('div', { class: 'btn-row' }, [
-        ['left', '⇤'], ['centerX', '⇹'], ['right', '⇥'], ['top', '⤒'], ['centerY', '⇕'],
-      ].map(([mode, label]) => el('button', { class: 'btn', text: label, title: `Alinear ${mode}`, onclick: () => this.store.alignSelection(mode) }))),
-      el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', html: `${ic('duplicate')}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes() }),
-        el('button', { class: 'btn danger', html: `${ic('trash')}<span>Eliminar</span>`, onclick: () => this.store.removeNodes() }),
+    const agrupadas = nodes.filter((n) => n.groupId).length;
+    const todasJuntas = agrupadas === nodes.length && nodes.length > 1
+      && new Set(nodes.map((n) => n.groupId)).size === 1;
+
+    const alinear = (modo, icono, texto) => el('button', {
+      class: 'btn btn-ic', html: ic(icono), title: texto, 'aria-label': texto,
+      onclick: () => this.store.alignSelection(modo),
+    });
+    const repartir = (eje, icono, texto) => el('button', {
+      class: `btn btn-ic${nodes.length < 3 ? ' apagado' : ''}`,
+      html: ic(icono), title: nodes.length < 3 ? `${texto} — hacen falta 3 o más` : texto,
+      disabled: nodes.length < 3 ? 'true' : null,
+      onclick: () => this.store.distributeSelection(eje),
+    });
+
+    poner(this.root, 
+      el('div', { class: 'props-cabecera' }, [
+        el('span', { class: 'props-tipo fam-multi', html: ic('agrupar') }),
+        el('h3', { class: 'props-title', text: `${nodes.length} piezas` }),
+      ]),
+      todasJuntas ? el('div', { class: 'props-estados' }, [
+        el('span', { class: 'estado junta', html: `${ic('agrupar')}<span>Agrupadas</span>` }),
+      ]) : null,
+
+      el('div', { class: 'acciones-rapidas' }, [
+        todasJuntas
+          ? this.#accion('desagrupar', 'Separar', () => this.store.ungroupSelection(), true)
+          : this.#accion('agrupar', 'Agrupar', () => {
+            this.store.groupSelection();
+            showSnack('Ahora se mueven juntas');
+          }),
+        this.#accion('duplicate', 'Duplicar', () => this.store.duplicateNodes()),
+        this.#accion('front', 'Al frente', () => nodes.forEach((n) => this.store.bringToFront(n.id))),
+        this.#accion('back', 'Al fondo', () => [...nodes].reverse().forEach((n) => this.store.sendToBack(n.id))),
+        this.#accion('trash', 'Eliminar', () => this.store.removeNodes(), false, true),
+      ]),
+
+      this.#section('Colocarlas', [
+        el('p', { class: 'panel-hint', text: 'Se alinean entre ellas, respecto a la caja que las envuelve.' }),
+        el('div', { class: 'btn-row' }, [
+          alinear('left', 'alinIzq', 'Pegar a la izquierda'),
+          alinear('centerX', 'alinCentroX', 'Centrar en horizontal'),
+          alinear('right', 'alinDer', 'Pegar a la derecha'),
+          repartir('x', 'repartirX', 'Repartir en horizontal'),
+        ]),
+        el('div', { class: 'btn-row' }, [
+          alinear('top', 'alinArriba', 'Pegar arriba'),
+          alinear('centerY', 'alinCentroY', 'Centrar en vertical'),
+          alinear('bottom', 'alinAbajo', 'Pegar abajo'),
+          repartir('y', 'repartirY', 'Repartir en vertical'),
+        ]),
+      ]),
+
+      this.#section('Tamaño del conjunto', [
+        el('p', { class: 'panel-hint', text: 'Crecen todas a la vez y la distancia entre ellas también: la composición no se desarma.' }),
+        this.#scaleSlider(nodes[0]),
       ]),
     );
   }
 
+  /**
+   * INSPECTOR CONTEXTUAL.
+   *
+   * Antes esto pintaba las MISMAS ocho secciones para todo: daba
+   * igual que hubieras tocado una foto o un texto, salían filtros de
+   * imagen, tipografía, animación de salida y lógica de eventos, uno
+   * detrás de otro. Encontrar lo tuyo era recorrer la lista entera.
+   *
+   * Ahora arriba va SOLO lo propio del elemento y su tamaño; lo que
+   * no se toca todos los días vive en «Más opciones». Nada se ha
+   * perdido: ha cambiado de sitio.
+   */
   #renderNode(node) {
-    const frame = this.store.frame(node);
     const def = componentDef(node.type);
+    const familia = familiaDe(node.type);
 
-    this.root.append(
-      el('h3', { class: 'props-title' }, [
+    /* ── Identidad y estado ─────────────────────────────── */
+    const estados = [];
+    if (node.locked) estados.push(['fija', 'lock', 'Bloqueada']);
+    if (node.hidden) estados.push(['oculta', 'eyeOff', 'Oculta']);
+    if (this.store.device !== 'desktop') {
+      estados.push(['aparte', 'mobile', `Solo en ${this.store.device === 'tablet' ? 'Tablet' : 'Móvil'}`]);
+    }
+
+    poner(this.root, 
+      el('div', { class: 'props-cabecera' }, [
+        el('span', { class: `props-tipo fam-${familia.nombre}`, html: ic(familia.icono), title: def.label }),
         el('input', {
-          class: 'input name-input', value: node.name,
+          class: 'input name-input', value: node.name, 'aria-label': 'Nombre del elemento',
           onchange: (e) => this.store.updateNode(node.id, 'root', { name: e.target.value }),
         }),
       ]),
-      el('p', { class: 'device-note', text: this.store.device === 'desktop' ? 'Editando los estilos base' : `Ajuste solo para ${this.store.device === 'tablet' ? 'Tablet' : 'Móvil'}` }),
+      estados.length
+        ? el('div', { class: 'props-estados' }, estados.map(([cls, icono, texto]) =>
+          el('span', { class: `estado ${cls}`, html: `${ic(icono)}<span>${texto}</span>` })))
+        : null,
     );
 
-    /* Posición y tamaño */
+    /* ── Acciones rápidas: lo de siempre, siempre a mano ── */
+    poner(this.root, el('div', { class: 'acciones-rapidas' }, [
+      this.#accion('duplicate', 'Duplicar', () => this.store.duplicateNodes([node.id])),
+      this.#accion('front', 'Al frente', () => this.store.bringToFront(node.id)),
+      this.#accion('back', 'Al fondo', () => this.store.sendToBack(node.id)),
+      this.#accion(node.locked ? 'lock' : 'unlock', node.locked ? 'Soltar' : 'Fijar',
+        () => this.store.toggleFlag(node.id, 'locked'), node.locked),
+      this.#accion('trash', 'Eliminar', () => this.store.removeNodes([node.id]), false, true),
+    ]));
+
+    /* ── 1. Lo propio del elemento, primero y abierto ───── */
+    const fields = def.schema.map((field) => this.#renderSchemaField(node, field)).filter(Boolean);
+    if (fields.length) poner(this.root, this.#section(familia.titulo, fields));
+
+    /* ── 2. Tamaño y posición ───────────────────────────── */
+    const frame = this.store.frame(node);
     const grid = el('div', { class: 'frame-grid' });
     for (const [key, label] of [['x', 'X'], ['y', 'Y'], ['w', 'Ancho'], ['h', 'Alto'], ['rotation', 'Giro °'], ['scale', 'Escala'], ['opacity', 'Opacidad']]) {
-      grid.append(this.#field(label, el('input', {
+      poner(grid, this.#field(label, el('input', {
         class: 'input', type: 'number', value: Math.round((frame[key] ?? 0) * 100) / 100,
         step: key === 'scale' || key === 'opacity' ? 0.05 : 1,
         onchange: (e) => {
@@ -167,165 +315,246 @@ export class PropertiesPanel {
         },
       })));
     }
-    this.root.append(this.#section('Posición y tamaño', [
+    poner(this.root, this.#section('Tamaño y posición', [
       this.#scaleSlider(node),
       grid,
       this.store.device !== 'desktop'
         ? el('button', {
-            class: 'btn block', text: '↺ Quitar override de este dispositivo',
+            class: 'btn block', html: `${ic('undo')}<span>Quitar el ajuste de este tamaño</span>`,
             onclick: () => { this.store.snapshot(); this.store.clearResponsiveOverride(node); this.store.commit(); },
           })
         : null,
     ]));
 
-    /* Propiedades del componente (desde el schema) */
-    const fields = def.schema.map((field) => this.#renderSchemaField(node, field)).filter(Boolean);
-    this.root.append(this.#section(def.label, fields));
-
-    /* Animación */
-    const anim = node.animation;
-    this.root.append(this.#section('Animación', [
-      this.#field('Preset', this.#select(PRESET_NAMES, anim.preset, (v) => this.#updateAnim(node, { preset: v }))),
-      this.#field('Disparador', this.#select(Object.keys(TRIGGERS), anim.trigger, (v) => this.#updateAnim(node, { trigger: v }), (k) => TRIGGERS[k])),
-      this.#field('Duración (ms)', el('input', { class: 'input', type: 'number', value: anim.duration, min: 50, step: 50, onchange: (e) => this.#updateAnim(node, { duration: +e.target.value }) })),
-      this.#field('Delay (ms)', el('input', { class: 'input', type: 'number', value: anim.delay, min: 0, step: 50, onchange: (e) => this.#updateAnim(node, { delay: +e.target.value }) })),
-      this.#field('Curva', this.#select(EASINGS, anim.easing, (v) => this.#updateAnim(node, { easing: v }))),
-      this.#check('Repetir en bucle', anim.loop, (v) => this.#updateAnim(node, { loop: v })),
-      this.#field('Animación CSS propia (sobrescribe el preset)', el('input', {
-        class: 'input code', value: anim.custom || '', placeholder: 'miAnim 2s ease infinite',
-        title: 'Define @keyframes miAnim {...} en el CSS global y úsala aquí',
-        onchange: (e) => this.#updateAnim(node, { custom: e.target.value.trim() }),
-      })),
-      el('button', {
-        class: 'btn block', text: '▶ Previsualizar animación',
-        onclick: () => {
-          const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
-          if (elem) playAnimation(elem, { ...node.animation, loop: false });
-        },
-      }),
-    ]));
-
-    /* Animación de SALIDA (al ocultarse mediante acciones) */
-    const animOut = node.animationOut || { preset: 'fadeOut', duration: 450, easing: 'ease-in' };
-    this.root.append(this.#section('Animación de salida', [
-      el('p', { class: 'panel-hint', text: 'Se reproduce cuando otra acción oculta este elemento.' }),
-      this.#field('Preset', this.#select(EXIT_PRESET_NAMES, animOut.preset, (v) => this.store.updateNode(node.id, 'animationOut', { preset: v }))),
-      this.#field('Duración (ms)', el('input', {
-        class: 'input', type: 'number', value: animOut.duration, min: 100, step: 50,
-        onchange: (e) => this.store.updateNode(node.id, 'animationOut', { duration: +e.target.value }),
-      })),
-      el('button', {
-        class: 'btn block', text: '▶ Previsualizar salida',
-        onclick: () => {
-          const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
-          if (elem) {
-            const anim = playExitAnimation(elem, node.animationOut);
-            anim?.finished.then(() => anim.cancel()).catch(() => {});
-          }
-        },
-      }),
-    ]));
-
-    /* Efectos de interacción: presión, hover, parallax, tilt 3D */
-    this.root.append(this.#section('Efectos de interacción', [
-      this.#field('Al tocar / presionar', this.#select(
-        ['ninguno', 'ondas', 'escala', 'rebote', 'brillo', 'latido', 'sacudida', 'hundir', 'elevar', 'chispas'],
-        node.effects?.press || 'ninguno',
-        (v) => this.store.updateNode(node.id, 'effects', { press: v }),
-      )),
-      this.#field('Al pasar el cursor', this.#select(
-        ['ninguno', 'elevar', 'zoom', 'brillo', 'flotar', 'girar'],
-        node.effects?.hoverFx || 'ninguno',
-        (v) => this.store.updateNode(node.id, 'effects', { hoverFx: v }),
-      )),
-      this.#field('Parallax al hacer scroll (-1 a 1)', el('input', {
-        class: 'input', type: 'number', min: -1, max: 1, step: 0.05, value: node.effects?.parallax ?? 0,
-        onchange: (e) => this.store.updateNode(node.id, 'effects', { parallax: +e.target.value }),
-      })),
-      this.#check('Tilt 3D (sigue el dedo/cursor con profundidad)', !!node.effects?.tilt,
-        (v) => this.store.updateNode(node.id, 'effects', { tilt: v })),
-      el('p', { class: 'panel-hint', text: 'Se ven en Vista previa y en el sitio exportado.' }),
-    ]));
-
-    /* Avanzado (v10): mezcla, filtros, deformación, sombra propia, capa */
-    const st = (key, v) => this.store.updateNode(node.id, 'styles', { [key]: v });
-    const advNum = (label, key, min, max, step = 1, def = 0) => this.#field(label, el('input', {
-      class: 'input', type: 'number', min, max, step, value: node.styles?.[key] ?? def,
-      onchange: (e) => st(key, e.target.value === '' ? undefined : +e.target.value),
+    /* ── 3. Todo lo demás, a un toque ───────────────────── */
+    poner(this.root, el('button', {
+      class: 'btn block mas-opciones',
+      html: `${ic('sliders')}<span>Más opciones</span>${ic('down')}`,
+      title: 'Animación, efectos, filtros, lógica y alineación',
+      onclick: () => this.#abrirMasOpciones(node),
     }));
-    this.root.append(this.#section('Avanzado', [
-      this.#field('Mezcla con el fondo', this.#select(
-        ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'color-dodge', 'difference', 'exclusion', 'luminosity'],
-        node.styles?.blendMode || 'normal', (v) => st('blendMode', v),
-      )),
-      advNum('Desenfoque del elemento (px)', 'fxBlur', 0, 40),
-      advNum('Brillo (%)', 'fxBrightness', 0, 300, 5, 100),
-      advNum('Contraste (%)', 'fxContrast', 0, 300, 5, 100),
-      advNum('Saturación (%)', 'fxSaturate', 0, 300, 5, 100),
-      advNum('Tono (girar °)', 'fxHue', 0, 360, 5),
-      advNum('Escala de grises (%)', 'fxGrayscale', 0, 100, 5),
-      advNum('Sepia (%)', 'fxSepia', 0, 100, 5),
-      advNum('Inclinación X (°)', 'skewX', -45, 45),
-      advNum('Inclinación Y (°)', 'skewY', -45, 45),
-      this.#field('Sombra propia (CSS box-shadow)', el('input', {
-        class: 'input', type: 'text', value: node.styles?.shadowCustom || '',
-        placeholder: '0 12px 30px rgba(0,0,0,.4)',
-        onchange: (e) => st('shadowCustom', e.target.value || undefined),
-      })),
-      this.#field('Transformar texto', this.#select(
-        ['ninguna', 'uppercase', 'lowercase', 'capitalize'],
-        node.styles?.textTransform || 'ninguna', (v) => st('textTransform', v),
-      )),
-      this.#field('Desbordamiento', this.#select(
-        ['', 'hidden', 'visible'], node.styles?.overflow || '', (v) => st('overflow', v || undefined),
-      )),
-      advNum('Capa (z-index)', 'zIndex', -50, 200),
-    ], true));
+  }
 
-    /* Lógica visual: eventos con cadenas de acciones */
-    const eventRows = (node.events || []).map((event, i) => this.#renderEventRow(node, event, i));
-    this.root.append(this.#section('Lógica e interacción', [
-      el('p', { class: 'panel-hint', text: 'Conecta este elemento con otros: un toque puede mostrar una foto, cambiar el fondo, sonar una canción y lanzar corazones — todo en cadena.' }),
-      ...eventRows,
-      el('button', {
-        class: 'btn block', text: '+ Añadir evento',
-        onclick: () => {
-          this.store.snapshot();
-          node.events ||= [];
-          node.events.push({ on: 'click', actions: [{ action: 'burstHearts', target: '', value: '💖', delay: 0 }] });
-          this.store.commit();
-        },
-      }),
-    ]));
+  /** Botón de acción rápida: icono grande arriba, nombre debajo. */
+  #accion(icono, texto, alPulsar, activa = false, peligro = false) {
+    return el('button', {
+      class: `accion${activa ? ' activa' : ''}${peligro ? ' peligro' : ''}`,
+      title: texto,
+      onclick: alPulsar,
+    }, [
+      el('span', { class: 'accion-ic', html: ic(icono) }),
+      el('span', { class: 'accion-lbl', text: texto }),
+    ]);
+  }
 
-    /* Herramientas rápidas */
-    this.root.append(this.#section('Herramientas', [
+  /**
+   * PANEL SECUNDARIO — lo que no es de uso diario.
+   *
+   * Animación, salida, efectos, filtros avanzados, lógica de eventos
+   * y alineación. Se abre como hoja para no llenar el inspector de
+   * cosas que la mayoría de las veces sobran.
+   */
+  #abrirMasOpciones(node) {
+    document.querySelector('#mas-sheet')?.remove();
+    const cerrar = () => {
+      hoja.classList.remove('open');
+      document.body.classList.remove('sheet-open');
+      setTimeout(() => hoja.remove(), 340);
+    };
+    const hoja = el('aside', { id: 'mas-sheet', class: 'sheet' }, [
+      el('h3', { class: 'sheet-title', text: `Más opciones · ${node.name}` }),
+      el('div', { class: 'sheet-body' }, [
+        this.#secAnimacion(node),
+        this.#secSalida(node),
+        this.#secEfectos(node),
+        this.#secAvanzado(node),
+        this.#secLogica(node),
+        this.#secHerramientas(node),
+      ]),
+    ]);
+    document.body.append(hoja);
+    makeSheetDismissable(hoja, cerrar);
+    // Primero se avisa a las demás hojas, DESPUÉS se escucha el aviso:
+    // al revés, esta se cerraría a sí misma al nacer.
+    document.dispatchEvent(new CustomEvent('wb:close-sheets'));
+    document.addEventListener('wb:close-sheets', cerrar, { once: true });
+    requestAnimationFrame(() => {
+      hoja.classList.add('open');
+      document.body.classList.add('sheet-open');
+    });
+  }
+
+  /** Cómo entra el elemento en escena. */
+  #secAnimacion(node) {
+      /* Animación */
+      const anim = node.animation;
+      return this.#section('Cómo entra', [
+        this.#field('Preset', this.#select(PRESET_NAMES, anim.preset, (v) => this.#updateAnim(node, { preset: v }))),
+        this.#field('Disparador', this.#select(Object.keys(TRIGGERS), anim.trigger, (v) => this.#updateAnim(node, { trigger: v }), (k) => TRIGGERS[k])),
+        this.#field('Duración (ms)', el('input', { class: 'input', type: 'number', value: anim.duration, min: 50, step: 50, onchange: (e) => this.#updateAnim(node, { duration: +e.target.value }) })),
+        this.#field('Delay (ms)', el('input', { class: 'input', type: 'number', value: anim.delay, min: 0, step: 50, onchange: (e) => this.#updateAnim(node, { delay: +e.target.value }) })),
+        this.#field('Curva', this.#select(EASINGS, anim.easing, (v) => this.#updateAnim(node, { easing: v }))),
+        this.#check('Repetir en bucle', anim.loop, (v) => this.#updateAnim(node, { loop: v })),
+        this.#field('Animación CSS propia (sobrescribe el preset)', el('input', {
+          class: 'input code', value: anim.custom || '', placeholder: 'miAnim 2s ease infinite',
+          title: 'Define @keyframes miAnim {...} en el CSS global y úsala aquí',
+          onchange: (e) => this.#updateAnim(node, { custom: e.target.value.trim() }),
+        })),
+        el('button', {
+          class: 'btn block', html: `${ic('play')}<span>Ver cómo entra</span>`,
+          onclick: () => {
+            const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
+            if (elem) playAnimation(elem, { ...node.animation, loop: false });
+          },
+        }),
+      ]);
+  }
+
+  /** Cómo se va cuando una acción lo oculta. */
+  #secSalida(node) {
+      /* Animación de SALIDA (al ocultarse mediante acciones) */
+      const animOut = node.animationOut || { preset: 'fadeOut', duration: 450, easing: 'ease-in' };
+      return this.#section('Cómo se va', [
+        el('p', { class: 'panel-hint', text: 'Se reproduce cuando otra acción oculta este elemento.' }),
+        this.#field('Preset', this.#select(EXIT_PRESET_NAMES, animOut.preset, (v) => this.store.updateNode(node.id, 'animationOut', { preset: v }))),
+        this.#field('Duración (ms)', el('input', {
+          class: 'input', type: 'number', value: animOut.duration, min: 100, step: 50,
+          onchange: (e) => this.store.updateNode(node.id, 'animationOut', { duration: +e.target.value }),
+        })),
+        el('button', {
+          class: 'btn block', html: `${ic('play')}<span>Ver cómo se va</span>`,
+          onclick: () => {
+            const elem = this.view.artboard.querySelector(`[data-id="${node.id}"]`);
+            if (elem) {
+              const anim = playExitAnimation(elem, node.animationOut);
+              anim?.finished.then(() => anim.cancel()).catch(() => {});
+            }
+          },
+        }),
+      ]);
+  }
+
+  /** Respuesta al tocarlo, al pasar por encima y al hacer scroll. */
+  #secEfectos(node) {
+      /* Efectos de interacción: presión, hover, parallax, tilt 3D */
+      return this.#section('Respuesta al tacto', [
+        this.#field('Al tocar / presionar', this.#select(
+          ['ninguno', 'ondas', 'escala', 'rebote', 'brillo', 'latido', 'sacudida', 'hundir', 'elevar', 'chispas'],
+          node.effects?.press || 'ninguno',
+          (v) => this.store.updateNode(node.id, 'effects', { press: v }),
+        )),
+        this.#field('Al pasar el cursor', this.#select(
+          ['ninguno', 'elevar', 'zoom', 'brillo', 'flotar', 'girar'],
+          node.effects?.hoverFx || 'ninguno',
+          (v) => this.store.updateNode(node.id, 'effects', { hoverFx: v }),
+        )),
+        this.#field('Parallax al hacer scroll (-1 a 1)', el('input', {
+          class: 'input', type: 'number', min: -1, max: 1, step: 0.05, value: node.effects?.parallax ?? 0,
+          onchange: (e) => this.store.updateNode(node.id, 'effects', { parallax: +e.target.value }),
+        })),
+        this.#check('Tilt 3D (sigue el dedo/cursor con profundidad)', !!node.effects?.tilt,
+          (v) => this.store.updateNode(node.id, 'effects', { tilt: v })),
+        el('p', { class: 'panel-hint', text: 'Se ven en Vista previa y en el sitio exportado.' }),
+      ]);
+  }
+
+  /** Mezcla, filtros, deformación, sombra propia y capa. */
+  #secAvanzado(node) {
+      /* Avanzado (v10): mezcla, filtros, deformación, sombra propia, capa */
+      const st = (key, v) => this.store.updateNode(node.id, 'styles', { [key]: v });
+      const advNum = (label, key, min, max, step = 1, def = 0) => this.#field(label, el('input', {
+        class: 'input', type: 'number', min, max, step, value: node.styles?.[key] ?? def,
+        onchange: (e) => st(key, e.target.value === '' ? undefined : +e.target.value),
+      }));
+      return this.#section('Avanzado', [
+        this.#field('Mezcla con el fondo', this.#select(
+          ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'color-dodge', 'difference', 'exclusion', 'luminosity'],
+          node.styles?.blendMode || 'normal', (v) => st('blendMode', v),
+        )),
+        advNum('Desenfoque del elemento (px)', 'fxBlur', 0, 40),
+        advNum('Brillo (%)', 'fxBrightness', 0, 300, 5, 100),
+        advNum('Contraste (%)', 'fxContrast', 0, 300, 5, 100),
+        advNum('Saturación (%)', 'fxSaturate', 0, 300, 5, 100),
+        advNum('Tono (girar °)', 'fxHue', 0, 360, 5),
+        advNum('Escala de grises (%)', 'fxGrayscale', 0, 100, 5),
+        advNum('Sepia (%)', 'fxSepia', 0, 100, 5),
+        advNum('Inclinación X (°)', 'skewX', -45, 45),
+        advNum('Inclinación Y (°)', 'skewY', -45, 45),
+        this.#field('Sombra propia (CSS box-shadow)', el('input', {
+          class: 'input', type: 'text', value: node.styles?.shadowCustom || '',
+          placeholder: '0 12px 30px rgba(0,0,0,.4)',
+          onchange: (e) => st('shadowCustom', e.target.value || undefined),
+        })),
+        this.#field('Transformar texto', this.#select(
+          ['ninguna', 'uppercase', 'lowercase', 'capitalize'],
+          node.styles?.textTransform || 'ninguna', (v) => st('textTransform', v),
+        )),
+        this.#field('Desbordamiento', this.#select(
+          ['', 'hidden', 'visible'], node.styles?.overflow || '', (v) => st('overflow', v || undefined),
+        )),
+        advNum('Capa (z-index)', 'zIndex', -50, 200),
+      ], true);
+  }
+
+  /** Eventos encadenados: qué pasa cuando lo tocan. */
+  #secLogica(node) {
+      /* Lógica visual: eventos con cadenas de acciones */
+      const eventRows = (node.events || []).map((event, i) => this.#renderEventRow(node, event, i));
+      return this.#section('Qué pasa al tocarlo', [
+        el('p', { class: 'panel-hint', text: 'Conecta este elemento con otros: un toque puede mostrar una foto, cambiar el fondo, sonar una canción y lanzar corazones — todo en cadena.' }),
+        ...eventRows,
+        el('button', {
+          class: 'btn block', html: `${ic('plus')}<span>Añadir un evento</span>`,
+          onclick: () => {
+            this.store.snapshot();
+            node.events ||= [];
+            node.events.push({ on: 'click', actions: [{ action: 'burstHearts', target: '', value: '💖', delay: 0 }] });
+            this.store.commit();
+          },
+        }),
+      ]);
+  }
+
+  /**
+   * Alinear, repartir, ordenar en profundidad y copiar estilo.
+   *
+   * Aquí había flechas de teclado (⇤ ⇹ ⇥) y textos como
+   * «Distribuir ↔» haciendo de botones: se veían como lo que eran,
+   * caracteres sueltos. Ahora cada acción tiene su icono, dibujado
+   * con la guía y las cajas que se pegan a ella.
+   */
+  #secHerramientas(node) {
+    const alinear = (modo, icono, texto) => el('button', {
+      class: 'btn btn-ic', html: ic(icono), title: texto, 'aria-label': texto,
+      onclick: () => this.store.alignSelection(modo),
+    });
+    const repartir = (eje, icono, texto) => el('button', {
+      class: 'btn btn-ic', html: ic(icono), title: texto, 'aria-label': texto,
+      onclick: () => this.store.distributeSelection(eje),
+    });
+    return this.#section('Alinear y ordenar', [
+      el('p', { class: 'panel-hint', text: 'Con una sola pieza, alinea respecto a la página.' }),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn btn-ic', html: ic('back'), title: 'Alinear a la izquierda', onclick: () => this.store.alignSelection('left'), style: { transform: 'rotate(90deg)' } }),
-        el('button', { class: 'btn', text: 'Centrar', title: 'Centrar horizontalmente', onclick: () => this.store.alignSelection('centerX') }),
-        el('button', { class: 'btn btn-ic', html: ic('front'), title: 'Alinear a la derecha', onclick: () => this.store.alignSelection('right'), style: { transform: 'rotate(90deg)' } }),
-        el('button', { class: 'btn', text: 'Medio', title: 'Centrar verticalmente', onclick: () => this.store.alignSelection('centerY') }),
+        alinear('left', 'alinIzq', 'Pegar a la izquierda'),
+        alinear('centerX', 'alinCentroX', 'Centrar en horizontal'),
+        alinear('right', 'alinDer', 'Pegar a la derecha'),
+        repartir('x', 'repartirX', 'Repartir en horizontal (3 o más)'),
+      ]),
+      el('div', { class: 'btn-row' }, [
+        alinear('top', 'alinArriba', 'Pegar arriba'),
+        alinear('centerY', 'alinCentroY', 'Centrar en vertical'),
+        alinear('bottom', 'alinAbajo', 'Pegar abajo'),
+        repartir('y', 'repartirY', 'Repartir en vertical (3 o más)'),
       ]),
       el('div', { class: 'btn-row' }, [
         el('button', { class: 'btn', html: `${ic('front')}<span>Al frente</span>`, onclick: () => this.store.bringToFront(node.id) }),
         el('button', { class: 'btn', html: `${ic('back')}<span>Al fondo</span>`, onclick: () => this.store.sendToBack(node.id) }),
       ]),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn', text: 'Distribuir ↔', title: 'Espaciado uniforme horizontal (3+ seleccionados)', onclick: () => this.store.distributeSelection('x') }),
-        el('button', { class: 'btn', text: 'Distribuir ↕', title: 'Espaciado uniforme vertical (3+ seleccionados)', onclick: () => this.store.distributeSelection('y') }),
-      ]),
-      el('div', { class: 'btn-row' }, [
         el('button', { class: 'btn', html: `${ic('copy')}<span>Copiar estilo</span>`, title: 'Ctrl+Shift+C', onclick: () => this.store.copyStyle() }),
         el('button', { class: 'btn', html: `${ic('check')}<span>Pegar estilo</span>`, title: 'Ctrl+Shift+V', onclick: () => this.store.pasteStyle() }),
       ]),
-    ]));
-
-    /* Acciones */
-    this.root.append(el('div', { class: 'btn-row' }, [
-      el('button', { class: 'btn', html: `${ic('duplicate')}<span>Duplicar</span>`, onclick: () => this.store.duplicateNodes([node.id]) }),
-      el('button', { class: 'btn btn-ic', html: ic(node.locked ? 'lock' : 'unlock'), title: node.locked ? 'Desbloquear' : 'Bloquear', onclick: () => this.store.toggleFlag(node.id, 'locked') }),
-      el('button', { class: 'btn danger', html: `${ic('trash')}<span>Eliminar</span>`, onclick: () => this.store.removeNodes([node.id]) }),
-    ]));
+    ]);
   }
 
   /**
@@ -513,7 +742,7 @@ export class PropertiesPanel {
           el('select', {
             class: 'input',
             onchange: (e) => { if (e.target.value) commit([...ids, e.target.value]); e.target.value = ''; },
-          }, [el('option', { value: '', text: field.kind === 'audio' ? '+ añadir pista…' : '+ añadir imagen…' }), ...list.map((a) => el('option', { value: a.id, text: a.name }))]),
+          }, [el('option', { value: '', text: field.kind === 'audio' ? 'Añadir una pista…' : 'Añadir una imagen…' }), ...list.map((a) => el('option', { value: a.id, text: a.name }))]),
         ]));
       }
       default:
@@ -581,7 +810,7 @@ export class PropertiesPanel {
       ]),
       ...(event.actions || []).map(actionRow),
       el('button', {
-        class: 'btn block', text: '+ Encadenar acción',
+        class: 'btn block', html: `${ic('plus')}<span>Encadenar otra acción</span>`,
         onclick: () => { snap(); event.actions.push({ action: 'playSound', target: '', value: '', delay: 200 }); commit(); },
       }),
     ]);

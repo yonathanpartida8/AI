@@ -398,7 +398,8 @@ body.sheet-open .zoom-label, body.preview .zoom-label { opacity: 0; pointer-even
 
 #artboard .wb-node { position: absolute; user-select: none; }
 #artboard .wb-node.locked { cursor: not-allowed; }
-#artboard .wb-node.hidden-node { opacity: .25; }
+/* Oculta: se ve fantasma en el editor, invisible en la página real */
+#artboard .wb-node.hidden-node { opacity: .22; filter: grayscale(.6); }
 #artboard .wb-embed iframe { pointer-events: none; }
 #artboard .wb-placeholder {
   display: grid; place-items: center; gap: 4px; height: 100%; padding: 12px;
@@ -949,8 +950,75 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 
 /* ══ INSPECTOR ═══════════════════════════════════════════ */
 
-.props-title { padding: 16px 0 12px; font-size: var(--fs-lg); font-weight: 850; letter-spacing: -.025em; }
-.props-title .name-input { font-size: var(--fs-lg); font-weight: 850; min-height: 58px; }
+/* ── Cabecera del inspector ───────────────────────────────
+   Un azulejo con el icono de la FAMILIA (foto, texto, forma…) y el
+   nombre editable al lado. De un vistazo se sabe qué se tocó. */
+.props-cabecera { display: flex; align-items: center; gap: 11px; padding: 14px 0 10px; }
+.props-tipo {
+  flex: none; display: grid; place-items: center;
+  width: 48px; height: 48px; border-radius: 15px;
+  background: var(--rose-soft); color: var(--accent);
+}
+.props-tipo .ic { width: 25px; height: 25px; }
+/* Cada familia, su color: se reconoce sin leer */
+.props-tipo.fam-imagen, .props-tipo.fam-medios { background: var(--mint-soft); color: var(--mint-deep); }
+.props-tipo.fam-forma, .props-tipo.fam-fondo { background: rgba(155, 131, 204, .16); color: #8b6fc4; }
+.props-tipo.fam-multi { background: var(--accent-soft); color: var(--accent); }
+
+.props-title { flex: 1; min-width: 0; font-size: var(--fs-lg); font-weight: 850; letter-spacing: -.025em; }
+.props-cabecera .name-input {
+  flex: 1; min-width: 0;
+  font-size: var(--fs-md); font-weight: 800; min-height: 50px;
+  background: var(--surface);
+}
+
+/* ── Estados de la pieza ─────────────────────────────────── */
+.props-estados { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 750;
+  background: var(--surface-3); color: var(--text-soft);
+}
+.estado .ic { width: 16px; height: 16px; }
+.estado.fija { background: var(--rose-soft); color: var(--accent); }
+.estado.oculta { background: var(--surface-3); color: var(--text-dim); }
+.estado.aparte { background: var(--mint-soft); color: var(--mint-deep); }
+.estado.junta { background: var(--accent-soft); color: var(--accent); }
+
+/* ── Acciones rápidas: siempre a la vista ─────────────────
+   Duplicar, capas, fijar y eliminar no se esconden nunca: son lo
+   que más se usa y estaban enterradas al final del panel. */
+.acciones-rapidas {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px;
+  margin-bottom: 16px;
+}
+.accion {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 68px; padding: 9px 4px;
+  background: var(--surface); border-radius: var(--r-sm);
+  box-shadow: var(--shadow-xs);
+  color: var(--text-soft);
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast), color var(--t-fast);
+}
+.accion .ic { width: 22px; height: 22px; }
+.accion-lbl { font-size: 11px; font-weight: 750; letter-spacing: -.01em; }
+.accion:active { transform: scale(.92); background: var(--surface-3); }
+.accion.activa { background: var(--rose-soft); color: var(--accent); }
+.accion.peligro { color: var(--danger-deep); }
+.accion.peligro:active { background: var(--danger-soft); }
+
+/* ── Puerta a lo avanzado ────────────────────────────────── */
+.btn.mas-opciones {
+  justify-content: space-between; padding: 0 18px;
+  background: var(--surface); margin-top: 4px;
+}
+.btn.mas-opciones span { flex: 1; text-align: left; margin-left: 2px; }
+.btn.mas-opciones .ic:last-child { color: var(--text-dim); }
+
+/* Un control que no tiene sentido ahora no se esconde: se apaga.
+   Así no baila la interfaz al cambiar de selección. */
+.btn.apagado { opacity: .35; pointer-events: none; }
 
 .props-section {
   flex: none; margin-bottom: 12px;
@@ -1042,8 +1110,33 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
    alejar el lienzo. Se compensa con UN scale (composición pura), no
    recalculando cada medida. */
 
-.sel-box { position: absolute; pointer-events: none; outline: calc(2px * var(--izoom, 1)) solid var(--accent); }
-.sel-box.locked { outline-style: dashed; }
+/*
+ * ESTADOS DE UNA PIEZA, cada uno con su marca:
+ *   seleccionada → contorno rosa continuo
+ *   fijada       → contorno a trazos + candado en la esquina
+ *   oculta       → contorno apagado y la pieza translúcida
+ *   en edición   → contorno vivo y el resto de la interfaz se aparta
+ * No hay que adivinar por qué algo no se deja mover.
+ */
+.sel-box {
+  position: absolute; pointer-events: none;
+  outline: calc(2px * var(--izoom, 1)) solid var(--accent);
+}
+.sel-box.locked {
+  outline-style: dashed;
+  outline-color: var(--text-dim);
+}
+/* Candado en la esquina: dice POR QUÉ no se mueve */
+.sel-box.locked::after {
+  content: ''; position: absolute;
+  top: calc(-13px * var(--izoom, 1)); right: calc(-13px * var(--izoom, 1));
+  width: calc(26px * var(--izoom, 1)); height: calc(26px * var(--izoom, 1));
+  border-radius: 50%;
+  background: var(--text-soft) center / calc(15px * var(--izoom, 1)) no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10.5' rx='2.5'/%3E%3Cpath d='M8 10.5V7a4 4 0 0 1 8 0v3.5'/%3E%3C/svg%3E");
+  box-shadow: 0 calc(2px * var(--izoom, 1)) calc(6px * var(--izoom, 1)) rgba(58, 47, 53, .3);
+}
+.sel-box.oculto { outline-color: var(--text-dim); opacity: .6; }
 
 /* Anclaje SIN rotar: etiqueta y barra de edición siempre derechas */
 .sel-affix { position: absolute; pointer-events: none; }
@@ -1088,6 +1181,20 @@ textarea.input { min-height: 88px; padding: 12px 15px; resize: vertical; line-he
 }
 
 #marquee { position: absolute; border: 2px solid var(--accent); background: var(--accent-soft); pointer-events: none; z-index: 70; }
+
+/* ══ MODO EDICIÓN DE TEXTO ═══════════════════════════════
+   Mientras se escribe sobre el lienzo, el texto se marca y todo lo
+   demás se aparta: nada de barras tapando lo que estás tecleando. */
+
+.wb-node.en-edicion {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.wb-node.en-edicion * { cursor: text; }
+body.editando-texto #quickbar-host,
+body.editando-texto #fab-add { opacity: 0; pointer-events: none; }
+body.editando-texto .zoom-label { opacity: 0; }
 
 /* ══ BARRA DE EDICIÓN del elemento seleccionado ═════════
    Vive en un host FIJO fuera de #world: dentro heredaba la

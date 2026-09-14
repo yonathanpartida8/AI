@@ -10,7 +10,7 @@
  * - Capas: z-order, bloquear, ocultar, eliminar.
  * ============================================================ */
 
-import { el, formatBytes, debounce, showSnack } from '../utils/helpers.js';
+import { el, formatBytes, debounce, showSnack, poner } from '../utils/helpers.js';
 import { confirmar, preguntar, avisar } from '../utils/dialogo.js';
 import { makeSheetDismissable } from './bottomSheet.js';
 import { ic, typeIcon, BLOCK_ICONS } from './icons.js';
@@ -122,9 +122,9 @@ export class Panels {
         title: { componentes: 'Piezas y bloques', assets: 'Biblioteca de recursos', musica: 'Música del proyecto', paginas: 'Páginas y ajustes', capas: 'Capas de la página' }[name],
         onclick: () => { this.tab = name; this.render(); },
       })));
-    this.root.append(tabs);
+    poner(this.root, tabs);
     const body = el('div', { class: 'panel-body' });
-    this.root.append(body);
+    poner(this.root, body);
     ({
       componentes: () => this.#renderComponents(body),
       assets: () => this.#renderAssets(body),
@@ -148,7 +148,7 @@ export class Panels {
   #renderComponents(body) {
     // Buscador de piezas: filtra bloques, estilos y componentes al escribir
     const pq = (this.pieceQuery || '').toLowerCase();
-    body.append(el('input', {
+    poner(body, el('input', {
       class: 'input block', type: 'search', placeholder: 'Buscar pieza, bloque o estilo…', value: this.pieceQuery || '',
       oninput: (e) => { this.pieceQuery = e.target.value; this.render(); },
     }));
@@ -160,7 +160,7 @@ export class Panels {
        mirando la estética, no leyendo un nombre. */
     const themeEntries = Object.entries(THEMES).filter(([, t]) => match(t.label));
     if (themeEntries.length) {
-      body.append(el('h4', { class: 'panel-heading', text: 'Estilos de proyecto' }));
+      poner(body, el('h4', { class: 'panel-heading', text: 'Estilos de proyecto' }));
       const rejilla = el('div', { class: 'estilo-grid' });
       for (const [key, theme] of themeEntries) {
         const v = theme.vista || {};
@@ -190,13 +190,13 @@ export class Panels {
           ]),
         ]));
       }
-      body.append(rejilla);
+      poner(body, rejilla);
     }
 
     // Bloques prediseñados: secciones completas listas para usar
     const blockEntries = Object.entries(BLOCKS).filter(([, b]) => match(b.label));
     if (blockEntries.length) {
-      body.append(el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
+      poner(body, el('h4', { class: 'panel-heading', text: 'Bloques prediseñados' }));
       // En dos columnas: una fila por bloque dejaba media hoja vacía
       // y obligaba a recorrer una lista larguísima.
       const blockList = el('div', { class: 'block-grid' });
@@ -209,12 +209,12 @@ export class Panels {
           el('span', { class: 'block-lbl', text: block.label }),
         ]));
       }
-      body.append(blockList);
+      poner(body, blockList);
     }
 
     /* Tus carpetas de contenido: 3D y widgets propios */
     if (MY_3D.length) {
-      body.append(el('h4', { class: 'panel-heading', text: 'Mis 3D (contenido/3d)' }));
+      poner(body, el('h4', { class: 'panel-heading', text: 'Mis 3D (contenido/3d)' }));
       const grid3d = el('div', { class: 'palette-grid' });
       for (const item of MY_3D) {
         grid3d.append(el('div', {
@@ -224,10 +224,10 @@ export class Panels {
           }),
         }, [el('span', { class: 'palette-icon', html: ic('cube') }), el('span', { text: item.name })]));
       }
-      body.append(grid3d);
+      poner(body, grid3d);
     }
     if (MY_WIDGETS.length) {
-      body.append(el('h4', { class: 'panel-heading', text: 'Mis widgets (contenido/widgets)' }));
+      poner(body, el('h4', { class: 'panel-heading', text: 'Mis widgets (contenido/widgets)' }));
       const gridw = el('div', { class: 'palette-grid' });
       for (const widget of MY_WIDGETS) {
         gridw.append(el('div', {
@@ -237,13 +237,13 @@ export class Panels {
           }, { name: widget.name, props: { html: widget.html || '', css: widget.css || '', js: widget.js || '' } }),
         }, [el('span', { class: 'palette-icon', html: ic('wand') }), el('span', { text: widget.name })]));
       }
-      body.append(gridw);
+      poner(body, gridw);
     }
 
     for (const cat of CATEGORIES) {
       const entries = Object.entries(Components).filter(([, def]) => def.cat === cat && match(def.label));
       if (!entries.length) continue;
-      body.append(el('h4', { class: 'panel-heading', text: cat }));
+      poner(body, el('h4', { class: 'panel-heading', text: cat }));
       const grid = el('div', { class: 'palette-grid' });
       for (const [type, def] of entries) {
         const item = el('div', {
@@ -251,11 +251,11 @@ export class Panels {
           ondragstart: (e) => e.dataTransfer.setData('application/x-wb-component', type),
           onclick: () => this.#addAtCenter(type),
         }, [el('span', { class: 'palette-icon', html: typeIcon(type) }), el('span', { text: def.label })]);
-        grid.append(item);
+        poner(grid, item);
       }
-      body.append(grid);
+      poner(body, grid);
     }
-    body.append(el('p', { class: 'panel-hint', text: 'También puedes arrastrar archivos de tu galería directamente sobre el lienzo.' }));
+    poner(body, el('p', { class: 'panel-hint', text: 'También puedes arrastrar archivos de tu galería directamente sobre el lienzo.' }));
   }
 
   /** Aplica un ESTILO DE PROYECTO: fondo de página + portada temática. */
@@ -360,7 +360,7 @@ export class Panels {
     ]);
 
     const total = this.assets.list({}).length;
-    body.append(
+    poner(body, 
       input,
       el('div', { class: 'btn-row' }, [
         el('button', {
@@ -395,9 +395,9 @@ export class Panels {
 
     // La biblioteca, lo primero que se ve
     this.assetGrid = el('div', { class: 'asset-grid' });
-    body.append(this.assetGrid);
+    poner(body, this.assetGrid);
     this.#renderAssetGrid();
-    body.append(
+    poner(body, 
       total ? el('p', { class: 'panel-hint', text: `${total} recurso${total === 1 ? '' : 's'} en el proyecto. Toca uno para usarlo; arrástralo para colocarlo donde quieras.` })
         : el('p', { class: 'panel-hint', text: 'Arrastra archivos de tu galería directamente sobre el lienzo, o usa los botones de arriba.' }),
       onlineBlock,
@@ -427,7 +427,7 @@ export class Panels {
     grid.innerHTML = '';
     const list = this.assets.list(this.assetFilter);
     if (!list.length) {
-      grid.append(el('p', {
+      poner(grid, el('p', {
         class: 'panel-hint',
         text: this.assetFilter.query || this.assetFilter.kind
           ? 'Nada con ese filtro. Prueba con "Todo".'
@@ -449,7 +449,7 @@ export class Panels {
     for (const [carpeta, recursos] of carpetas) {
       if (carpetas.size > 1) {
         const nombre = NOMBRE_CARPETA[carpeta] || carpeta;
-        grid.append(el('h5', { class: 'asset-carpeta', text: `${nombre} · ${recursos.length}` }));
+        poner(grid, el('h5', { class: 'asset-carpeta', text: `${nombre} · ${recursos.length}` }));
       }
       for (const asset of recursos) {
         const kind = asset.kind;
@@ -465,7 +465,7 @@ export class Panels {
             ? el('img', { src: asset.data, class: 'asset-thumb', draggable: 'false', loading: 'lazy', decoding: 'async', onerror: roto })
             : el('div', { class: 'asset-thumb kind-icon', html: ic(ICONO_TIPO[kind] || 'file') });
 
-        grid.append(el('div', {
+        poner(grid, el('div', {
           class: `asset-card${asset.remote ? ' remote' : ''}${usados.has(asset.id) ? ' en-uso' : ''}`,
           draggable: 'true',
           ondragstart: (e) => e.dataTransfer.setData('application/x-wb-asset', asset.id),
@@ -655,7 +655,7 @@ export class Panels {
 
   #renderMusic(body) {
     // El contenido primero; la explicación, al final y en corto.
-    body.append(el('h4', { class: 'panel-heading', text: 'Tus canciones' }));
+    poner(body, el('h4', { class: 'panel-heading', text: 'Tus canciones' }));
     if (!this.previewAudio) {
       this.previewAudio = new Audio();
       // listener único (los re-render del panel no lo duplican)
@@ -694,15 +694,15 @@ export class Panels {
           },
         }),
       ]);
-      list.append(fila);
+      poner(list, fila);
     });
-    body.append(list);
+    poner(body, list);
     this.#pintarPista(this.previewAudio.paused ? null : this.previewAudio.src);
-    body.append(el('p', { class: 'panel-hint', html: 'Cambia tus pistas en <b>src/config/musicLibrary.js</b>.' }));
+    poner(body, el('p', { class: 'panel-hint', html: 'Cambia tus pistas en <b>src/config/musicLibrary.js</b>.' }));
 
     // Pega una URL de audio directa (mp3/ogg/m4a…)
     const urlInput = el('input', { class: 'input', placeholder: 'https://…/cancion.mp3' });
-    body.append(
+    poner(body, 
       el('h4', { class: 'panel-heading', text: 'O pega una URL de audio' }),
       urlInput,
       el('p', { class: 'panel-hint', text: 'Sirve cualquier enlace que termine en el archivo de audio (mp3, ogg, m4a…), por ejemplo desde tu repositorio de GitHub.' }),
@@ -796,7 +796,7 @@ export class Panels {
 
   #renderPages(body) {
     const paginas = this.store.project.pages;
-    body.append(el('button', {
+    poner(body, el('button', {
       class: 'btn primary block', html: `${ic('plus')}<span>Nueva página</span>`,
       onclick: () => this.store.addPage(),
     }));
@@ -807,7 +807,7 @@ export class Panels {
       const active = page.id === this.store.pageId;
       const canDelete = paginas.length > 1;
       const piezas = (page.nodes || []).length;
-      list.append(enableSwipeDelete(el('div', {
+      poner(list, enableSwipeDelete(el('div', {
         class: `page-item${active ? ' active' : ''}`,
         onclick: () => this.store.setPage(page.id),
       }, [
@@ -843,8 +843,8 @@ export class Panels {
         else this.render(); // restaura la fila si se canceló
       }));
     });
-    body.append(list);
-    body.append(el('p', { class: 'panel-hint', text: 'Desliza una página a la izquierda para eliminarla.' }));
+    poner(body, list);
+    poner(body, el('p', { class: 'panel-hint', text: 'Desliza una página a la izquierda para eliminarla.' }));
 
     /* ── Color del editor ──────────────────────────────────
        El editor es SIEMPRE claro y pastel: aquí solo se decide qué
@@ -862,7 +862,7 @@ export class Panels {
       else { localStorage.removeItem('wb-palette'); delete document.body.dataset.palette; }
       this.render();
     };
-    body.append(
+    poner(body, 
       el('h4', { class: 'panel-heading', text: 'Color del editor' }),
       el('div', { class: 'tinte-row' }, PALETAS.map(([v, label, c1, c2]) => el('button', {
         class: `tinte${paletaActiva === v ? ' active' : ''}`,
@@ -894,7 +894,7 @@ export class Panels {
       this.store.commit();
       this.view.fit();
     };
-    body.append(
+    poner(body, 
       el('h4', { class: 'panel-heading', text: 'Proyecto y pantalla' }),
       this.#field(`Ancho del lienzo · ${DEVICES[this.store.device]?.label || 'Base'} (px)`, el('input', {
         class: 'input', type: 'number', min: 120, max: 3840, value: bps[this.store.device],
@@ -917,7 +917,7 @@ export class Panels {
 
     // Ajustes de la página activa
     const page = this.store.page;
-    body.append(
+    poner(body, 
       el('h4', { class: 'panel-heading', text: 'Página activa' }),
       this.#field('Altura (px)', el('input', {
         class: 'input', type: 'number', value: page.height, min: 200,
@@ -1013,10 +1013,10 @@ export class Panels {
   #renderLayers(body) {
     const nodes = this.store.pageNodes();
     if (!nodes.length) {
-      body.append(el('p', { class: 'panel-hint', text: 'La página está vacía. Añade piezas y dale vida.' }));
+      poner(body, el('p', { class: 'panel-hint', text: 'La página está vacía. Añade piezas y dale vida.' }));
       return;
     }
-    body.append(el('input', {
+    poner(body, el('input', {
       class: 'input block', type: 'search', placeholder: 'Buscar capa…', value: this.layerQuery || '',
       oninput: (e) => { this.layerQuery = e.target.value; this.render(); },
     }));
@@ -1025,7 +1025,7 @@ export class Panels {
 
     // De arriba (lo último en pintarse) hacia abajo
     const visibles = [...nodes].reverse().filter((n) => !q || n.name.toLowerCase().includes(q));
-    body.append(el('p', {
+    poner(body, el('p', {
       class: 'panel-hint',
       text: visibles.length === nodes.length
         ? `${nodes.length} capas · la de arriba es la que tapa a las demás`
@@ -1072,7 +1072,7 @@ export class Panels {
         showSnack(`"${node.name}" eliminada`, 'Deshacer', () => this.store.undo());
       });
     };
-    body.append(list);
+    poner(body, list);
     this.#porTandas(visibles, filaDeCapa, list);
   }
 

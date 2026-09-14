@@ -1051,6 +1051,108 @@ comportamiento.
 texto `"null"`. Todos los avisos sin botón llevaban un «null» pegado al
 final del mensaje.
 
+## v17 — La herramienta correcta en el momento correcto
+
+El inspector enseñaba las MISMAS ocho secciones para todo. Daba igual
+que hubieras tocado una foto o un texto: salían filtros de imagen,
+tipografía, animación de salida y lógica de eventos, uno detrás de
+otro. Encontrar lo tuyo era recorrer la lista entera.
+
+### Familias
+
+Cada tipo de componente pertenece a una familia, y la familia decide
+qué se ve y en qué orden:
+
+| familia | qué entra | acción propia |
+|---|---|---|
+| imagen | foto, GIF, polaroid, foto 3D, galería | **Cambiar** |
+| texto | texto, máquina de escribir, botones | **Escribir** |
+| forma | forma, separador, icono, contenedor, sección | **Color** |
+| medios | vídeo, audio, reproductor | **Cambiar** |
+| fondo | partículas, degradado, emojis flotantes | — |
+| romántico | carta, línea de tiempo, contador, corazón 3D | — |
+
+El inspector queda en tres alturas:
+
+1. **Cabecera** · azulejo con el icono de la familia (y su color), el
+   nombre editable y los estados que tenga: *fijada*, *oculta*,
+   *solo en Móvil*.
+2. **Acciones rápidas** · duplicar, al frente, al fondo, fijar y
+   eliminar, siempre a la vista. Antes estaban enterradas al final.
+3. **Lo propio del elemento**, abierto y primero, y **Tamaño y
+   posición** debajo.
+
+Todo lo demás —cómo entra, cómo se va, respuesta al tacto, filtros
+avanzados, qué pasa al tocarlo y alinear— vive detrás de **«Más
+opciones»**, una hoja secundaria. **No se ha perdido nada: ha
+cambiado de sitio.**
+
+### La barra del lienzo también es contextual
+
+Lo primero que ofrece ya no es siempre «Editar»: un texto se
+**escribe** (modo edición sobre el propio lienzo, con el resto de la
+interfaz apartándose), una foto se **cambia** (salta a la biblioteca
+con la pieza aún seleccionada) y una forma se **pinta**.
+
+Con **varias piezas** la barra cambia entera —agrupar, centrar,
+repartir, duplicar, eliminar— porque ahí no interesa el ancho de
+ninguna en concreto, interesa cómo se colocan entre ellas.
+
+### Alinear entre ellas, no a la página
+
+`alignSelection` alineaba SIEMPRE respecto a la página, así que
+«centrar» tres piezas las apilaba una encima de otra en mitad del
+lienzo. Ahora, con una pieza se alinea a la página y con varias entre
+ellas (respecto a la caja que las envuelve), que es lo que espera
+cualquiera que venga de un editor de verdad. De paso entró el modo
+`bottom`, que faltaba.
+
+### Agrupar sin tocar el modelo de datos
+
+El documento es plano a propósito (nodos con coordenadas absolutas), y
+anidar de verdad habría obligado a reescribir el renderer y a migrar
+los proyectos guardados. En su lugar, agrupar marca las piezas con un
+mismo `groupId`: `select()` expande el grupo, así que tocar cualquiera
+las selecciona todas y se mueven, escalan y alinean como una sola
+cosa. Desagrupar borra la marca. Sin migraciones y sin riesgo.
+
+### Estados que se leen sin adivinar
+
+| estado | cómo se ve |
+|---|---|
+| seleccionada | contorno rosa continuo |
+| fijada | contorno gris a trazos + **candado** en la esquina |
+| oculta | contorno apagado y la pieza en gris translúcido |
+| en edición | contorno vivo y el resto de la interfaz se aparta |
+
+### Lo que se quitó por parecer lo que era
+
+- Las flechas de teclado **⇤ ⇹ ⇥ ⤒ ⇕** haciendo de botones de
+  alineación, y los textos «Distribuir ↔», «▶ Previsualizar» y
+  «↺ Quitar override». Ahora cada acción tiene su icono dibujado: una
+  guía y las cajas que se pegan a ella.
+- **56 campos `icon:` con caracteres sueltos** (`◆`, `▢`, `⌨`, `⬡`…)
+  en el registro de componentes y bloques. Eran **dato muerto**: la
+  paleta usa el juego de iconos SVG desde hace versiones y nadie los
+  pintaba.
+- La jerga: «Lógica e interacción» pasó a **«Qué pasa al tocarlo»**,
+  «Efectos de interacción» a **«Respuesta al tacto»**, «Animación» y
+  «Animación de salida» a **«Cómo entra»** y **«Cómo se va»**.
+
+### El «null» otra vez, y esta vez de raíz
+
+`padre.append(a, null, b)` convierte el null en el TEXTO «null» y lo
+pinta. Ya había salido en los avisos; con el inspector contextual
+(lleno de `condición ? algo : null`) volvió a aparecer bajo el título
+de la selección múltiple.
+
+La solución no es acordarse: es `poner(padre, ...hijos)` en
+`utils/helpers.js`, que se salta lo vacío. Las 47 llamadas de riesgo
+usan ahora esa función, y una prueba recorre TODA la interfaz —cada
+panel, cada tipo de elemento, la selección múltiple y las hojas
+secundarias— buscando nodos de texto que digan «null», «undefined»,
+«NaN» u «[object Object]».
+
 ### Trampas aprendidas (para no repetirlas)
 
 - `overflow: hidden` en un hijo flexible **desactiva** la protección
@@ -1087,8 +1189,13 @@ final del mensaje.
 - El teclado virtual encoge el viewport VISUAL, no el de maqueta: todo
   lo que esté anclado con `position: fixed` al fondo se queda detrás.
   `visualViewport` es la única fuente fiable de cuánto ocupa.
-- `replaceChildren(x, null)` NO ignora el null: lo convierte en el
-  texto `"null"` y lo pega al contenido. Se filtra antes.
+- `replaceChildren(x, null)` y `append(x, null)` NO ignoran el null:
+  lo convierten en el TEXTO `"null"` y lo pintan. Para eso está
+  `poner()`, que se salta lo vacío — y una prueba que barre la
+  interfaz buscando «null» sueltos.
+- Un `replace` masivo sobre `body.append(` también pilla
+  `document.body.append(`. Los reemplazos automáticos se comprueban
+  con el bundler antes de dar nada por bueno.
 - `alert`, `confirm` y `prompt` bloquean el hilo entero: se paran las
   animaciones y el WebGL mientras están abiertos.
 - Descartar el clic que sigue a una pulsación larga con un testigo

@@ -75,6 +75,22 @@ export function el(tag, attrs = {}, children = []) {
 }
 
 /**
+ * Mete hijos en un padre SALTÁNDOSE los vacíos.
+ *
+ * `padre.append(a, null, b)` no ignora el null: lo convierte en el
+ * TEXTO "null" y lo pinta. Como media interfaz se construye con
+ * `condición ? algo : null`, cualquier descuido dejaba un "null"
+ * suelto en pantalla. Esta función lo hace imposible.
+ */
+export function poner(padre, ...hijos) {
+  for (const h of hijos.flat(Infinity)) {
+    if (h == null || h === false) continue;
+    padre.append(h instanceof Node ? h : document.createTextNode(h));
+  }
+  return padre;
+}
+
+/**
  * Snackbar del editor: aviso breve con acción opcional ("Deshacer").
  * Reutiliza un único elemento (pool) — mostrarlo mil veces no crea nodos.
  */
